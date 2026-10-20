@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { Observable, delay, of } from 'rxjs';
 import {
   AdminDashboardStats,
@@ -14,6 +14,7 @@ import {
   SystemUser,
   WorkflowStage,
 } from '../models/admin.model';
+import { AuthService } from './auth.service';
 import { EmployeeMockService } from './employee-mock.service';
 
 const CAPABILITIES = [
@@ -28,12 +29,14 @@ const CAPABILITIES = [
 ] as const;
 
 const ROLES: ExtendedRole[] = ['admin', 'hr', 'payroll', 'manager', 'employee', 'auditor'];
+const ADMIN_STORAGE_KEY = 'eyota.demo.admin.v1';
 
 @Injectable({ providedIn: 'root' })
 export class AdminMockService {
   private readonly workforce = inject(EmployeeMockService);
-  private readonly state = signal<AdminSystemState>(this.seedAdmin());
+  private readonly injector = inject(Injector);
   private seq = 5000;
+  private readonly state = signal<AdminSystemState>(this.loadOrSeedAdmin());
 
   readonly system = this.state.asReadonly();
   readonly policies = computed(() => this.workforce.workforce().policies);
@@ -146,6 +149,24 @@ export class AdminMockService {
   restoreDemoDefaults(): void {
     const policies = this.workforce.restoreDemoPolicies();
     this.audit('Restore demo defaults', 'Master Data', 'custom', policies.company.legalName);
+  }
+
+  /** Full frontend demo reset — workforce + admin + provisioned logins */
+  resetEntireDemoEnvironment(): void {
+    this.workforce.resetAllDemoData();
+    this.injector.get(AuthService).clearProvisionedUsers();
+    localStorage.removeItem(ADMIN_STORAGE_KEY);
+    this.seq = 5000;
+    this.state.set(this.seedAdmin());
+    this.persistAdmin();
+    this.audit('Full demo reset', 'System', 'custom state', 'packaged seed restored');
+  }
+
+  hasCapability(role: ExtendedRole, capability: string): boolean {
+    const cell = this.state().permissions.find(
+      (row) => row.role === role && row.capability === capability,
+    );
+    return cell?.allowed !== false;
   }
 
   updateWorkflows(workflows: WorkflowStage[]): void {
@@ -317,6 +338,37 @@ export class AdminMockService {
 
   private patch(updater: (s: AdminSystemState) => AdminSystemState): void {
     this.state.set(updater(this.state()));
+    this.persistAdmin();
+  }
+
+  private persistAdmin(): void {
+    try {
+      localStorage.setItem(
+        ADMIN_STORAGE_KEY,
+        JSON.stringify({ seq: this.seq, state: this.state() }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private loadOrSeedAdmin(): AdminSystemState {
+    try {
+      const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
+      if (!raw) {
+        return this.seedAdmin();
+      }
+      const parsed = JSON.parse(raw) as { seq?: number; state?: AdminSystemState };
+      if (!parsed.state?.users?.length) {
+        return this.seedAdmin();
+      }
+      if (typeof parsed.seq === 'number') {
+        this.seq = parsed.seq;
+      }
+      return parsed.state;
+    } catch {
+      return this.seedAdmin();
+    }
   }
 
   private seedAdmin(): AdminSystemState {

@@ -40,6 +40,19 @@ const MASTER_CHILDREN: Routes = [
     path: 'claims',
     loadComponent: () => import('./pages/claims/hr-claims').then((m) => m.HrClaimsPage),
   },
+  {
+    path: 'onboarding',
+    loadComponent: () =>
+      import('./pages/onboarding/hr-onboarding').then((m) => m.HrOnboardingPage),
+  },
+  {
+    path: 'assets',
+    loadComponent: () => import('./pages/assets/hr-assets').then((m) => m.HrAssetsPage),
+  },
+  {
+    path: 'reports',
+    loadComponent: () => import('./pages/reports/hr-reports').then((m) => m.HrReportsPage),
+  },
 ];
 
 export const HR_ROUTES: Routes = [

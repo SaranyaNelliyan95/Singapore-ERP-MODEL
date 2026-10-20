@@ -1,0 +1,111 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading onboarding pipeline…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">New hire onboarding</p>
+        <h1>Candidate pipeline</h1>
+        <p class="ess-sub">
+          MOM-aligned stages from offer through orientation. Activate completed candidates into the
+          live directory and optional ESS login.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Onboarding and logins are simulated only."
+    />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Active candidates ({{ candidates().length }})</h2>
+      </div>
+      @if (candidates().length === 0) {
+        <p class="empty">No onboarding candidates — add a new hire draft below.</p>
+      } @else {
+        <div class="queue">
+          @for (row of candidates(); track row.id) {
+            <article class="queue-card">
+              <div class="queue-main">
+                <strong>{{ row.id }} · {{ row.candidateName }}</strong>
+                <p>
+                  {{ row.role }} · {{ row.department }} · {{ row.employmentType }} · Start
+                  {{ formatDate(row.startDate) }}
+                </p>
+                <p class="meta-row">
+                  <app-status-badge [label]="row.stage" [tone]="stageTone(row.stage)" />
+                  <span>Checklist {{ row.checklistProgress }}%</span>
+                </p>
+                <div class="activate-row">
+                  <label class="check">
+                    <input
+                      type="checkbox"
+                      [checked]="optsFor(row.id).createLogin"
+                      (change)="patchOpts(row.id, { createLogin: $any($event.target).checked })"
+                    />
+                    <span>Create ESS login on activate</span>
+                  </label>
+                  <label>
+                    <span>Login email (optional)</span>
+                    <input
+                      type="email"
+                      placeholder="defaults to generated @eyota.sg"
+                      [value]="optsFor(row.id).email"
+                      (input)="patchOpts(row.id, { email: $any($event.target).value })"
+                    />
+                  </label>
+                </div>
+              </div>
+              <div class="hr-inline-actions">
+                @if (row.stage !== 'Completed') {
+                  <button type="button" class="ess-btn ghost" (click)="advance(row)">
+                    Advance stage
+                  </button>
+                }
+                <button type="button" class="ess-btn primary" (click)="activate(row)">
+                  Activate as employee
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Add new hire draft</h2>
+      </div>
+      <form class="ess-form hire-form" [formGroup]="hireForm" (ngSubmit)="submitHire()">
+        <label>
+          <span>Full name</span>
+          <input formControlName="fullName" />
+        </label>
+        <label>
+          <span>Role</span>
+          <input formControlName="role" />
+        </label>
+        <label>
+          <span>Department</span>
+          <input formControlName="department" />
+        </label>
+        <label>
+          <span>Pass type</span>
+          <select formControlName="employmentType">
+            @for (pass of passOptions; track pass) {
+              <option [value]="pass">{{ pass }}</option>
+            }
+          </select>
+        </label>
+        <label class="full">
+          <span>Start date</span>
+          <input type="date" formControlName="startDate" />
+        </label>
+        <div class="ess-actions full">
+          <button type="submit" class="ess-btn primary">Create onboarding draft</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

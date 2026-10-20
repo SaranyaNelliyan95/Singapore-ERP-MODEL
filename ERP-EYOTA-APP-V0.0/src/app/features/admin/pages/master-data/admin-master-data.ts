@@ -18,6 +18,7 @@ export class AdminMasterDataPage implements OnInit {
   readonly toast = inject(ToastService);
   readonly loading = signal(true);
   readonly restoreOpen = signal(false);
+  readonly fullResetOpen = signal(false);
   readonly policies = this.admin.policies;
 
   readonly leaveDraft = signal<LeavePolicy[]>([]);
@@ -75,6 +76,16 @@ export class AdminMasterDataPage implements OnInit {
     this.admin.restoreDemoDefaults();
     this.reloadDrafts();
     this.toast.success('Demo defaults restored', 'Master data reset to packaged Singapore sample policies.');
+  }
+
+  confirmFullReset(): void {
+    this.fullResetOpen.set(false);
+    this.admin.resetEntireDemoEnvironment();
+    this.reloadDrafts();
+    this.toast.success(
+      'Full demo reset',
+      'Workforce, admin config, and provisioned logins restored from packaged seed (localStorage cleared).',
+    );
   }
 
   updateLeaveRow(index: number, patch: Partial<LeavePolicy>): void {

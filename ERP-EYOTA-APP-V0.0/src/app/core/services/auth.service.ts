@@ -4,8 +4,11 @@ import { AuthUser, DemoAccount, LoginCredentials, UserRole } from '../models/use
 import { AdminMockService } from './admin-mock.service';
 
 const SESSION_KEY = 'eyota.hr.session';
+const PROVISIONED_USERS_KEY = 'eyota.demo.provisionedUsers.v1';
 
-const DEMO_USERS: (AuthUser & { password: string })[] = [
+type DemoLoginUser = AuthUser & { password: string };
+
+const SEED_DEMO_USERS: DemoLoginUser[] = [
   {
     id: 'u-emp-001',
     email: 'employee@eyota.sg',
@@ -38,6 +41,7 @@ const DEMO_USERS: (AuthUser & { password: string })[] = [
 export class AuthService {
   private readonly injector = inject(Injector);
   private readonly currentUserSignal = signal<AuthUser | null>(this.readSession());
+  private provisionedUsers: DemoLoginUser[] = this.readProvisionedUsers();
 
   readonly currentUser = this.currentUserSignal.asReadonly();
   readonly isAuthenticated = computed(() => this.currentUserSignal() !== null);
@@ -69,8 +73,47 @@ export class AuthService {
 
   constructor(private readonly router: Router) {}
 
+  /** HR-activated ESS login for a newly onboarded employee (demo only). */
+  registerDemoEmployee(input: {
+    email: string;
+    password: string;
+    displayName: string;
+    employeeId: string;
+  }): void {
+    const email = input.email.trim().toLowerCase();
+    const initials = input.displayName
+      .split(/\s+/)
+      .map((part) => part[0] ?? '')
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+    const user: DemoLoginUser = {
+      id: `u-emp-${input.employeeId}`,
+      email,
+      password: input.password,
+      displayName: input.displayName,
+      role: 'employee',
+      employeeId: input.employeeId,
+      avatarInitials: initials || 'NE',
+    };
+    this.provisionedUsers = [
+      user,
+      ...this.provisionedUsers.filter((row) => row.email.toLowerCase() !== email),
+    ];
+    this.persistProvisionedUsers();
+  }
+
+  clearProvisionedUsers(): void {
+    this.provisionedUsers = [];
+    localStorage.removeItem(PROVISIONED_USERS_KEY);
+  }
+
+  private allUsers(): DemoLoginUser[] {
+    return [...SEED_DEMO_USERS, ...this.provisionedUsers];
+  }
+
   login(credentials: LoginCredentials): { ok: boolean; error?: string } {
-    const match = DEMO_USERS.find(
+    const match = this.allUsers().find(
       (user) =>
         user.email.toLowerCase() === credentials.email.trim().toLowerCase() &&
         user.password === credentials.password,
@@ -131,6 +174,26 @@ export class AuthService {
     } catch {
       sessionStorage.removeItem(SESSION_KEY);
       return null;
+    }
+  }
+
+  private readProvisionedUsers(): DemoLoginUser[] {
+    try {
+      const raw = localStorage.getItem(PROVISIONED_USERS_KEY);
+      if (!raw) {
+        return [];
+      }
+      return JSON.parse(raw) as DemoLoginUser[];
+    } catch {
+      return [];
+    }
+  }
+
+  private persistProvisionedUsers(): void {
+    try {
+      localStorage.setItem(PROVISIONED_USERS_KEY, JSON.stringify(this.provisionedUsers));
+    } catch {
+      /* ignore */
     }
   }
 }

@@ -60,7 +60,4 @@ export class HrDashboardPage implements OnInit {
     this.toast.success('New hire drafted', `${candidate.candidateName} added to onboarding (mock).`);
   }
 
-  runPayrollHint(): void {
-    this.toast.success('Payroll hub', 'Open Payroll to authorize month-end (simulated).');
-  }
 }

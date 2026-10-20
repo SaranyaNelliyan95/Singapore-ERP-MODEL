@@ -43,6 +43,37 @@
 
     <section class="ess-panel">
       <div class="ess-panel-head">
+        <h2>Contact profile update requests</h2>
+      </div>
+      @if (pendingProfiles().length === 0) {
+        <p class="empty">No pending contact updates. Submit one from Employee → Profile to test sync.</p>
+      } @else {
+        <div class="queue">
+          @for (req of pendingProfiles(); track req.id) {
+            <div class="queue-row">
+              <div>
+                <strong>{{ hr.employeeName(req.employeeId) }} · {{ req.id }}</strong>
+                <p>
+                  {{ req.patch.personalEmail }} · {{ req.patch.mobile }} ·
+                  {{ req.patch.residentialAddress }}
+                </p>
+              </div>
+              <div class="hr-inline-actions">
+                <button type="button" class="ess-btn primary" (click)="decideProfile(req, true)">
+                  Approve &amp; update profile
+                </button>
+                <button type="button" class="ess-btn danger" (click)="decideProfile(req, false)">
+                  Reject
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
         <h2>Bank detail update requests</h2>
       </div>
       @if (pendingBanks().length === 0) {

@@ -47,6 +47,9 @@ export interface LeaveRequest {
   reason: string;
   status: RequestStatus;
   approver: string;
+  /** HR decision comment when rejected/approved */
+  hrComments?: string;
+  decidedOn?: string;
 }
 
 export interface ClaimRecord {
@@ -59,6 +62,8 @@ export interface ClaimRecord {
   remarks: string;
   status: RequestStatus;
   approverComments: string;
+  /** Simulated receipt attachment flag */
+  hasReceipt: boolean;
 }
 
 export interface PayslipRecord {
@@ -149,6 +154,26 @@ export interface BankUpdateRequest {
   note: string;
 }
 
+export type ContactPatch = Pick<
+  EmployeeProfile,
+  | 'personalEmail'
+  | 'mobile'
+  | 'residentialAddress'
+  | 'emergencyContactName'
+  | 'emergencyContactPhone'
+  | 'emergencyContactRelation'
+>;
+
+export interface ProfileUpdateRequest {
+  id: string;
+  employeeId: string;
+  submittedOn: string;
+  status: 'Pending HR' | 'Approved' | 'Rejected';
+  patch: ContactPatch;
+  note: string;
+  hrComments: string;
+}
+
 export interface ClockState {
   status: 'Checked out' | 'Checked in';
   checkIn: string | null;
@@ -170,6 +195,7 @@ export interface EmployeeWorkspace {
   training: TrainingRecord[];
   notifications: EmployeeNotification[];
   bankRequests: BankUpdateRequest[];
+  profileRequests: ProfileUpdateRequest[];
   clock: ClockState;
   costCentres: string[];
 }

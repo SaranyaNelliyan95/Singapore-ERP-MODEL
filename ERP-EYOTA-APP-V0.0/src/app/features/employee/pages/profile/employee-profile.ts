@@ -77,9 +77,16 @@ export class EmployeeProfilePage implements OnInit {
       this.toast.warning('Validation', 'Fix highlighted contact fields before saving.');
       return;
     }
-    this.employeeService.updateContact(this.contactForm.getRawValue());
+    const request = this.employeeService.submitProfileUpdate(
+      this.contactForm.getRawValue(),
+      'Employee-requested contact update',
+    );
     this.editing.set(false);
-    this.toast.success('Profile updated', 'Contact changes saved locally for HR verification (mock).');
+    this.patchContact(this.ws().profile);
+    this.toast.success(
+      'Update requested',
+      `${request.id} queued for HR verification — profile unchanged until approved.`,
+    );
   }
 
   openBankRequest(): void {

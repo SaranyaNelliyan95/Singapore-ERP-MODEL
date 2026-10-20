@@ -67,6 +67,9 @@ export function createDefaultSystemPolicies(): SystemPolicies {
       { moduleKey: 'payroll', label: 'Payroll & CPF / SDL', visible: true },
       { moduleKey: 'documents', label: 'Document & Bank Audit', visible: true },
       { moduleKey: 'claims', label: 'Claims Settlement', visible: true },
+      { moduleKey: 'onboarding', label: 'Onboarding', visible: true },
+      { moduleKey: 'assets', label: 'Assets & training', visible: true },
+      { moduleKey: 'reports', label: 'Reports / Workright', visible: true },
     ],
   };
 }

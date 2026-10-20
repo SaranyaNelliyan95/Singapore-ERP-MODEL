@@ -1,0 +1,76 @@
+@import '../../shared/hr-page.styles.css';
+
+.empty {
+  margin: 0;
+  color: #7a889c;
+}
+
+.queue {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.queue-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid #e5e9ef;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.queue-card p {
+  margin: 0.25rem 0 0;
+  color: #5b6b82;
+  font-size: 0.84rem;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.45rem !important;
+}
+
+.activate-row {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  max-width: 420px;
+}
+
+.activate-row label span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #445066;
+}
+
+.activate-row input[type='email'] {
+  width: 100%;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  padding: 0.45rem 0.65rem;
+  background: #fff;
+  font: inherit;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+  color: #243247;
+}
+
+.hire-form {
+  max-width: 720px;
+}
+
+@media (max-width: 800px) {
+  .queue-card {
+    flex-direction: column;
+  }
+}

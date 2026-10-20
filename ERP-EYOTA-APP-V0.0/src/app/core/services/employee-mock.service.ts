@@ -5,6 +5,8 @@ import {
   BankUpdateRequest,
   ClaimRecord,
   ClockState,
+  ContactPatch,
+  EmployeeAsset,
   EmployeeDocument,
   EmployeeNotification,
   EmployeeProfile,
@@ -13,6 +15,8 @@ import {
   LeaveRequest,
   PassAlert,
   PayslipRecord,
+  ProfileUpdateRequest,
+  TrainingRecord,
 } from '../models/employee.model';
 import {
   ComplianceWatchItem,
@@ -22,12 +26,15 @@ import {
   WorkforceState,
 } from '../models/hr.model';
 import { SystemPolicies } from '../models/admin.model';
-import { ClaimType, LeaveType, WorkLocation } from '../models/common.model';
+import { ClaimType, EmploymentPassType, LeaveType, WorkLocation } from '../models/common.model';
 import { AuthService } from './auth.service';
 import { createDefaultSystemPolicies } from './system-policies.defaults';
 import { daysUntil } from '../utils/singapore.utils';
 
 const DEMO_EMPLOYEE_ID = 'EY-1042';
+const WORKFORCE_STORAGE_KEY = 'eyota.demo.workforce.v1';
+/** Demo-only persistence — not production data storage */
+const DEMO_PERSISTENCE_NOTE = 'localStorage demo snapshot (frontend-only)';
 
 const DEFAULT_BALANCES = (): LeaveBalance[] => [
   { type: 'Annual', entitled: 18, used: 4, balance: 14, simulatedNote: 'Simulated annual sample' },
@@ -55,13 +62,8 @@ const DEFAULT_BALANCES = (): LeaveBalance[] => [
 @Injectable({ providedIn: 'root' })
 export class EmployeeMockService {
   private readonly auth = inject(AuthService);
-  private readonly store = signal<WorkforceState>(this.seedWorkforce());
   private seq = 200;
-  private readonly personalExtras = signal<{
-    assets: EmployeeWorkspace['assets'];
-    training: EmployeeWorkspace['training'];
-    notifications: EmployeeNotification[];
-  }>(this.seedPersonalExtras());
+  private readonly store = signal<WorkforceState>(this.loadOrSeedWorkforce());
 
   /** Full company store — HR + cross-role sync */
   readonly workforce = this.store.asReadonly();
@@ -73,6 +75,14 @@ export class EmployeeMockService {
     () => this.auth.currentUser()?.employeeId ?? DEMO_EMPLOYEE_ID,
   );
 
+  /** Safe demo reset — clears localStorage snapshot and re-seeds packaged data */
+  resetAllDemoData(): void {
+    localStorage.removeItem(WORKFORCE_STORAGE_KEY);
+    this.seq = 200;
+    this.store.set(this.seedWorkforce());
+    this.persist();
+  }
+
   getWorkspace(): Observable<EmployeeWorkspace> {
     return of(this.workspace()).pipe(delay(320));
   }
@@ -81,36 +91,35 @@ export class EmployeeMockService {
     return this.getWorkspace();
   }
 
-  updateContact(
-    patch: Pick<
-      EmployeeProfile,
-      | 'personalEmail'
-      | 'mobile'
-      | 'residentialAddress'
-      | 'emergencyContactName'
-      | 'emergencyContactPhone'
-      | 'emergencyContactRelation'
-    >,
-  ): void {
+  /** Submit contact changes for HR approval (does not mutate profile until approved). */
+  submitProfileUpdate(patch: ContactPatch, note: string): ProfileUpdateRequest {
     const id = this.requireEmployeeId();
-    this.mutate((state) => {
-      const profile = { ...state.profiles[id], ...patch };
-      return {
-        ...state,
-        profiles: { ...state.profiles, [id]: profile },
-        directory: state.directory.map((row) =>
-          row.employeeId === id
-            ? { ...row, mobile: patch.mobile ?? row.mobile }
-            : row,
-        ),
-      };
-    });
+    const request: ProfileUpdateRequest = {
+      id: `PR-${++this.seq}`,
+      employeeId: id,
+      submittedOn: new Date().toISOString(),
+      status: 'Pending HR',
+      patch,
+      note,
+      hrComments: '',
+    };
+    this.mutate((state) => ({
+      ...state,
+      profileRequests: [request, ...(state.profileRequests ?? [])],
+    }));
+    this.pushNotification(
+      id,
+      'System',
+      `${request.id} contact update submitted — awaiting HR verification.`,
+    );
+    return request;
   }
 
   submitBankUpdate(bankName: string, bankAccountNumber: string, note: string): BankUpdateRequest {
+    const id = this.requireEmployeeId();
     const request: BankUpdateRequest = {
       id: `BR-${++this.seq}`,
-      employeeId: this.requireEmployeeId(),
+      employeeId: id,
       bankName,
       bankAccountNumber,
       status: 'Pending HR',
@@ -121,6 +130,11 @@ export class EmployeeMockService {
       ...state,
       bankRequests: [request, ...state.bankRequests],
     }));
+    this.pushNotification(
+      id,
+      'System',
+      `${request.id} bank update queued for HR authorization.`,
+    );
     return request;
   }
 
@@ -232,8 +246,16 @@ export class EmployeeMockService {
     toDate: string;
     days: number;
     reason: string;
-  }): LeaveRequest {
+  }): LeaveRequest | { error: string } {
     const id = this.requireEmployeeId();
+    const holidays = new Set(this.store().policies.holidays.map((h) => h.date));
+    if (holidays.has(input.fromDate) || holidays.has(input.toDate)) {
+      return {
+        error:
+          'Selected dates include a Singapore public holiday from Admin Master Data. Choose another range (demo).',
+      };
+    }
+
     const profile = this.store().profiles[id];
     const request: LeaveRequest = {
       id: `LV-${++this.seq}`,
@@ -247,13 +269,10 @@ export class EmployeeMockService {
       approver: profile?.reportingManager ?? 'HR Manager',
     };
 
+    // Balance is reserved only on HR approval (Workflow B)
     this.mutate((state) => ({
       ...state,
       leaveRequests: [request, ...state.leaveRequests],
-      leaveBalances: {
-        ...state.leaveBalances,
-        [id]: this.adjustBalance(state.leaveBalances[id] ?? DEFAULT_BALANCES(), input.type, input.days, 'use'),
-      },
     }));
 
     this.pushNotification(id, 'Leave', `${request.id} submitted and pending HR approval.`);
@@ -274,16 +293,8 @@ export class EmployeeMockService {
       leaveRequests: state.leaveRequests.map((row) =>
         row.id === requestId ? { ...row, status: 'Cancelled' } : row,
       ),
-      leaveBalances: {
-        ...state.leaveBalances,
-        [id]: this.adjustBalance(
-          state.leaveBalances[id] ?? DEFAULT_BALANCES(),
-          target.type,
-          target.days,
-          'restore',
-        ),
-      },
     }));
+    this.pushNotification(id, 'Leave', `${requestId} cancelled by employee.`);
     return true;
   }
 
@@ -293,10 +304,19 @@ export class EmployeeMockService {
     amountSgd: number;
     costCentre: string;
     remarks: string;
-  }): ClaimRecord {
+    hasReceipt: boolean;
+  }): ClaimRecord | { error: string } {
+    const policy = this.store().policies.claimLimits.find((row) => row.type === input.type);
+    if (policy?.requireReceipt && !input.hasReceipt) {
+      return {
+        error: `${input.type} claims require a receipt attachment (Admin Master Data · demo).`,
+      };
+    }
+
+    const id = this.requireEmployeeId();
     const claim: ClaimRecord = {
       id: `CL-${++this.seq}`,
-      employeeId: this.requireEmployeeId(),
+      employeeId: id,
       type: input.type,
       date: input.date,
       amountSgd: input.amountSgd,
@@ -304,8 +324,10 @@ export class EmployeeMockService {
       remarks: input.remarks,
       status: 'Pending',
       approverComments: '',
+      hasReceipt: input.hasReceipt,
     };
     this.mutate((state) => ({ ...state, claims: [claim, ...state.claims] }));
+    this.pushNotification(id, 'Claim', `${claim.id} submitted — pending HR settlement.`);
     return claim;
   }
 
@@ -315,9 +337,10 @@ export class EmployeeMockService {
     fileName: string;
     sizeLabel: string;
   }): EmployeeDocument {
+    const id = this.requireEmployeeId();
     const doc: EmployeeDocument = {
       id: `DOC-${++this.seq}`,
-      employeeId: this.requireEmployeeId(),
+      employeeId: id,
       name: meta.name,
       category: meta.category,
       fileName: meta.fileName,
@@ -327,6 +350,7 @@ export class EmployeeMockService {
       sizeLabel: meta.sizeLabel,
     };
     this.mutate((state) => ({ ...state, documents: [doc, ...state.documents] }));
+    this.pushNotification(id, 'Document', `${doc.name} uploaded — awaiting HR verification.`);
     return doc;
   }
 
@@ -340,9 +364,9 @@ export class EmployeeMockService {
 
   markNotificationRead(id: string): void {
     const employeeId = this.requireEmployeeId();
-    this.personalExtras.update((extras) => ({
-      ...extras,
-      notifications: extras.notifications.map((item) =>
+    this.mutate((state) => ({
+      ...state,
+      notifications: (state.notifications ?? []).map((item) =>
         item.id === id && item.employeeId === employeeId ? { ...item, read: true } : item,
       ),
     }));
@@ -359,20 +383,14 @@ export class EmployeeMockService {
     if (!target || target.status !== 'Pending') {
       return false;
     }
+    const decidedOn = new Date().toISOString();
     this.mutate((state) => ({
       ...state,
       leaveRequests: state.leaveRequests.map((row) =>
-        row.id === requestId ? { ...row, status: 'Rejected', reason: `${row.reason} | HR: ${comments}` } : row,
+        row.id === requestId
+          ? { ...row, status: 'Rejected', hrComments: comments, decidedOn }
+          : row,
       ),
-      leaveBalances: {
-        ...state.leaveBalances,
-        [target.employeeId]: this.adjustBalance(
-          state.leaveBalances[target.employeeId] ?? DEFAULT_BALANCES(),
-          target.type,
-          target.days,
-          'restore',
-        ),
-      },
     }));
     this.pushNotification(
       target.employeeId,
@@ -383,33 +401,46 @@ export class EmployeeMockService {
   }
 
   approveClaims(ids: string[]): number {
+    const notify: Array<{ employeeId: string; id: string }> = [];
     let count = 0;
     this.mutate((state) => ({
       ...state,
       claims: state.claims.map((claim) => {
         if (ids.includes(claim.id) && claim.status === 'Pending') {
           count += 1;
-          this.pushNotification(claim.employeeId, 'Claim', `${claim.id} approved by HR.`);
+          notify.push({ employeeId: claim.employeeId, id: claim.id });
           return { ...claim, status: 'Approved', approverComments: 'Approved by HR' };
         }
         return claim;
       }),
     }));
+    for (const item of notify) {
+      this.pushNotification(item.employeeId, 'Claim', `${item.id} approved by HR.`);
+    }
     return count;
   }
 
   flagClaims(ids: string[], comment: string): number {
+    const notify: Array<{ employeeId: string; id: string }> = [];
     let count = 0;
     this.mutate((state) => ({
       ...state,
       claims: state.claims.map((claim) => {
         if (ids.includes(claim.id) && claim.status === 'Pending') {
           count += 1;
+          notify.push({ employeeId: claim.employeeId, id: claim.id });
           return { ...claim, status: 'Rejected', approverComments: comment };
         }
         return claim;
       }),
     }));
+    for (const item of notify) {
+      this.pushNotification(
+        item.employeeId,
+        'Claim',
+        `${item.id} flagged/rejected by HR: ${comment}`,
+      );
+    }
     return count;
   }
 
@@ -508,23 +539,168 @@ export class EmployeeMockService {
     return true;
   }
 
+  /** @deprecated Prefer advancePayroll — kept for older callers */
   authorizePayroll(runId: string): boolean {
+    return this.advancePayroll(runId, 'finalize');
+  }
+
+  /**
+   * Payroll lifecycle: Draft → Under Review → Approved → Finalized.
+   * Finalized generates simulated payslips for active employees and notifies them.
+   */
+  advancePayroll(
+    runId: string,
+    action: 'submitReview' | 'approve' | 'finalize',
+  ): boolean {
     const run = this.store().payrollRuns.find((item) => item.id === runId);
-    if (!run || run.status === 'Authorized' || run.status === 'Paid') {
+    if (!run) {
       return false;
     }
-    if (!this.store().policies.statutory.payrollPeriodOpen) {
+    if (!this.store().policies.statutory.payrollPeriodOpen && action !== 'submitReview') {
       return false;
     }
+
+    const now = new Date().toISOString();
+    if (action === 'submitReview' && run.status === 'Draft') {
+      this.mutate((state) => ({
+        ...state,
+        payrollRuns: state.payrollRuns.map((item) =>
+          item.id === runId ? { ...item, status: 'Under Review', reviewedOn: now } : item,
+        ),
+      }));
+      return true;
+    }
+
+    if (action === 'approve' && (run.status === 'Under Review' || run.status === 'Draft')) {
+      this.mutate((state) => ({
+        ...state,
+        payrollRuns: state.payrollRuns.map((item) =>
+          item.id === runId
+            ? { ...item, status: 'Approved', approvedOn: now, reviewedOn: item.reviewedOn ?? now }
+            : item,
+        ),
+      }));
+      return true;
+    }
+
+    if (
+      action === 'finalize' &&
+      (run.status === 'Approved' ||
+        run.status === 'Under Review' ||
+        run.status === 'Draft' ||
+        run.status === 'Authorized')
+    ) {
+      this.finalizePayrollRun(runId, now);
+      return true;
+    }
+
+    return false;
+  }
+
+  private finalizePayrollRun(runId: string, now: string): void {
+    const run = this.store().payrollRuns.find((item) => item.id === runId);
+    if (!run) {
+      return;
+    }
+
+    const activeIds = this.store()
+      .directory.filter((row) => row.status === 'Active' || row.status === 'On Leave')
+      .map((row) => row.employeeId);
+
+    const existingPeriods = new Set(
+      this.store()
+        .payslips.filter((slip) => slip.payPeriod === run.period)
+        .map((slip) => slip.employeeId),
+    );
+
+    const generated: PayslipRecord[] = [];
+    for (const employeeId of activeIds) {
+      if (existingPeriods.has(employeeId)) {
+        continue;
+      }
+      const profile = this.store().profiles[employeeId];
+      if (!profile) {
+        continue;
+      }
+      const otHours = this.store().attendance
+        .filter((row) => row.employeeId === employeeId && this.store().otApprovals[row.id])
+        .reduce((sum, row) => sum + row.otHours, 0);
+      const basic = this.estimateBasic(profile);
+      const overtime = Math.round(otHours * (basic / 160) * 100) / 100;
+      const allowances = Math.round(basic * 0.05);
+      const statutory = this.store().policies.statutory;
+      const isLocalOrPr =
+        profile.employmentType === 'Local' || profile.employmentType === 'PR';
+      const cpfEmployee = isLocalOrPr
+        ? Math.round(basic * (statutory.cpfEmployeeRatePct / 100) * 100) / 100
+        : 0;
+      const cpfEmployer = isLocalOrPr
+        ? Math.round(basic * (statutory.cpfEmployerRatePct / 100) * 100) / 100
+        : 0;
+      const sdl = Math.round(basic * (statutory.sdlRatePct / 100) * 100) / 100;
+      const deductions = 50;
+      const netPay =
+        Math.round((basic + allowances + overtime - cpfEmployee - deductions - sdl) * 100) / 100;
+
+      generated.push({
+        id: `PS-${run.period.replace(/\s/g, '')}-${employeeId}-${++this.seq}`,
+        employeeId,
+        payPeriod: run.period,
+        basic,
+        allowances,
+        overtime,
+        bonus: 0,
+        cpfEmployee,
+        cpfEmployer,
+        sdl,
+        deductions,
+        netPay,
+        bankCreditedDate: now.slice(0, 10),
+        demoDocument: true,
+      });
+    }
+
     this.mutate((state) => ({
       ...state,
       payrollRuns: state.payrollRuns.map((item) =>
         item.id === runId
-          ? { ...item, status: 'Authorized', authorizedOn: new Date().toISOString() }
+          ? {
+              ...item,
+              status: 'Finalized',
+              authorizedOn: now,
+              finalizedOn: now,
+              employeeCount: activeIds.length,
+              totalNetPay:
+                Math.round(
+                  (item.totalNetPay + generated.reduce((s, p) => s + p.netPay, 0)) * 100,
+                ) / 100,
+            }
           : item,
       ),
+      payslips: [...generated, ...state.payslips],
     }));
-    return true;
+
+    for (const slip of generated) {
+      this.pushNotification(
+        slip.employeeId,
+        'Payslip',
+        `${run.period} itemised payslip is ready (DEMO DOCUMENT — simulated payroll).`,
+      );
+    }
+  }
+
+  private estimateBasic(profile: EmployeeProfile): number {
+    const map: Record<string, number> = {
+      'Senior Civil Engineer': 6200,
+      'Site Supervisor': 3800,
+      'Quantity Surveyor': 5200,
+      'General Worker': 2200,
+      'BIM Coordinator': 7100,
+      'HR Manager': 6800,
+      'Project Engineer': 4800,
+      'Graduate Engineer': 3600,
+    };
+    return map[profile.designation] ?? 4500;
   }
 
   /** Admin → ESS/HR policy sync */
@@ -589,16 +765,388 @@ export class EmployeeMockService {
     return candidate;
   }
 
+  advanceOnboarding(candidateId: string): OnboardingCandidate | null {
+    const stages: OnboardingCandidate['stage'][] = [
+      'Offer',
+      'MOM Forms',
+      'Medical',
+      'Orientation',
+      'Completed',
+    ];
+    let updated: OnboardingCandidate | null = null;
+    this.mutate((state) => ({
+      ...state,
+      onboarding: state.onboarding.map((row) => {
+        if (row.id !== candidateId) {
+          return row;
+        }
+        const idx = stages.indexOf(row.stage);
+        const next = stages[Math.min(idx + 1, stages.length - 1)];
+        updated = {
+          ...row,
+          stage: next,
+          checklistProgress: Math.min(100, row.checklistProgress + 25),
+        };
+        return updated;
+      }),
+    }));
+    return updated;
+  }
+
+  /**
+   * Convert completed onboarding candidate into a directory employee + profile.
+   * Optionally provision a demo ESS login via AuthService.
+   */
+  activateOnboardingAsEmployee(
+    candidateId: string,
+    opts?: { createLogin?: boolean; email?: string },
+  ): { employeeId: string; loginEmail?: string } | null {
+    const candidate = this.store().onboarding.find((row) => row.id === candidateId);
+    if (!candidate) {
+      return null;
+    }
+
+    const employeeId = this.nextEmployeeId();
+    const profile: EmployeeProfile = {
+      employeeId,
+      fullName: candidate.candidateName,
+      nricOrFin: this.fictionalFin(candidate.employmentType),
+      nationality: 'Singapore',
+      employmentType: candidate.employmentType,
+      department: candidate.department,
+      designation: candidate.role,
+      reportingManager: 'Wei Ming Lim',
+      dateOfJoining: candidate.startDate,
+      probationStatus: 'Probation',
+      workLocation: 'Office',
+      personalEmail: opts?.email ?? `${candidate.candidateName.toLowerCase().replace(/\s+/g, '.')}@email.sg`,
+      mobile: '9' + String(1000000 + (this.seq % 8999999)).slice(0, 7),
+      residentialAddress: 'Pending address update, Singapore 000000',
+      emergencyContactName: 'To be updated',
+      emergencyContactPhone: '90000000',
+      emergencyContactRelation: 'TBC',
+      bankName: 'DBS',
+      bankAccountNumber: '0000000000',
+    };
+
+    const directoryRow: StaffDirectoryRow = {
+      employeeId,
+      fullName: profile.fullName,
+      department: profile.department,
+      designation: profile.designation,
+      employmentType: profile.employmentType,
+      workLocation: profile.workLocation,
+      status: 'Active',
+      passExpiry: candidate.employmentType === 'Local' || candidate.employmentType === 'PR' ? null : '2027-12-31',
+      contractExpiry: '2027-12-31',
+      nricOrFin: profile.nricOrFin,
+      mobile: profile.mobile,
+      passportExpiry: '2029-01-01',
+      medicalClearance: 'Valid',
+    };
+
+    this.mutate((state) => ({
+      ...state,
+      directory: [directoryRow, ...state.directory],
+      profiles: { ...state.profiles, [employeeId]: profile },
+      leaveBalances: { ...state.leaveBalances, [employeeId]: DEFAULT_BALANCES() },
+      clocks: { ...state.clocks, [employeeId]: this.defaultClock() },
+      passAlerts: { ...state.passAlerts, [employeeId]: [] },
+      onboarding: state.onboarding.map((row) =>
+        row.id === candidateId
+          ? { ...row, stage: 'Completed', checklistProgress: 100 }
+          : row,
+      ),
+    }));
+
+    let loginEmail: string | undefined;
+    if (opts?.createLogin) {
+      loginEmail = opts.email ?? `newhire.${employeeId.toLowerCase()}@eyota.sg`;
+      this.auth.registerDemoEmployee({
+        email: loginEmail,
+        password: 'Employee@123',
+        displayName: profile.fullName,
+        employeeId,
+      });
+    }
+
+    this.pushNotification(
+      employeeId,
+      'System',
+      `Welcome to Eyota — employee record ${employeeId} activated (demo).`,
+    );
+
+    return { employeeId, loginEmail };
+  }
+
+  createEmployee(input: {
+    fullName: string;
+    department: string;
+    designation: string;
+    employmentType: EmploymentPassType;
+    workLocation: WorkLocation;
+    dateOfJoining: string;
+    mobile: string;
+    nricOrFin: string;
+    reportingManager?: string;
+  }): StaffDirectoryRow {
+    const employeeId = this.nextEmployeeId();
+    const profile: EmployeeProfile = {
+      employeeId,
+      fullName: input.fullName,
+      nricOrFin: input.nricOrFin,
+      nationality: 'Singapore',
+      employmentType: input.employmentType,
+      department: input.department,
+      designation: input.designation,
+      reportingManager: input.reportingManager ?? 'Wei Ming Lim',
+      dateOfJoining: input.dateOfJoining,
+      probationStatus: 'Probation',
+      workLocation: input.workLocation,
+      personalEmail: `${input.fullName.toLowerCase().replace(/\s+/g, '.')}@email.sg`,
+      mobile: input.mobile,
+      residentialAddress: 'To be confirmed, Singapore',
+      emergencyContactName: 'To be updated',
+      emergencyContactPhone: '90000000',
+      emergencyContactRelation: 'TBC',
+      bankName: 'DBS',
+      bankAccountNumber: '0000000000',
+    };
+
+    const row: StaffDirectoryRow = {
+      employeeId,
+      fullName: input.fullName,
+      department: input.department,
+      designation: input.designation,
+      employmentType: input.employmentType,
+      workLocation: input.workLocation,
+      status: 'Active',
+      passExpiry:
+        input.employmentType === 'Local' || input.employmentType === 'PR' ? null : '2027-12-31',
+      contractExpiry: '2027-12-31',
+      nricOrFin: input.nricOrFin,
+      mobile: input.mobile,
+      passportExpiry: '2029-01-01',
+      medicalClearance: 'Valid',
+    };
+
+    this.mutate((state) => ({
+      ...state,
+      directory: [row, ...state.directory],
+      profiles: { ...state.profiles, [employeeId]: profile },
+      leaveBalances: { ...state.leaveBalances, [employeeId]: DEFAULT_BALANCES() },
+      clocks: { ...state.clocks, [employeeId]: this.defaultClock() },
+      passAlerts: { ...state.passAlerts, [employeeId]: [] },
+    }));
+
+    return row;
+  }
+
+  updateEmployee(
+    employeeId: string,
+    patch: Partial<
+      Pick<
+        StaffDirectoryRow,
+        | 'department'
+        | 'designation'
+        | 'employmentType'
+        | 'workLocation'
+        | 'status'
+        | 'passExpiry'
+        | 'contractExpiry'
+        | 'mobile'
+        | 'medicalClearance'
+      >
+    >,
+  ): boolean {
+    if (!this.store().profiles[employeeId]) {
+      return false;
+    }
+    this.mutate((state) => {
+      const directory = state.directory.map((row) =>
+        row.employeeId === employeeId ? { ...row, ...patch } : row,
+      );
+      const profile = state.profiles[employeeId];
+      const nextProfile: EmployeeProfile = {
+        ...profile,
+        department: patch.department ?? profile.department,
+        designation: patch.designation ?? profile.designation,
+        employmentType: patch.employmentType ?? profile.employmentType,
+        workLocation: patch.workLocation ?? profile.workLocation,
+        mobile: patch.mobile ?? profile.mobile,
+      };
+      return {
+        ...state,
+        directory,
+        profiles: { ...state.profiles, [employeeId]: nextProfile },
+      };
+    });
+    return true;
+  }
+
+  decideProfileRequest(requestId: string, approve: boolean, comments = ''): boolean {
+    const req = this.store().profileRequests?.find((item) => item.id === requestId);
+    if (!req || req.status !== 'Pending HR') {
+      return false;
+    }
+
+    this.mutate((state) => {
+      const profileRequests = (state.profileRequests ?? []).map((item) =>
+        item.id === requestId
+          ? {
+              ...item,
+              status: approve ? ('Approved' as const) : ('Rejected' as const),
+              hrComments: comments,
+            }
+          : item,
+      );
+
+      if (!approve) {
+        return { ...state, profileRequests };
+      }
+
+      const profile = state.profiles[req.employeeId];
+      if (!profile) {
+        return { ...state, profileRequests };
+      }
+
+      const next = { ...profile, ...req.patch };
+      return {
+        ...state,
+        profileRequests,
+        profiles: { ...state.profiles, [req.employeeId]: next },
+        directory: state.directory.map((row) =>
+          row.employeeId === req.employeeId
+            ? { ...row, mobile: req.patch.mobile ?? row.mobile }
+            : row,
+        ),
+      };
+    });
+
+    this.pushNotification(
+      req.employeeId,
+      'System',
+      `Profile update ${requestId} was ${approve ? 'approved' : 'rejected'} by HR.`,
+    );
+    return true;
+  }
+
+  assignAsset(input: {
+    employeeId: string;
+    assetId: string;
+    type: EmployeeAsset['type'];
+    condition: EmployeeAsset['condition'];
+  }): EmployeeAsset {
+    const asset: EmployeeAsset = {
+      id: `AST-${++this.seq}`,
+      employeeId: input.employeeId,
+      assetId: input.assetId,
+      type: input.type,
+      assignedDate: new Date().toISOString().slice(0, 10),
+      condition: input.condition,
+      returnStatus: 'Assigned',
+    };
+    this.mutate((state) => ({
+      ...state,
+      assets: [asset, ...(state.assets ?? [])],
+    }));
+    this.pushNotification(
+      input.employeeId,
+      'System',
+      `Asset ${input.assetId} (${input.type}) assigned to you (demo).`,
+    );
+    return asset;
+  }
+
+  returnAsset(assetRecordId: string): boolean {
+    const asset = this.store().assets?.find((row) => row.id === assetRecordId);
+    if (!asset || asset.returnStatus === 'Returned') {
+      return false;
+    }
+    this.mutate((state) => ({
+      ...state,
+      assets: (state.assets ?? []).map((row) =>
+        row.id === assetRecordId ? { ...row, returnStatus: 'Returned' } : row,
+      ),
+    }));
+    this.pushNotification(
+      asset.employeeId,
+      'System',
+      `Asset ${asset.assetId} marked returned (demo).`,
+    );
+    return true;
+  }
+
+  assignTraining(input: {
+    employeeId: string;
+    courseName: string;
+    category: TrainingRecord['category'];
+  }): TrainingRecord {
+    const record: TrainingRecord = {
+      id: `TR-${++this.seq}`,
+      employeeId: input.employeeId,
+      courseName: input.courseName,
+      category: input.category,
+      completedDate: null,
+      expiryDate: null,
+      status: 'Required',
+    };
+    this.mutate((state) => ({
+      ...state,
+      training: [record, ...(state.training ?? [])],
+    }));
+    this.pushNotification(
+      input.employeeId,
+      'Training',
+      `Training assigned: ${input.courseName} (demo).`,
+    );
+    return record;
+  }
+
+  private nextEmployeeId(): string {
+    const nums = this.store().directory.map((row) => {
+      const n = Number(row.employeeId.replace(/\D/g, ''));
+      return Number.isFinite(n) ? n : 0;
+    });
+    const next = Math.max(1300, ...nums) + 1;
+    return `EY-${next}`;
+  }
+
+  private fictionalFin(type: EmploymentPassType): string {
+    const prefix = type === 'Local' || type === 'PR' ? 'S' : type === 'EP' ? 'F' : 'G';
+    return `${prefix}${8000000 + (this.seq % 999999)}X`;
+  }
+
   private setLeaveStatus(requestId: string, status: 'Approved'): boolean {
     const target = this.store().leaveRequests.find((row) => row.id === requestId);
     if (!target || target.status !== 'Pending') {
       return false;
     }
+    const decidedOn = new Date().toISOString();
     this.mutate((state) => ({
       ...state,
       leaveRequests: state.leaveRequests.map((row) =>
-        row.id === requestId ? { ...row, status } : row,
+        row.id === requestId ? { ...row, status, decidedOn, hrComments: 'Approved by HR' } : row,
       ),
+      leaveBalances: {
+        ...state.leaveBalances,
+        [target.employeeId]: this.adjustBalance(
+          state.leaveBalances[target.employeeId] ?? DEFAULT_BALANCES(),
+          target.type,
+          target.days,
+          'use',
+        ),
+      },
+      directory: state.directory.map((row) => {
+        if (row.employeeId !== target.employeeId) {
+          return row;
+        }
+        const today = this.todayIso();
+        if (target.fromDate <= today && target.toDate >= today) {
+          return { ...row, status: 'On Leave' };
+        }
+        return row;
+      }),
     }));
     this.pushNotification(target.employeeId, 'Leave', `${requestId} was approved by HR.`);
     return true;
@@ -637,30 +1185,84 @@ export class EmployeeMockService {
     type: EmployeeNotification['type'],
     message: string,
   ): void {
-    this.personalExtras.update((extras) => ({
-      ...extras,
-      notifications: [
-        {
-          id: `NT-${++this.seq}`,
-          employeeId,
-          type,
-          message,
-          date: new Date().toISOString().slice(0, 10),
-          read: false,
-        },
-        ...extras.notifications,
-      ],
+    const note: EmployeeNotification = {
+      id: `NT-${++this.seq}`,
+      employeeId,
+      type,
+      message,
+      date: new Date().toISOString().slice(0, 10),
+      read: false,
+    };
+    this.mutate((state) => ({
+      ...state,
+      notifications: [note, ...(state.notifications ?? [])],
     }));
   }
 
   private mutate(updater: (state: WorkforceState) => WorkforceState): void {
     this.store.set(updater(this.store()));
+    this.persist();
+  }
+
+  private persist(): void {
+    try {
+      localStorage.setItem(
+        WORKFORCE_STORAGE_KEY,
+        JSON.stringify({ note: DEMO_PERSISTENCE_NOTE, seq: this.seq, state: this.store() }),
+      );
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }
+
+  private loadOrSeedWorkforce(): WorkforceState {
+    try {
+      const raw = localStorage.getItem(WORKFORCE_STORAGE_KEY);
+      if (!raw) {
+        return this.seedWorkforce();
+      }
+      const parsed = JSON.parse(raw) as { seq?: number; state?: WorkforceState };
+      if (!parsed.state?.directory?.length) {
+        return this.seedWorkforce();
+      }
+      if (typeof parsed.seq === 'number') {
+        this.seq = parsed.seq;
+      }
+      return this.normalizeWorkforce(parsed.state);
+    } catch {
+      return this.seedWorkforce();
+    }
+  }
+
+  private normalizeWorkforce(state: WorkforceState): WorkforceState {
+    const extras = this.seedPersonalExtras();
+    return {
+      ...state,
+      profileRequests: state.profileRequests ?? [],
+      assets: state.assets ?? extras.assets,
+      training: state.training ?? extras.training,
+      notifications: state.notifications ?? extras.notifications,
+      policies: state.policies ?? createDefaultSystemPolicies(),
+      costCentres: state.costCentres?.length
+        ? state.costCentres
+        : [...(state.policies?.costCentres ?? createDefaultSystemPolicies().costCentres)],
+      claims: (state.claims ?? []).map((claim) => ({
+        ...claim,
+        hasReceipt: claim.hasReceipt ?? true,
+      })),
+      payrollRuns: (state.payrollRuns ?? []).map((run) => ({
+        ...run,
+        status:
+          run.status === 'Authorized' || run.status === 'Paid'
+            ? ('Finalized' as const)
+            : run.status,
+      })),
+    };
   }
 
   private toPersonalWorkspace(employeeId: string): EmployeeWorkspace {
     const state = this.store();
     const profile = state.profiles[employeeId] ?? state.profiles[DEMO_EMPLOYEE_ID];
-    const extras = this.personalExtras();
     return {
       profile,
       leaveBalances: state.leaveBalances[employeeId] ?? DEFAULT_BALANCES(),
@@ -670,10 +1272,11 @@ export class EmployeeMockService {
       passAlerts: state.passAlerts[employeeId] ?? [],
       attendance: state.attendance.filter((row) => row.employeeId === employeeId),
       documents: state.documents.filter((row) => row.employeeId === employeeId),
-      assets: extras.assets.filter((row) => row.employeeId === employeeId),
-      training: extras.training.filter((row) => row.employeeId === employeeId),
-      notifications: extras.notifications.filter((row) => row.employeeId === employeeId),
+      assets: (state.assets ?? []).filter((row) => row.employeeId === employeeId),
+      training: (state.training ?? []).filter((row) => row.employeeId === employeeId),
+      notifications: (state.notifications ?? []).filter((row) => row.employeeId === employeeId),
       bankRequests: state.bankRequests.filter((row) => row.employeeId === employeeId),
+      profileRequests: (state.profileRequests ?? []).filter((row) => row.employeeId === employeeId),
       clock: state.clocks[employeeId] ?? this.defaultClock(),
       costCentres: state.costCentres,
     };
@@ -1141,17 +1744,23 @@ export class EmployeeMockService {
         totalCpfEmployer: 5400,
         totalSdl: 96.4,
         authorizedOn: null,
+        reviewedOn: null,
+        approvedOn: null,
+        finalizedOn: null,
       },
       {
         id: 'PR-202602',
         period: 'Feb 2026',
-        status: 'Authorized',
+        status: 'Finalized',
         employeeCount: 6,
         totalNetPay: 47102.1,
         totalCpfEmployee: 5980,
         totalCpfEmployer: 5280,
         totalSdl: 94.2,
         authorizedOn: '2026-02-26T10:00:00',
+        reviewedOn: '2026-02-25T10:00:00',
+        approvedOn: '2026-02-26T09:00:00',
+        finalizedOn: '2026-02-26T10:00:00',
       },
     ];
 
@@ -1248,6 +1857,7 @@ export class EmployeeMockService {
           remarks: 'Site visit taxi',
           status: 'Approved',
           approverComments: 'Within policy',
+          hasReceipt: true,
         },
         {
           id: 'CL-912',
@@ -1259,6 +1869,7 @@ export class EmployeeMockService {
           remarks: 'Client lunch',
           status: 'Pending',
           approverComments: '',
+          hasReceipt: true,
         },
         {
           id: 'CL-920',
@@ -1270,6 +1881,7 @@ export class EmployeeMockService {
           remarks: 'Site shuttle top-up',
           status: 'Pending',
           approverComments: '',
+          hasReceipt: true,
         },
         {
           id: 'CL-925',
@@ -1281,6 +1893,7 @@ export class EmployeeMockService {
           remarks: 'Clinic visit',
           status: 'Pending',
           approverComments: '',
+          hasReceipt: true,
         },
       ],
       payslips: [...priyaPayslips, ...otherPayslips],
@@ -1393,6 +2006,7 @@ export class EmployeeMockService {
         },
       ],
       bankRequests: [],
+      profileRequests: [],
       clocks: {
         'EY-1042': this.defaultClock(),
         'EY-1108': this.defaultClock(),
@@ -1443,6 +2057,9 @@ export class EmployeeMockService {
       payrollRuns,
       costCentres: ['PRJ-Marina', 'PRJ-Jurong', 'PRJ-Changi', 'OH-Structural', 'OH-Admin'],
       otApprovals: {},
+      assets: this.seedPersonalExtras().assets,
+      training: this.seedPersonalExtras().training,
+      notifications: this.seedPersonalExtras().notifications,
       policies: createDefaultSystemPolicies(),
     };
   }

@@ -7,9 +7,14 @@
         <p class="adm-eyebrow">Master Data Settings</p>
         <h1>Policies that drive ESS &amp; HR</h1>
       </div>
-      <button type="button" class="ess-btn danger" (click)="restoreOpen.set(true)">
-        Restore demo defaults
-      </button>
+      <div class="ess-actions">
+        <button type="button" class="ess-btn ghost" (click)="restoreOpen.set(true)">
+          Restore policy defaults
+        </button>
+        <button type="button" class="ess-btn danger" (click)="fullResetOpen.set(true)">
+          Full demo reset
+        </button>
+      </div>
     </header>
     <aside class="adm-banner" role="note">
       <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
@@ -61,9 +66,18 @@
 
 <app-confirm-modal
   [open]="restoreOpen()"
-  title="Restore demo defaults?"
-  message="This resets leave policies, claim limits, holidays, and org codes to the packaged Singapore sample set."
-  confirmLabel="Restore"
+  title="Restore policy defaults?"
+  message="This resets leave policies, claim limits, holidays, and org codes to the packaged Singapore sample set. Transactional leave/claims data is kept."
+  confirmLabel="Restore policies"
   (confirmed)="confirmRestore()"
   (cancelled)="restoreOpen.set(false)"
+/>
+
+<app-confirm-modal
+  [open]="fullResetOpen()"
+  title="Reset entire demo environment?"
+  message="Clears localStorage demo snapshots and restores packaged seed for workforce, admin config, and HR-provisioned employee logins. This is frontend-only — not a production backup restore."
+  confirmLabel="Reset all demo data"
+  (confirmed)="confirmFullReset()"
+  (cancelled)="fullResetOpen.set(false)"
 />

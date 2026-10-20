@@ -7,12 +7,21 @@
         <p class="hr-eyebrow">Payroll Engine &amp; CPF / SDL Review</p>
         <h1>Month-end batch simulator</h1>
         <p class="ess-sub">
-          Itemized cost statements with Employee CPF, Employer CPF, and SDL — clearly simulated.
+          Lifecycle: Draft → Under Review → Approved → Finalized. Finalizing publishes simulated
+          payslips to the correct employee accounts.
         </p>
       </div>
-      <button type="button" class="ess-btn primary" (click)="requestAuthorize()">
-        Authorize month-end payroll
-      </button>
+      <div class="ess-actions">
+        <button type="button" class="ess-btn ghost" (click)="requestAction('submitReview')">
+          Submit for review
+        </button>
+        <button type="button" class="ess-btn ghost" (click)="requestAction('approve')">
+          Approve
+        </button>
+        <button type="button" class="ess-btn primary" (click)="requestAction('finalize')">
+          Finalize &amp; publish payslips
+        </button>
+      </div>
     </header>
 
     <app-demo-notice
@@ -22,6 +31,9 @@
     <section class="ess-panel">
       <div class="ess-panel-head">
         <h2>Payroll runs</h2>
+        @if (selectedRun(); as run) {
+          <app-status-badge [label]="run.status" tone="warning" />
+        }
       </div>
       <div class="period-pills">
         @for (run of hr.workforce().payrollRuns; track run.id) {
@@ -61,7 +73,10 @@
               <span>{{ slip.netPay | sgd }}</span>
             </button>
           } @empty {
-            <p class="empty">No itemized slips for this period in the mock set.</p>
+            <p class="empty">
+              No itemized slips yet — Finalize a run to generate simulated payslips from attendance
+              and statutory demo rates.
+            </p>
           }
         </div>
       </section>
@@ -88,10 +103,10 @@
 }
 
 <app-confirm-modal
-  [open]="authorizeOpen()"
-  title="Authorize month-end payroll?"
-  message="This marks the selected draft run as Authorized in the demo store. No CPF Board or bank GIRO files are generated."
-  confirmLabel="Authorize"
-  (confirmed)="confirmAuthorize()"
-  (cancelled)="cancelAuthorize()"
+  [open]="confirmOpen()"
+  [title]="confirmTitle()"
+  [message]="confirmMessage()"
+  confirmLabel="Confirm"
+  (confirmed)="confirmAction()"
+  (cancelled)="cancelAction()"
 />

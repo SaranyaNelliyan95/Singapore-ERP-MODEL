@@ -1,0 +1,142 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading assets & training…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Assets &amp; training</p>
+        <h1>Company kit register</h1>
+        <p class="ess-sub">
+          Track laptops, site PPE, and access cards. Assign mandatory training synced to employee
+          notifications.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Asset and training records are mock data."
+    />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Asset register</h2>
+      </div>
+      <app-data-table
+        [columns]="assetColumns"
+        [rows]="hr.workforce().assets ?? []"
+        trackByKey="id"
+        [pageSize]="8"
+        searchPlaceholder="Search employee, asset ID, type…"
+        [emptyState]="{ title: 'No assets', description: 'Assign company kit using the form below.' }"
+      />
+      @if (assignedAssets().length) {
+        <div class="action-block">
+          <h3>Return assigned items</h3>
+          <div class="action-list">
+            @for (row of assignedAssets(); track row.id) {
+              <div class="action-row">
+                <div>
+                  <strong>{{ row.assetId }} · {{ row.type }}</strong>
+                  <p>{{ hr.employeeName(row.employeeId) }} · Assigned {{ row.assignedDate }}</p>
+                </div>
+                <button type="button" class="ess-btn primary" (click)="returnAsset(row)">
+                  Mark returned
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Assign asset</h2>
+      </div>
+      <form class="ess-form compact-form" [formGroup]="assignAssetForm" (ngSubmit)="submitAssignAsset()">
+        <label>
+          <span>Employee</span>
+          <select formControlName="employeeId">
+            <option value="" disabled>Select employee</option>
+            @for (emp of employeeOptions(); track emp.id) {
+              <option [value]="emp.id">{{ emp.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Asset ID</span>
+          <input formControlName="assetId" placeholder="e.g. LT-8842" />
+        </label>
+        <label>
+          <span>Type</span>
+          <select formControlName="type">
+            @for (opt of assetTypeOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Condition</span>
+          <select formControlName="condition">
+            <option value="Good">Good</option>
+            <option value="Fair">Fair</option>
+            <option value="Replace Soon">Replace Soon</option>
+          </select>
+        </label>
+        <div class="ess-actions full">
+          <button type="submit" class="ess-btn primary">Assign asset</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Training records</h2>
+      </div>
+      <app-data-table
+        [columns]="trainingColumns"
+        [rows]="hr.workforce().training ?? []"
+        trackByKey="id"
+        [pageSize]="8"
+        searchPlaceholder="Search course, employee, category…"
+        [emptyState]="{ title: 'No training rows', description: 'Assign a course below.' }"
+      />
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Assign training</h2>
+      </div>
+      <form
+        class="ess-form compact-form"
+        [formGroup]="assignTrainingForm"
+        (ngSubmit)="submitAssignTraining()"
+      >
+        <label>
+          <span>Employee</span>
+          <select formControlName="employeeId">
+            <option value="" disabled>Select employee</option>
+            @for (emp of employeeOptions(); track emp.id) {
+              <option [value]="emp.id">{{ emp.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Course name</span>
+          <input formControlName="courseName" placeholder="e.g. WSH Risk Management" />
+        </label>
+        <label>
+          <span>Category</span>
+          <select formControlName="category">
+            @for (cat of trainingCategories; track cat) {
+              <option [value]="cat">{{ cat }}</option>
+            }
+          </select>
+        </label>
+        <div class="ess-actions full">
+          <button type="submit" class="ess-btn primary">Assign training</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

@@ -44,6 +44,7 @@ export class EmployeeClaimsPage implements OnInit {
     amountSgd: [0, [Validators.required, Validators.min(0.01)]],
     costCentre: ['', Validators.required],
     remarks: ['', [Validators.required, Validators.minLength(4)]],
+    hasReceipt: [true, Validators.required],
   });
 
   readonly columns: DataTableColumn<ClaimRecord>[] = [
@@ -110,6 +111,10 @@ export class EmployeeClaimsPage implements OnInit {
       return;
     }
     const claim = this.employeeService.submitClaim(values);
+    if ('error' in claim) {
+      this.toast.danger('Claim blocked', claim.error);
+      return;
+    }
     this.toast.success(
       'Claim submitted',
       `${claim.id} · ${formatSgd(claim.amountSgd)} pending approval (mock).`,
@@ -118,6 +123,7 @@ export class EmployeeClaimsPage implements OnInit {
       type: 'Transport',
       amountSgd: 0,
       remarks: '',
+      hasReceipt: true,
       date: new Date().toISOString().slice(0, 10),
     });
   }

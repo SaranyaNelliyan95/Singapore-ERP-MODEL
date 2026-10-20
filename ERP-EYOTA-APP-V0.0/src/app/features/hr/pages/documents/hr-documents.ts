@@ -1,6 +1,10 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DataTableColumn } from '../../../../core/models/common.model';
-import { BankUpdateRequest, EmployeeDocument } from '../../../../core/models/employee.model';
+import {
+  BankUpdateRequest,
+  EmployeeDocument,
+  ProfileUpdateRequest,
+} from '../../../../core/models/employee.model';
 import { EmployeeMockService } from '../../../../core/services/employee-mock.service';
 import { HrMockService } from '../../../../core/services/hr-mock.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -39,6 +43,10 @@ export class HrDocumentsPage implements OnInit {
 
   readonly pendingBanks = computed(() =>
     this.hr.workforce().bankRequests.filter((row) => row.status === 'Pending HR'),
+  );
+
+  readonly pendingProfiles = computed(() =>
+    (this.hr.workforce().profileRequests ?? []).filter((row) => row.status === 'Pending HR'),
   );
 
   readonly columns: DataTableColumn<DocView>[] = [
@@ -94,6 +102,22 @@ export class HrDocumentsPage implements OnInit {
         approve ? 'Bank update approved' : 'Bank update rejected',
         approve
           ? `${this.hr.employeeName(req.employeeId)} profile bank details updated.`
+          : `${req.id} rejected — profile unchanged.`,
+      );
+    }
+  }
+
+  decideProfile(req: ProfileUpdateRequest, approve: boolean): void {
+    const ok = this.workforce.decideProfileRequest(
+      req.id,
+      approve,
+      approve ? 'Contact details verified' : 'Contact update rejected by HR',
+    );
+    if (ok) {
+      this.toast.success(
+        approve ? 'Profile update approved' : 'Profile update rejected',
+        approve
+          ? `${this.hr.employeeName(req.employeeId)} contact fields updated.`
           : `${req.id} rejected — profile unchanged.`,
       );
     }

@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { BreadcrumbItem, NavItem } from '../../core/models/common.model';
+import { AdminMockService } from '../../core/services/admin-mock.service';
 import { EmployeeMockService } from '../../core/services/employee-mock.service';
 import { AppShellComponent } from '../../shared/components/app-shell/app-shell';
 
@@ -15,6 +16,9 @@ const TITLE_BY_SEGMENT: Record<string, string> = {
   payroll: 'Payroll & CPF / SDL',
   documents: 'Document & Bank Audit',
   claims: 'Claims Settlement',
+  onboarding: 'Onboarding Pipeline',
+  assets: 'Assets & Training',
+  reports: 'Reports / Workright',
 };
 
 @Component({
@@ -33,24 +37,32 @@ export class HrShellComponent {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly workforce = inject(EmployeeMockService);
+  private readonly admin = inject(AdminMockService);
 
   private readonly allNav: NavItem[] = [
     { label: 'Dashboard', route: '/hr/master/dashboard', icon: '⌂', section: 'Operations' },
     { label: 'Directory', route: '/hr/master/directory', icon: '▤' },
     { label: 'Compliance', route: '/hr/master/compliance', icon: '◉' },
+    { label: 'Onboarding', route: '/hr/master/onboarding', icon: '◫' },
     { label: 'Leave approvals', route: '/hr/master/leave', icon: '▦' },
     { label: 'Attendance', route: '/hr/master/attendance', icon: '◷', section: 'Pay & files' },
     { label: 'Payroll', route: '/hr/master/payroll', icon: '◈' },
     { label: 'Documents', route: '/hr/master/documents', icon: '◎' },
     { label: 'Claims', route: '/hr/master/claims', icon: '◍' },
+    { label: 'Assets & training', route: '/hr/master/assets', icon: '◧', section: 'Kit & reports' },
+    { label: 'Reports / Workright', route: '/hr/master/reports', icon: '▣' },
   ];
 
   readonly navItems = computed(() => {
     const visibility = this.workforce.workforce().policies.hrModules;
+    const canWorkright = this.admin.hasCapability('hr', 'reports.workright');
     return this.allNav.filter((item) => {
       const key = item.route.split('/').pop() ?? '';
       if (key === 'dashboard') {
         return true;
+      }
+      if (key === 'reports' && !canWorkright) {
+        return false;
       }
       const mod = visibility.find((row) => row.moduleKey === key);
       return mod?.visible !== false;

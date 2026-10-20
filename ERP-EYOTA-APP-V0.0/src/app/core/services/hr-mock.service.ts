@@ -40,12 +40,20 @@ export class HrMockService {
       pendingClaims: state.claims.filter((row) => row.status === 'Pending').length,
       pendingDocuments: state.documents.filter((row) => row.status === 'Pending').length,
       pendingBankRequests: state.bankRequests.filter((row) => row.status === 'Pending HR').length,
-      payrollStatus:
-        state.payrollRuns.find((run) => run.status === 'Draft')?.period ??
-        state.payrollRuns[0]?.period ??
-        '—',
+      payrollStatus: (() => {
+        const active =
+          state.payrollRuns.find((run) =>
+            ['Draft', 'Under Review', 'Approved'].includes(run.status),
+          ) ?? state.payrollRuns[0];
+        return active ? `${active.period} · ${active.status}` : '—';
+      })(),
     };
   });
+
+  pendingProfileRequests(): number {
+    return (this.workforce().profileRequests ?? []).filter((row) => row.status === 'Pending HR')
+      .length;
+  }
 
   getMasterSnapshot(): Observable<{ stats: HrDashboardStats; directory: StaffDirectoryRow[] }> {
     return of({

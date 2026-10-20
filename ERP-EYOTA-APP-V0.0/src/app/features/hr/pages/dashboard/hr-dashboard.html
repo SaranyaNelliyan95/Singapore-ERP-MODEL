@@ -49,9 +49,11 @@
       </div>
       <div class="actions">
         <button type="button" class="ess-btn primary" (click)="openHire()">Add new hire</button>
-        <a routerLink="/hr/master/payroll" class="ess-btn ghost" (click)="runPayrollHint()">Run payroll</a>
+        <a routerLink="/hr/master/onboarding" class="ess-btn ghost">Onboarding pipeline</a>
+        <a routerLink="/hr/master/payroll" class="ess-btn ghost">Open payroll</a>
         <a routerLink="/hr/master/leave" class="ess-btn ghost">Review pending leaves</a>
         <a routerLink="/hr/master/compliance" class="ess-btn ghost">Open compliance tracker</a>
+        <a routerLink="/hr/master/reports" class="ess-btn ghost">Workright reports</a>
       </div>
       <p class="meta">Draft payroll period in focus: {{ stats().payrollStatus }}</p>
     </section>

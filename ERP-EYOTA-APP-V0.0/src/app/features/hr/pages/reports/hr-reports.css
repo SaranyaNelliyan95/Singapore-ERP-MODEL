@@ -1,0 +1,8 @@
+@import '../../shared/hr-page.styles.css';
+
+.pack-copy {
+  margin: 0 0 0.85rem;
+  color: #5b6b82;
+  font-size: 0.88rem;
+  max-width: 52rem;
+}

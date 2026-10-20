@@ -5,12 +5,16 @@ import {
   BankUpdateRequest,
   ClaimRecord,
   ClockState,
+  EmployeeAsset,
   EmployeeDocument,
+  EmployeeNotification,
   EmployeeProfile,
   LeaveBalance,
   LeaveRequest,
   PassAlert,
   PayslipRecord,
+  ProfileUpdateRequest,
+  TrainingRecord,
 } from './employee.model';
 
 export interface StaffDirectoryRow {
@@ -51,16 +55,28 @@ export interface OnboardingCandidate {
   checklistProgress: number;
 }
 
+export type PayrollRunStatus =
+  | 'Draft'
+  | 'Under Review'
+  | 'Approved'
+  | 'Finalized'
+  /** @deprecated mapped to Finalized for older seed data */
+  | 'Authorized'
+  | 'Paid';
+
 export interface PayrollRun {
   id: string;
   period: string;
-  status: 'Draft' | 'Authorized' | 'Paid';
+  status: PayrollRunStatus;
   employeeCount: number;
   totalNetPay: number;
   totalCpfEmployee: number;
   totalCpfEmployer: number;
   totalSdl: number;
   authorizedOn: string | null;
+  reviewedOn?: string | null;
+  approvedOn?: string | null;
+  finalizedOn?: string | null;
 }
 
 export interface HrDashboardStats {
@@ -88,6 +104,7 @@ export interface WorkforceState {
   attendance: AttendanceRecord[];
   documents: EmployeeDocument[];
   bankRequests: BankUpdateRequest[];
+  profileRequests: ProfileUpdateRequest[];
   clocks: Record<string, ClockState>;
   passAlerts: Record<string, PassAlert[]>;
   compliance: ComplianceWatchItem[];
@@ -95,6 +112,9 @@ export interface WorkforceState {
   payrollRuns: PayrollRun[];
   costCentres: string[];
   otApprovals: Record<string, boolean>;
+  assets: EmployeeAsset[];
+  training: TrainingRecord[];
+  notifications: EmployeeNotification[];
   /** Admin-managed policies mirrored into ESS / HR */
   policies: SystemPolicies;
 }

@@ -7,8 +7,8 @@
         <p class="ess-eyebrow">My Profile</p>
         <h1>{{ ws().profile.fullName }}</h1>
         <p class="ess-sub">
-          Read-only employment identity with editable contact fields. Bank changes require HR
-          authorization.
+          Contact and bank changes are submitted as HR approval requests — nothing updates until
+          HR decides.
         </p>
       </div>
       <app-status-badge [label]="ws().profile.employmentType" tone="info" />
@@ -127,6 +127,28 @@
         </div>
       }
     </section>
+
+    @if (ws().profileRequests.length) {
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Contact update requests</h2>
+        </div>
+        <div class="bank-requests">
+          @for (req of ws().profileRequests; track req.id) {
+            <div class="bank-row">
+              <div>
+                <strong>{{ req.id }}</strong>
+                <p>{{ req.patch.personalEmail }} · {{ req.patch.mobile }}</p>
+              </div>
+              <app-status-badge
+                [label]="req.status"
+                [tone]="req.status === 'Pending HR' ? 'warning' : req.status === 'Approved' ? 'success' : 'danger'"
+              />
+            </div>
+          }
+        </div>
+      </section>
+    }
   </div>
 }
 

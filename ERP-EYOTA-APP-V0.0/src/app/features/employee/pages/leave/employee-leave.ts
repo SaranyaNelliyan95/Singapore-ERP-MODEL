@@ -140,7 +140,11 @@ export class EmployeeLeavePage implements OnInit {
       return;
     }
 
-    this.employeeService.applyLeave({ ...values, days });
+    const result = this.employeeService.applyLeave({ ...values, days });
+    if ('error' in result) {
+      this.toast.danger('Leave blocked', result.error);
+      return;
+    }
     this.form.reset({
       type: 'Annual',
       fromDate: '',
@@ -148,7 +152,10 @@ export class EmployeeLeavePage implements OnInit {
       reason: '',
     });
     this.dayPreview.set(0);
-    this.toast.success('Leave submitted', `${days} day(s) pending manager approval (mock).`);
+    this.toast.success(
+      'Leave submitted',
+      `${result.id} · ${days} day(s) pending HR — balance updates only after approval.`,
+    );
   }
 
   requestCancel(row: LeaveRequest): void {
@@ -167,10 +174,7 @@ export class EmployeeLeavePage implements OnInit {
     }
     const ok = this.employeeService.cancelLeave(target.id);
     if (ok) {
-      this.toast.success(
-        'Request cancelled',
-        `${target.id} cancelled and balance restored (simulated).`,
-      );
+      this.toast.success('Request cancelled', `${target.id} cancelled (balance was never reserved).`);
     } else {
       this.toast.danger('Cancel failed', 'Request was not pending or not found.');
     }

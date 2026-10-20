@@ -1,0 +1,61 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading reports & Workright…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Reports / MOM Workright</p>
+        <h1>Inspection centre pack (demo)</h1>
+        <p class="ess-sub">
+          Derived workforce metrics for foreign worker compliance — export simulated Workright and
+          directory packs client-side only.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Workright pack is a simulated CSV; not filed with MOM."
+    />
+
+    <section class="ess-grid-4">
+      <article class="ess-stat">
+        <p>Foreign workers</p>
+        <strong>{{ foreignWorkerCount() }}</strong>
+        <span>WP, S Pass, EP on active roster</span>
+      </article>
+      <article class="ess-stat">
+        <p>Expiring / expired passes</p>
+        <strong>{{ expiringPasses() }}</strong>
+        <span>From compliance watchlist</span>
+      </article>
+      <article class="ess-stat">
+        <p>Pending documents</p>
+        <strong>{{ pendingDocs() }}</strong>
+        <span>Awaiting HR verification</span>
+      </article>
+      <article class="ess-stat">
+        <p>Medical gaps</p>
+        <strong>{{ medicalMissing() }}</strong>
+        <span>Missing clearance flags</span>
+      </article>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>MOM Workright Inspection Centre pack</h2>
+      </div>
+      <p class="pack-copy">
+        Generates a demo CSV snapshot of all compliance watch rows (work passes, passports, medical,
+        safety certs, contracts) suitable for tabletop inspection drills.
+      </p>
+      <div class="hr-inline-actions">
+        <button type="button" class="ess-btn primary" (click)="generateWorkrightPack()">
+          Generate Workright pack (demo)
+        </button>
+        <button type="button" class="ess-btn ghost" (click)="exportDirectory()">
+          Export directory CSV
+        </button>
+      </div>
+    </section>
+  </div>
+}

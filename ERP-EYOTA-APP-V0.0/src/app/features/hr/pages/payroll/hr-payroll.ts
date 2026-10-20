@@ -13,6 +13,8 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
 import { DemoNoticeComponent } from '../../../employee/shared/demo-notice';
 import { SgdCurrencyPipe } from '../../../../shared/pipes/sgd-currency.pipe';
 
+type PayrollAction = 'submitReview' | 'approve' | 'finalize';
+
 @Component({
   selector: 'app-hr-payroll',
   standalone: true,
@@ -35,10 +37,11 @@ export class HrPayrollPage implements OnInit {
   readonly loading = signal(true);
   readonly selectedRunId = signal<string>('');
   readonly selectedEmployeeId = signal<string>('');
-  readonly authorizeOpen = signal(false);
+  readonly confirmOpen = signal(false);
+  readonly pendingAction = signal<PayrollAction | null>(null);
 
-  readonly selectedRun = computed(() =>
-    this.hr.workforce().payrollRuns.find((run) => run.id === this.selectedRunId()) ?? null,
+  readonly selectedRun = computed(
+    () => this.hr.workforce().payrollRuns.find((run) => run.id === this.selectedRunId()) ?? null,
   );
 
   readonly periodPayslips = computed(() => {
@@ -51,7 +54,11 @@ export class HrPayrollPage implements OnInit {
 
   readonly selectedSlip = computed(() => {
     const id = this.selectedEmployeeId();
-    return this.periodPayslips().find((slip) => slip.employeeId === id) ?? this.periodPayslips()[0] ?? null;
+    return (
+      this.periodPayslips().find((slip) => slip.employeeId === id) ??
+      this.periodPayslips()[0] ??
+      null
+    );
   });
 
   readonly runColumns: DataTableColumn<PayrollRun>[] = [
@@ -87,9 +94,11 @@ export class HrPayrollPage implements OnInit {
       badge: (row) => ({
         label: row.status,
         tone:
-          row.status === 'Authorized' || row.status === 'Paid'
+          row.status === 'Finalized' || row.status === 'Authorized' || row.status === 'Paid'
             ? 'success'
-            : 'warning',
+            : row.status === 'Approved'
+              ? 'info'
+              : 'warning',
       }),
     },
   ];
@@ -114,39 +123,84 @@ export class HrPayrollPage implements OnInit {
     this.selectedEmployeeId.set(employeeId);
   }
 
-  requestAuthorize(): void {
+  requestAction(action: PayrollAction): void {
     const run = this.selectedRun();
-    if (!run || run.status !== 'Draft') {
-      this.toast.warning('Payroll', 'Select a Draft payroll run to authorize.');
-      return;
-    }
-    this.authorizeOpen.set(true);
-  }
-
-  confirmAuthorize(): void {
-    const run = this.selectedRun();
-    this.authorizeOpen.set(false);
     if (!run) {
       return;
     }
-    if (!this.workforce.workforce().policies.statutory.payrollPeriodOpen) {
+    if (action === 'submitReview' && run.status !== 'Draft') {
+      this.toast.warning('Payroll', 'Only Draft runs can be submitted for review.');
+      return;
+    }
+    if (action === 'approve' && run.status !== 'Under Review' && run.status !== 'Draft') {
+      this.toast.warning('Payroll', 'Select a Draft or Under Review run to approve.');
+      return;
+    }
+    if (
+      action === 'finalize' &&
+      run.status !== 'Approved' &&
+      run.status !== 'Under Review' &&
+      run.status !== 'Draft'
+    ) {
+      this.toast.warning('Payroll', 'This run is already finalized.');
+      return;
+    }
+    this.pendingAction.set(action);
+    this.confirmOpen.set(true);
+  }
+
+  confirmAction(): void {
+    const run = this.selectedRun();
+    const action = this.pendingAction();
+    this.confirmOpen.set(false);
+    this.pendingAction.set(null);
+    if (!run || !action) {
+      return;
+    }
+    if (
+      action !== 'submitReview' &&
+      !this.workforce.workforce().policies.statutory.payrollPeriodOpen
+    ) {
       this.toast.danger(
         'Period closed',
         'Admin closed the payroll period. Re-open it under Admin → Payroll Controls (demo).',
       );
       return;
     }
-    const ok = this.workforce.authorizePayroll(run.id);
-    if (ok) {
-      this.toast.success(
-        'Month-end payroll authorized',
-        `${run.period} authorized in demo environment — no statutory filing.`,
-      );
+    const ok = this.workforce.advancePayroll(run.id, action);
+    if (!ok) {
+      this.toast.danger('Payroll', 'Unable to advance this run — check status and period lock.');
+      return;
     }
+    const labels: Record<PayrollAction, string> = {
+      submitReview: 'submitted for review',
+      approve: 'approved',
+      finalize: 'finalized — simulated payslips generated for active staff',
+    };
+    this.toast.success('Payroll updated', `${run.period} ${labels[action]} (demo).`);
   }
 
-  cancelAuthorize(): void {
-    this.authorizeOpen.set(false);
+  cancelAction(): void {
+    this.confirmOpen.set(false);
+    this.pendingAction.set(null);
+  }
+
+  confirmTitle(): string {
+    const action = this.pendingAction();
+    if (action === 'submitReview') {
+      return 'Submit payroll for review?';
+    }
+    if (action === 'approve') {
+      return 'Approve payroll run?';
+    }
+    return 'Finalize payroll and generate payslips?';
+  }
+
+  confirmMessage(): string {
+    if (this.pendingAction() === 'finalize') {
+      return 'Finalizing generates DEMO payslip records for active employees and notifies their inbox. No CPF Board or bank GIRO files are created.';
+    }
+    return 'This advances the selected payroll run in the shared demo store only.';
   }
 
   employeeLabel(employeeId: string): string {
