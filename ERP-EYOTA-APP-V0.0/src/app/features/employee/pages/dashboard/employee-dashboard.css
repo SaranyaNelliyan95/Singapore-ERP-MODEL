@@ -1,0 +1,77 @@
+@import '../../shared/employee-page.styles.css';
+
+.clock-pill {
+  background: #fff;
+  border: 1px solid #e5e9ef;
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  min-width: 160px;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.clock-pill span,
+.clock-pill small {
+  color: #7a889c;
+  font-size: 0.75rem;
+}
+
+.clock-pill strong {
+  color: #0b1f3a;
+}
+
+.actions {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.actions a {
+  text-decoration: none;
+  text-align: center;
+}
+
+.period {
+  margin: 0;
+  color: #5b6b82;
+  font-size: 0.85rem;
+}
+
+.net {
+  margin: 0.35rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0b1f3a;
+}
+
+.meta {
+  margin: 0 0 1rem;
+  color: #7a889c;
+  font-size: 0.82rem;
+}
+
+.alerts {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.alert {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #e5e9ef;
+  background: #f8fafc;
+}
+
+.alert strong {
+  color: #0b1f3a;
+  font-size: 0.9rem;
+}
+
+.alert p {
+  margin: 0.2rem 0 0;
+  color: #5b6b82;
+  font-size: 0.8rem;
+}

@@ -1,0 +1,11 @@
+@import '../../shared/admin-page.styles.css';
+
+.hr-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.adm-filters input {
+  min-width: min(420px, 100%);
+}

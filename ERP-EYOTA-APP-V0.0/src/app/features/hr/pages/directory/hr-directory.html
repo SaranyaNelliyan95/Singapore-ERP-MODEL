@@ -1,0 +1,58 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading employee directory…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Comprehensive Employee Directory</p>
+        <h1>Active staff master</h1>
+        <p class="ess-sub">
+          Instant filters by department, Singapore pass type, and work location. NRIC/FIN remains
+          masked.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Directory is fictional mock workforce data."
+    />
+
+    <section class="ess-panel">
+      <div class="hr-filters">
+        <label>
+          <span>Department</span>
+          <select [ngModel]="department()" (ngModelChange)="department.set($event)">
+            @for (dept of departments(); track dept) {
+              <option [value]="dept">{{ dept }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Pass type</span>
+          <select [ngModel]="passType()" (ngModelChange)="passType.set($event)">
+            @for (pass of passOptions; track pass) {
+              <option [value]="pass">{{ pass }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Location</span>
+          <select [ngModel]="location()" (ngModelChange)="location.set($event)">
+            @for (loc of locationOptions; track loc) {
+              <option [value]="loc">{{ loc }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <app-data-table
+        [columns]="columns"
+        [rows]="filtered()"
+        trackByKey="employeeId"
+        [pageSize]="8"
+        searchPlaceholder="Search ID, name, designation…"
+        [emptyState]="{ title: 'No staff match', description: 'Adjust filters to widen the directory view.' }"
+      />
+    </section>
+  </div>
+}

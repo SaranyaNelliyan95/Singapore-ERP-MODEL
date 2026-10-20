@@ -1,0 +1,49 @@
+@import '../../employee/shared/employee-page.styles.css';
+
+.hr-eyebrow {
+  margin: 0;
+  color: #147a45;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hr-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+
+.hr-filters label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 140px;
+}
+
+.hr-filters span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #445066;
+}
+
+.hr-filters select,
+.hr-filters input {
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  background: #f8fafc;
+  font: inherit;
+}
+
+.hr-dense .ess-panel {
+  padding: 0.85rem;
+}
+
+.hr-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}

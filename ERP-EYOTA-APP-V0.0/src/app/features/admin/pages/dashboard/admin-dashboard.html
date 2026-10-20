@@ -1,0 +1,54 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading system admin dashboard…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">System Admin Dashboard</p>
+        <h1>Control plane overview</h1>
+        <p class="ess-sub">Online users, role mix, failed jobs, security queue, and backup timers.</p>
+      </div>
+    </header>
+
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+      <span>All admin toggles mutate in-browser mock state only.</span>
+    </aside>
+
+    <section class="ess-grid-4">
+      <article class="ess-stat"><p>Users online</p><strong>{{ stats().usersOnline }}</strong></article>
+      <article class="ess-stat"><p>Active accounts</p><strong>{{ stats().activeUsers }}</strong></article>
+      <article class="ess-stat"><p>Failed batch jobs</p><strong>{{ stats().failedJobs }}</strong></article>
+      <article class="ess-stat"><p>Security audit flags</p><strong>{{ stats().securityAlerts }}</strong></article>
+    </section>
+
+    <div class="ess-grid-2">
+      <section class="ess-panel">
+        <div class="ess-panel-head"><h2>Role distribution</h2></div>
+        <div class="roles">
+          @for (row of stats().roleDistribution; track row.role) {
+            <div class="role"><strong>{{ row.count }}</strong><span>{{ row.role }}</span></div>
+          }
+        </div>
+      </section>
+      <section class="ess-panel">
+        <div class="ess-panel-head"><h2>Ops shortcuts</h2></div>
+        <div class="links">
+          <a routerLink="/admin/master/users">Manage users &amp; MFA</a>
+          <a routerLink="/admin/master/integrations">Integrations gateway</a>
+          <a routerLink="/admin/master/audit">Security audit queue</a>
+          <a routerLink="/admin/master/backup">Backup timer · next {{ stats().nextBackupLabel | sgDate }}</a>
+        </div>
+        <div class="jobs">
+          <h3>Failed jobs</h3>
+          @for (job of admin.system().failedJobs; track job.id) {
+            <div class="job">
+              <span>{{ job.name }}</span>
+              <app-status-badge label="Failed" tone="danger" />
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+}

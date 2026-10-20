@@ -1,0 +1,33 @@
+@import '../../shared/employee-page.styles.css';
+
+.clock-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: flex-end;
+}
+
+.clock-bar label {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 160px;
+}
+
+.clock-bar span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #445066;
+}
+
+.clock-bar select {
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  background: #f8fafc;
+}
+
+.session {
+  margin: 0.9rem 0 0;
+  color: #5b6b82;
+  font-size: 0.86rem;
+}

@@ -1,0 +1,45 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading workflows…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">Workflow Automation Builder</p>
+        <h1>Approval hierarchies &amp; SLA escalations</h1>
+      </div>
+      <button type="button" class="ess-btn primary" (click)="save()">Save workflows</button>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+    </aside>
+    @for (row of draft(); track row.id; let i = $index) {
+      <section class="ess-panel stage">
+        <div class="ess-panel-head">
+          <h2>{{ row.process }} · {{ row.stageName }}</h2>
+        </div>
+        <div class="grid">
+          <label>Stage name <input [ngModel]="row.stageName" (ngModelChange)="update(i, { stageName: $event })" /></label>
+          <label>Approver role
+            <select [ngModel]="row.approverRole" (ngModelChange)="update(i, { approverRole: $event })">
+              <option value="manager">manager</option>
+              <option value="hr">hr</option>
+              <option value="payroll">payroll</option>
+              <option value="admin">admin</option>
+            </select>
+          </label>
+          <label>SLA hours <input type="number" [ngModel]="row.slaHours" (ngModelChange)="update(i, { slaHours: +$event })" /></label>
+          <label>Escalate to
+            <select [ngModel]="row.escalationTo" (ngModelChange)="update(i, { escalationTo: $event })">
+              <option value="hr">hr</option>
+              <option value="admin">admin</option>
+              <option value="manager">manager</option>
+            </select>
+          </label>
+          <label class="full">Message template
+            <textarea [ngModel]="row.messageTemplate" (ngModelChange)="update(i, { messageTemplate: $event })"></textarea>
+          </label>
+        </div>
+      </section>
+    }
+  </div>
+}

@@ -1,0 +1,71 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading payslips…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="ess-eyebrow">Payslips &amp; Tax</p>
+        <h1>SGD payroll repository</h1>
+        <p class="ess-sub">
+          Monthly periods with Basic, OT, Allowances, Employee/Employer CPF, SDL, and Net Pay —
+          clearly marked DEMO DOCUMENT.
+        </p>
+      </div>
+      <app-status-badge label="SGD · Simulated CPF/SDL" tone="warning" />
+    </header>
+
+    <app-demo-notice message="CPF employee/employer contributions and SDL amounts are fictional sample calculations for UI demonstration only." />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Pay periods</h2>
+      </div>
+      <div class="period-pills">
+        @for (slip of ws().payslips; track slip.id) {
+          <button
+            type="button"
+            class="period-pill"
+            [class.active]="selected()?.id === slip.id"
+            (click)="selectById(slip.id)"
+          >
+            {{ slip.payPeriod }}
+          </button>
+        }
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="ws().payslips"
+        trackByKey="id"
+        searchPlaceholder="Search pay periods…"
+        [emptyState]="{ title: 'No payslips', description: 'Itemised payslips will list here.' }"
+      />
+    </section>
+
+    @if (selected(); as slip) {
+      <section class="ess-panel detail">
+        <div class="ess-panel-head">
+          <h2>{{ slip.payPeriod }} breakdown</h2>
+          <div class="detail-actions">
+            <app-status-badge label="DEMO DOCUMENT" tone="warning" />
+            <button type="button" class="ess-btn primary" (click)="downloadDemo()">
+              Download PDF (mock)
+            </button>
+          </div>
+        </div>
+
+        <div class="breakdown">
+          <div><span>Basic salary</span><strong>{{ slip.basic | sgd }}</strong></div>
+          <div><span>Allowances</span><strong>{{ slip.allowances | sgd }}</strong></div>
+          <div><span>Overtime</span><strong>{{ slip.overtime | sgd }}</strong></div>
+          <div><span>Bonus</span><strong>{{ slip.bonus | sgd }}</strong></div>
+          <div><span>Employee CPF (simulated)</span><strong>{{ slip.cpfEmployee | sgd }}</strong></div>
+          <div><span>Employer CPF (simulated)</span><strong>{{ slip.cpfEmployer | sgd }}</strong></div>
+          <div><span>SDL (simulated)</span><strong>{{ slip.sdl | sgd }}</strong></div>
+          <div><span>Other deductions</span><strong>{{ slip.deductions | sgd }}</strong></div>
+          <div class="net"><span>Net pay</span><strong>{{ slip.netPay | sgd }}</strong></div>
+          <div><span>Bank credited</span><strong>{{ slip.bankCreditedDate | sgDate }}</strong></div>
+        </div>
+      </section>
+    }
+  </div>
+}

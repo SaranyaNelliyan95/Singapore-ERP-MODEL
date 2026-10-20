@@ -1,0 +1,216 @@
+.ess-page {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.ess-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.ess-eyebrow {
+  margin: 0;
+  color: #1f6feb;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ess-head h1 {
+  margin: 0.25rem 0;
+  color: #0b1f3a;
+  font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+  letter-spacing: -0.02em;
+}
+
+.ess-sub {
+  margin: 0;
+  color: #5b6b82;
+  max-width: 620px;
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+
+.ess-panel {
+  background: #fff;
+  border: 1px solid #e5e9ef;
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.ess-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.ess-panel-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #0b1f3a;
+}
+
+.ess-grid-2 {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1rem;
+}
+
+.ess-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.ess-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.ess-stat {
+  background: #fff;
+  border: 1px solid #e5e9ef;
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.ess-stat p {
+  margin: 0;
+  color: #7a889c;
+  font-size: 0.78rem;
+}
+
+.ess-stat strong {
+  display: block;
+  margin: 0.35rem 0 0.15rem;
+  font-size: 1.45rem;
+  color: #0b1f3a;
+}
+
+.ess-stat span {
+  color: #5b6b82;
+  font-size: 0.78rem;
+}
+
+.ess-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.ess-form label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.ess-form label.full {
+  grid-column: 1 / -1;
+}
+
+.ess-form span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #445066;
+}
+
+.ess-form input,
+.ess-form select,
+.ess-form textarea {
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  background: #f8fafc;
+  color: #0b1f3a;
+}
+
+.ess-form textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.ess-form small.error {
+  color: #b42318;
+  font-size: 0.75rem;
+}
+
+.ess-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
+.ess-btn {
+  border-radius: 10px;
+  padding: 0.55rem 0.9rem;
+  font-weight: 650;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.ess-btn.primary {
+  background: #0b1f3a;
+  border: 1px solid #0b1f3a;
+  color: #fff;
+}
+
+.ess-btn.ghost {
+  background: #fff;
+  border: 1px solid #d8dee8;
+  color: #445066;
+}
+
+.ess-btn.danger {
+  background: #fff;
+  border: 1px solid #f3c1c1;
+  color: #b42318;
+}
+
+.ess-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ess-readonly-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.ess-readonly-grid label {
+  display: block;
+  font-size: 0.72rem;
+  color: #7a889c;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ess-readonly-grid p {
+  margin: 0;
+  color: #243247;
+  font-size: 0.9rem;
+}
+
+.ess-readonly-grid .full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 960px) {
+  .ess-grid-2,
+  .ess-grid-3,
+  .ess-grid-4,
+  .ess-form,
+  .ess-readonly-grid {
+    grid-template-columns: 1fr;
+  }
+}

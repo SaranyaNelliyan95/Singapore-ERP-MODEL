@@ -1,0 +1,54 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading payroll controls…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">Payroll &amp; Statutory Controls</p>
+        <h1>Period locks · CPF · SDL · payslip format</h1>
+      </div>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+    </aside>
+    <div class="adm-warn">
+      Closing a payroll period blocks HR “Authorize month-end payroll” until reopened.
+    </div>
+
+    <section class="ess-panel">
+      <form class="ess-form" [formGroup]="form" (ngSubmit)="requestSave()">
+        <label>
+          <span>Payroll period open</span>
+          <select formControlName="payrollPeriodOpen">
+            <option [ngValue]="true">Open</option>
+            <option [ngValue]="false">Closed</option>
+          </select>
+        </label>
+        <label><span>Active pay period</span><input formControlName="activePayPeriod" /></label>
+        <label><span>CPF employee rate %</span><input type="number" step="0.1" formControlName="cpfEmployeeRatePct" /></label>
+        <label><span>CPF employer rate %</span><input type="number" step="0.1" formControlName="cpfEmployerRatePct" /></label>
+        <label><span>SDL rate %</span><input type="number" step="0.01" formControlName="sdlRatePct" /></label>
+        <label>
+          <span>Payslip template</span>
+          <select formControlName="payslipTemplate">
+            <option value="MOM Itemised">MOM Itemised</option>
+            <option value="Compact">Compact</option>
+          </select>
+        </label>
+        <label class="full"><span>Bank GIRO channel (masked)</span><input formControlName="bankGiroChannelMasked" /></label>
+        <div class="ess-actions full">
+          <button type="submit" class="ess-btn primary">Save statutory controls</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+<app-confirm-modal
+  [open]="closeConfirm()"
+  title="Close payroll period?"
+  message="HR will be unable to authorize month-end payroll while the period is closed. This is a demo-only lock."
+  confirmLabel="Close period"
+  (confirmed)="persist()"
+  (cancelled)="closeConfirm.set(false)"
+/>

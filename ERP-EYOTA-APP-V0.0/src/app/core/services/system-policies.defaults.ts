@@ -1,0 +1,72 @@
+import { SystemPolicies } from '../models/admin.model';
+
+export function createDefaultSystemPolicies(): SystemPolicies {
+  return {
+    company: {
+      legalName: 'EYOTA Engineering Pte. Ltd.',
+      uen: '201812345A',
+      gstRegistered: true,
+      gstNumberMasked: 'M••••5678X',
+      address: '21 Science Park Rd, #04-01, Singapore 117628',
+      postalCode: '117628',
+      payDay: 28,
+    },
+    branches: ['HQ Science Park', 'Jurong Site Office', 'Changi Staging Yard'],
+    departments: [
+      'Structural Engineering',
+      'Site Ops',
+      'QS',
+      'BIM',
+      'HR',
+      'Projects',
+      'HSE',
+    ],
+    costCentres: ['PRJ-Marina', 'PRJ-Jurong', 'PRJ-Changi', 'OH-Structural', 'OH-Admin'],
+    jobGrades: ['E1', 'E2', 'E3', 'M1', 'M2', 'Exec'],
+    leavePolicies: [
+      { type: 'Annual', annualEntitlement: 18, enabled: true, carryForwardMax: 5 },
+      { type: 'Sick', annualEntitlement: 14, enabled: true, carryForwardMax: 0 },
+      { type: 'Hospitalisation', annualEntitlement: 60, enabled: true, carryForwardMax: 0 },
+      { type: 'Childcare', annualEntitlement: 6, enabled: true, carryForwardMax: 0 },
+      { type: 'Maternity', annualEntitlement: 0, enabled: true, carryForwardMax: 0 },
+      { type: 'Paternity', annualEntitlement: 0, enabled: true, carryForwardMax: 0 },
+      { type: 'Unpaid', annualEntitlement: 0, enabled: true, carryForwardMax: 0 },
+      { type: 'Compassionate', annualEntitlement: 3, enabled: true, carryForwardMax: 0 },
+    ],
+    claimLimits: [
+      { type: 'Transport', maxAmountSgd: 150, requireReceipt: true },
+      { type: 'Medical', maxAmountSgd: 500, requireReceipt: true },
+      { type: 'Meals', maxAmountSgd: 80, requireReceipt: false },
+      { type: 'Accommodation', maxAmountSgd: 300, requireReceipt: true },
+      { type: 'Mobile', maxAmountSgd: 100, requireReceipt: true },
+      { type: 'Other', maxAmountSgd: 200, requireReceipt: true },
+    ],
+    deductionCodes: ['CPF-EE', 'LOAN', 'ADVANCE', 'UNIFORM'],
+    assetCategories: ['Laptop', 'Mobile', 'PPE', 'Access Card', 'Vehicle', 'Tools'],
+    holidays: [
+      { id: 'HOL-1', name: 'New Year’s Day', date: '2026-01-01' },
+      { id: 'HOL-2', name: 'Chinese New Year', date: '2026-02-17' },
+      { id: 'HOL-3', name: 'Good Friday', date: '2026-04-03' },
+      { id: 'HOL-4', name: 'Labour Day', date: '2026-05-01' },
+      { id: 'HOL-5', name: 'National Day', date: '2026-08-09' },
+    ],
+    statutory: {
+      payrollPeriodOpen: true,
+      activePayPeriod: 'Mar 2026',
+      cpfEmployeeRatePct: 20,
+      cpfEmployerRatePct: 17,
+      sdlRatePct: 0.25,
+      payslipTemplate: 'MOM Itemised',
+      bankGiroChannelMasked: '•••• •••• 8891',
+    },
+    hrModules: [
+      { moduleKey: 'directory', label: 'Employee Directory', visible: true },
+      { moduleKey: 'compliance', label: 'Work Pass & Compliance', visible: true },
+      { moduleKey: 'leave', label: 'Leave Approval Engine', visible: true },
+      { moduleKey: 'attendance', label: 'Time & Attendance', visible: true },
+      { moduleKey: 'payroll', label: 'Payroll & CPF / SDL', visible: true },
+      { moduleKey: 'documents', label: 'Document & Bank Audit', visible: true },
+      { moduleKey: 'claims', label: 'Claims Settlement', visible: true },
+    ],
+  };
+}

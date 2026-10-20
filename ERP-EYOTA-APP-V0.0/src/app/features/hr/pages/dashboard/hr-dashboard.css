@@ -1,0 +1,45 @@
+@import '../../shared/hr-page.styles.css';
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.actions a {
+  text-decoration: none;
+}
+
+.meta {
+  margin: 0.85rem 0 0;
+  color: #7a889c;
+  font-size: 0.82rem;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(11, 31, 58, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modal {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e5e9ef;
+  padding: 1.25rem;
+}
+
+.modal h2 {
+  margin: 0 0 1rem;
+  color: #0b1f3a;
+  font-size: 1.1rem;
+}
+
+.full {
+  grid-column: 1 / -1;
+}

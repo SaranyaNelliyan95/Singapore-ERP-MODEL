@@ -1,0 +1,93 @@
+<div class="shell" [class.sidebar-open]="sidebarOpen()">
+  <aside class="sidebar" aria-label="Primary">
+    <div class="brand">
+      <div class="mark">EY</div>
+      <div>
+        <p class="brand-name">EYOTA Workright</p>
+        <p class="brand-sub">{{ portalTitle }}</p>
+      </div>
+    </div>
+
+    <nav class="nav">
+      @for (item of navItems; track item.route) {
+        @if (item.section) {
+          <p class="nav-section">{{ item.section }}</p>
+        }
+        <a [routerLink]="item.route" routerLinkActive="active">
+          <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <p>Singapore MOM · CPF · IRAS</p>
+      <p>Mock environment · V0.0</p>
+    </div>
+  </aside>
+
+  @if (sidebarOpen()) {
+    <button class="scrim" type="button" aria-label="Close menu" (click)="toggleSidebar()"></button>
+  }
+
+  <div class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="menu-btn" type="button" (click)="toggleSidebar()" aria-label="Open navigation">
+          ☰
+        </button>
+        <nav class="crumbs" aria-label="Breadcrumb">
+          @for (crumb of breadcrumbs; track crumb.label; let last = $last) {
+            @if (!last && crumb.route) {
+              <a [routerLink]="crumb.route">{{ crumb.label }}</a>
+              <span>/</span>
+            } @else {
+              <span class="current">{{ crumb.label }}</span>
+            }
+          }
+        </nav>
+      </div>
+
+      <div class="top-right">
+        <app-status-badge [label]="roleBadge().label" [tone]="roleBadge().tone" />
+
+        <div class="profile">
+          <button type="button" class="profile-btn" (click)="toggleProfile()" aria-haspopup="menu">
+            <span class="avatar">{{ user()?.avatarInitials }}</span>
+            <span class="profile-meta">
+              <strong>{{ user()?.displayName }}</strong>
+              <small>{{ user()?.email }}</small>
+            </span>
+          </button>
+
+          @if (profileOpen()) {
+            <div class="profile-menu" role="menu">
+              <div class="profile-card">
+                <strong>{{ user()?.displayName }}</strong>
+                <p>{{ user()?.email }}</p>
+                @if (user()?.employeeId) {
+                  <p>ID · {{ user()?.employeeId }}</p>
+                }
+              </div>
+              <button type="button" role="menuitem" (click)="requestLogout()">Sign out</button>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<app-confirm-modal
+  [open]="logoutConfirmOpen()"
+  title="Sign out of EYOTA?"
+  message="You will return to the login screen. Unsaved form changes on this device will be discarded."
+  confirmLabel="Sign out"
+  cancelLabel="Stay signed in"
+  (confirmed)="confirmLogout()"
+  (cancelled)="cancelLogout()"
+/>

@@ -1,0 +1,43 @@
+@import 'tailwindcss';
+
+:root {
+  --eyota-navy: #0b1f3a;
+  --eyota-navy-soft: #16325a;
+  --eyota-surface: #f4f6f9;
+  --eyota-line: #e5e9ef;
+  --eyota-text: #243247;
+  --eyota-muted: #5b6b82;
+  --eyota-accent: #1f6feb;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  background: var(--eyota-surface);
+  color: var(--eyota-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}

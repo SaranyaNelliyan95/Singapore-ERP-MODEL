@@ -1,0 +1,47 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading audit trail…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">Audit Trail &amp; Security Log</p>
+        <h1>Immutable activity register</h1>
+      </div>
+      <div class="hr-inline-actions">
+        <button type="button" class="ess-btn primary" (click)="exportCsv()">Export logs to CSV</button>
+        <button type="button" class="ess-btn danger" (click)="clearOpen.set(true)">Clear audit (demo)</button>
+      </div>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+    </aside>
+
+    <section class="ess-panel">
+      <div class="adm-filters">
+        <input
+          type="search"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          placeholder="Search actor, action, module, IP…"
+        />
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="filtered()"
+        trackByKey="id"
+        [pageSize]="8"
+        searchPlaceholder="Secondary filter…"
+        [emptyState]="{ title: 'No audit rows', description: 'Admin actions append here.' }"
+      />
+    </section>
+  </div>
+}
+
+<app-confirm-modal
+  [open]="clearOpen()"
+  title="Clear audit records?"
+  message="Destructive demo action. History is replaced with a single clearance event."
+  confirmLabel="Clear logs"
+  (confirmed)="confirmClear()"
+  (cancelled)="clearOpen.set(false)"
+/>

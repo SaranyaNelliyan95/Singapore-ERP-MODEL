@@ -1,0 +1,103 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading extras…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="ess-eyebrow">More</p>
+        <h1>Assets, training &amp; help</h1>
+        <p class="ess-sub">
+          Collapsible summaries for assigned assets, compliance training, notifications, and FAQ
+          submission.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice />
+
+    <section class="ess-panel">
+      <button type="button" class="collapse-head" (click)="toggle('assets')">
+        <h2>Assigned assets</h2>
+        <span>{{ openAssets() ? '−' : '+' }}</span>
+      </button>
+      @if (openAssets()) {
+        <app-data-table
+          [columns]="assetColumns"
+          [rows]="ws().assets"
+          trackByKey="id"
+          searchPlaceholder="Search asset IDs…"
+          [pageSize]="4"
+          [emptyState]="{ title: 'No assets', description: 'Corporate assets assigned to you appear here.' }"
+        />
+      }
+    </section>
+
+    <section class="ess-panel">
+      <button type="button" class="collapse-head" (click)="toggle('training')">
+        <h2>Compliance training</h2>
+        <span>{{ openTraining() ? '−' : '+' }}</span>
+      </button>
+      @if (openTraining()) {
+        <app-data-table
+          [columns]="trainingColumns"
+          [rows]="ws().training"
+          trackByKey="id"
+          searchPlaceholder="Search courses…"
+          [pageSize]="4"
+          [emptyState]="{ title: 'No training records', description: 'Required courses will list here.' }"
+        />
+      }
+    </section>
+
+    <section class="ess-panel">
+      <button type="button" class="collapse-head" (click)="toggle('notifications')">
+        <h2>Recent notifications</h2>
+        <span>{{ openNotifications() ? '−' : '+' }}</span>
+      </button>
+      @if (openNotifications()) {
+        <div class="notes">
+          @for (note of ws().notifications; track note.id) {
+            <div class="note" [class.unread]="!note.read">
+              <div>
+                <div class="note-top">
+                  <app-status-badge [label]="note.type" [tone]="note.read ? 'neutral' : 'info'" />
+                  <small>{{ note.date | sgDate }}</small>
+                </div>
+                <p>{{ note.message }}</p>
+              </div>
+              @if (!note.read) {
+                <button type="button" class="ess-btn ghost" (click)="markRead(note)">
+                  Mark read
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <button type="button" class="collapse-head" (click)="toggle('faq')">
+        <h2>FAQ / help desk</h2>
+        <span>{{ openFaq() ? '−' : '+' }}</span>
+      </button>
+      @if (openFaq()) {
+        <form class="ess-form single" [formGroup]="faqForm" (ngSubmit)="submitFaq()">
+          <label class="full">
+            <span>Ask a question</span>
+            <textarea
+              formControlName="question"
+              placeholder="How do I update my emergency contact after probation?"
+            ></textarea>
+            @if (faqInvalid()) {
+              <small class="error">Please enter at least 10 characters.</small>
+            }
+          </label>
+          <div class="ess-actions full">
+            <button type="submit" class="ess-btn primary">Submit FAQ</button>
+          </div>
+        </form>
+      }
+    </section>
+  </div>
+}

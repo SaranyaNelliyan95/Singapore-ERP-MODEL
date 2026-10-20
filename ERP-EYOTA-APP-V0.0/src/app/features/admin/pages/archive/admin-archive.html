@@ -1,0 +1,50 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading archive policy…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">Document Archive Policy</p>
+        <h1>Retention, locks &amp; Workright packs</h1>
+      </div>
+      <button type="button" class="ess-btn ghost" (click)="generatePack()">Generate Workright pack</button>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+    </aside>
+
+    <section class="ess-panel">
+      <form class="ess-form" [formGroup]="form" (ngSubmit)="save()">
+        <label><span>Retention years</span><input type="number" formControlName="retentionYears" /></label>
+        <label>
+          <span>Encrypt at rest</span>
+          <select formControlName="encryptAtRest">
+            <option [ngValue]="true">Enabled</option>
+            <option [ngValue]="false">Disabled</option>
+          </select>
+        </label>
+        <label>
+          <span>Workright pack generation</span>
+          <select formControlName="workrightPackEnabled">
+            <option [ngValue]="true">Allowed</option>
+            <option [ngValue]="false">Blocked</option>
+          </select>
+        </label>
+        <div class="full">
+          <p class="label">Role-based archive locks</p>
+          <div class="checks">
+            @for (role of roles; track role) {
+              <label>
+                <input type="checkbox" [checked]="hasRole(role)" (change)="toggleRole(role, $any($event.target).checked)" />
+                {{ role }}
+              </label>
+            }
+          </div>
+        </div>
+        <div class="ess-actions full">
+          <button type="submit" class="ess-btn primary">Save archive policy</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

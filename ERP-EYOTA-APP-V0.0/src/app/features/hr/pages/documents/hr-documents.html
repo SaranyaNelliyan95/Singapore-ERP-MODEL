@@ -1,0 +1,103 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading document & bank audit…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Document Verification &amp; Bank Details Audit</p>
+        <h1>Employee uploads &amp; bank requests</h1>
+        <p class="ess-sub">
+          Verify Stage 2 uploads and sandboxed bank update requests. Approvals write back to the
+          shared employee profile.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Bank approvals update mock profiles only."
+    />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Pending document verification</h2>
+      </div>
+      @if (pendingDocs().length === 0) {
+        <p class="empty">No pending uploads.</p>
+      } @else {
+        <div class="queue">
+          @for (doc of pendingDocs(); track doc.id) {
+            <div class="queue-row">
+              <div>
+                <strong>{{ doc.employeeName }} · {{ doc.name }}</strong>
+                <p>{{ doc.category }} · {{ doc.fileName }}</p>
+              </div>
+              <div class="hr-inline-actions">
+                <button type="button" class="ess-btn primary" (click)="verify(doc, true)">Verify</button>
+                <button type="button" class="ess-btn danger" (click)="verify(doc, false)">Reject</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Bank detail update requests</h2>
+      </div>
+      @if (pendingBanks().length === 0) {
+        <p class="empty">No pending bank change requests. Submit one from Employee → Profile to test sync.</p>
+      } @else {
+        <div class="queue">
+          @for (req of pendingBanks(); track req.id) {
+            <div class="queue-row">
+              <div>
+                <strong>{{ hr.employeeName(req.employeeId) }} · {{ req.id }}</strong>
+                <p>
+                  {{ req.bankName }} · {{ masked(req.bankAccountNumber) }} · {{ req.note }}
+                </p>
+              </div>
+              <div class="hr-inline-actions">
+                <button type="button" class="ess-btn primary" (click)="decideBank(req, true)">
+                  Approve &amp; update profile
+                </button>
+                <button type="button" class="ess-btn danger" (click)="decideBank(req, false)">
+                  Reject
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      @if (hr.workforce().bankRequests.length) {
+        <div class="history">
+          <h3>Request history</h3>
+          @for (req of hr.workforce().bankRequests; track req.id) {
+            <div class="hist-row">
+              <span>{{ req.id }} · {{ hr.employeeName(req.employeeId) }}</span>
+              <app-status-badge
+                [label]="req.status"
+                [tone]="req.status === 'Approved' ? 'success' : req.status === 'Pending HR' ? 'warning' : 'danger'"
+              />
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Document inventory</h2>
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="docRows()"
+        trackByKey="id"
+        [pageSize]="8"
+        searchPlaceholder="Search documents…"
+        [emptyState]="{ title: 'No documents', description: 'Employee uploads appear here.' }"
+      />
+    </section>
+  </div>
+}

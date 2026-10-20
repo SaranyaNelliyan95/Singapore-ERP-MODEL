@@ -1,0 +1,89 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading documents…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="ess-eyebrow">My Documents</p>
+        <h1>Personal document vault</h1>
+        <p class="ess-sub">
+          Searchable inventory with mock upload validation and download streams for your records
+          only.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice message="Uploads are simulated in-browser only — no files leave this demo session." />
+
+    <div class="ess-grid-2">
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Upload document</h2>
+        </div>
+        <form class="ess-form" [formGroup]="form" (ngSubmit)="upload()">
+          <label class="full">
+            <span>Document title</span>
+            <input formControlName="name" placeholder="e.g. First Aid Certificate" />
+            @if (invalid('name')) {
+              <small class="error">Title required (min 3 chars).</small>
+            }
+          </label>
+          <label>
+            <span>Category</span>
+            <select formControlName="category">
+              <option value="Passport">Passport</option>
+              <option value="Work Pass">Work Pass</option>
+              <option value="Certification">Certification</option>
+              <option value="Contract">Contract</option>
+              <option value="Medical">Medical</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label>
+            <span>File (PDF / PNG / JPG)</span>
+            <input type="file" accept=".pdf,.png,.jpg,.jpeg" (change)="onFileChange($event)" />
+            @if (selectedFileName()) {
+              <small class="ok">Selected: {{ selectedFileName() }}</small>
+            }
+            @if (fileError()) {
+              <small class="error">{{ fileError() }}</small>
+            }
+          </label>
+          <div class="ess-actions full">
+            <button type="submit" class="ess-btn primary">Upload (mock)</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Quick downloads</h2>
+        </div>
+        <div class="download-list">
+          @for (doc of ws().documents; track doc.id) {
+            <button type="button" class="download-row" (click)="download(doc)">
+              <span>
+                <strong>{{ doc.name }}</strong>
+                <small>{{ doc.category }} · {{ doc.fileName }}</small>
+              </span>
+              <em>Download</em>
+            </button>
+          }
+        </div>
+      </section>
+    </div>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Document inventory</h2>
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="ws().documents"
+        trackByKey="id"
+        searchPlaceholder="Search passport, work pass, certifications…"
+        [emptyState]="{ title: 'No documents', description: 'Upload your first personal document.' }"
+      />
+    </section>
+  </div>
+}

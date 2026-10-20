@@ -1,0 +1,58 @@
+@import '../../shared/admin-page.styles.css';
+
+.roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.role {
+  min-width: 100px;
+  border: 1px solid #e5e9ef;
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  background: #f8fafc;
+}
+
+.role strong {
+  display: block;
+  font-size: 1.2rem;
+  color: #0b1f3a;
+}
+
+.role span {
+  color: #5b6b82;
+  font-size: 0.8rem;
+}
+
+.links {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.links a {
+  color: #1f6feb;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.jobs {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #eef1f5;
+}
+
+.jobs h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.job {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  font-size: 0.86rem;
+  color: #445066;
+}

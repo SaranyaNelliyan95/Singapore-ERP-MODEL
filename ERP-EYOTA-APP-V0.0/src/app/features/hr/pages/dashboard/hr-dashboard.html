@@ -1,0 +1,99 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading HR dashboard…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">HR Management Dashboard</p>
+        <h1>Workforce command centre</h1>
+        <p class="ess-sub">
+          Headcount, work-pass risk, attendance rate, and queues synced live with Employee
+          Self-Service actions.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Headcount and CPF/SDL metrics are simulated samples."
+    />
+
+    <section class="ess-grid-4">
+      <article class="ess-stat">
+        <p>Total headcount</p>
+        <strong>{{ stats().totalEmployees }}</strong>
+        <span>Local {{ stats().localCount }} · PR {{ stats().prCount }} · Foreign {{ stats().foreignCount }}</span>
+      </article>
+      <article class="ess-stat">
+        <p>Passes ≤ 90 days</p>
+        <strong>{{ stats().passesExpiring90 }}</strong>
+        <span>Work pass expiry watch</span>
+      </article>
+      <article class="ess-stat">
+        <p>Attendance rate</p>
+        <strong>{{ stats().attendanceRateToday }}%</strong>
+        <span>On leave today: {{ stats().onLeaveToday }}</span>
+      </article>
+      <article class="ess-stat">
+        <p>Pending queues</p>
+        <strong>{{ stats().pendingLeaves + stats().pendingClaims }}</strong>
+        <span>
+          {{ stats().pendingLeaves }} leave · {{ stats().pendingClaims }} claims ·
+          {{ stats().pendingDocuments }} docs
+        </span>
+      </article>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Critical quick actions</h2>
+      </div>
+      <div class="actions">
+        <button type="button" class="ess-btn primary" (click)="openHire()">Add new hire</button>
+        <a routerLink="/hr/master/payroll" class="ess-btn ghost" (click)="runPayrollHint()">Run payroll</a>
+        <a routerLink="/hr/master/leave" class="ess-btn ghost">Review pending leaves</a>
+        <a routerLink="/hr/master/compliance" class="ess-btn ghost">Open compliance tracker</a>
+      </div>
+      <p class="meta">Draft payroll period in focus: {{ stats().payrollStatus }}</p>
+    </section>
+  </div>
+}
+
+@if (hireOpen()) {
+  <div class="backdrop">
+    <div class="modal">
+      <h2>Add new hire (onboarding draft)</h2>
+      <form class="ess-form" [formGroup]="hireForm" (ngSubmit)="submitHire()">
+        <label>
+          <span>Full name</span>
+          <input formControlName="fullName" />
+        </label>
+        <label>
+          <span>Role</span>
+          <input formControlName="role" />
+        </label>
+        <label>
+          <span>Department</span>
+          <input formControlName="department" />
+        </label>
+        <label>
+          <span>Pass type</span>
+          <select formControlName="employmentType">
+            <option value="Local">Local</option>
+            <option value="PR">PR</option>
+            <option value="WP">WP</option>
+            <option value="S Pass">S Pass</option>
+            <option value="EP">EP</option>
+          </select>
+        </label>
+        <label class="full">
+          <span>Start date</span>
+          <input type="date" formControlName="startDate" />
+        </label>
+        <div class="ess-actions full">
+          <button type="button" class="ess-btn ghost" (click)="hireOpen.set(false)">Cancel</button>
+          <button type="submit" class="ess-btn primary">Create draft</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

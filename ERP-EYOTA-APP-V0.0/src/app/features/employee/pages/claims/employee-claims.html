@@ -1,0 +1,82 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading claims…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="ess-eyebrow">Claims Log</p>
+        <h1>Expense submissions</h1>
+        <p class="ess-sub">
+          Transport, Medical, Meals, and Accommodation claims with positive SGD validation and cost
+          centre selection.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice message="Claim amounts and approvals are simulated for this employee demo account only." />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>File a claim</h2>
+      </div>
+      <form class="ess-form" [formGroup]="form" (ngSubmit)="submit()">
+        <label>
+          <span>Claim type</span>
+          <select formControlName="type">
+            @for (type of claimTypes; track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Date</span>
+          <input type="date" formControlName="date" />
+          @if (invalid('date')) {
+            <small class="error">Date required.</small>
+          }
+        </label>
+        <label>
+          <span>Amount (SGD)</span>
+          <input type="number" formControlName="amountSgd" min="0.01" step="0.01" />
+          @if (invalid('amountSgd')) {
+            <small class="error">Enter a positive amount.</small>
+          }
+        </label>
+        <label>
+          <span>Project / cost centre</span>
+          <select formControlName="costCentre">
+            @for (cc of ws().costCentres; track cc) {
+              <option [value]="cc">{{ cc }}</option>
+            }
+          </select>
+          @if (invalid('costCentre')) {
+            <small class="error">Select a cost centre.</small>
+          }
+        </label>
+        <label class="full">
+          <span>Remarks</span>
+          <textarea formControlName="remarks" placeholder="Brief expense description"></textarea>
+          @if (invalid('remarks')) {
+            <small class="error">Remarks required (min 4 chars).</small>
+          }
+        </label>
+        <div class="ess-actions full">
+          <button type="submit" class="ess-btn primary">Submit claim</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Claims history</h2>
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="ws().claims"
+        trackByKey="id"
+        searchPlaceholder="Search claims by type, cost centre…"
+        [emptyState]="{ title: 'No claims', description: 'Submit your first expense claim above.' }"
+      />
+    </section>
+  </div>
+}

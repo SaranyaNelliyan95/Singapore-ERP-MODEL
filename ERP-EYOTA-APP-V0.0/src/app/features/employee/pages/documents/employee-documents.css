@@ -1,0 +1,46 @@
+@import '../../shared/employee-page.styles.css';
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.ok {
+  color: #147a45;
+  font-size: 0.75rem;
+}
+
+.download-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.download-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  text-align: left;
+  border: 1px solid #e5e9ef;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+}
+
+.download-row strong {
+  display: block;
+  color: #0b1f3a;
+  font-size: 0.88rem;
+}
+
+.download-row small {
+  color: #5b6b82;
+  font-size: 0.76rem;
+}
+
+.download-row em {
+  font-style: normal;
+  color: #1f6feb;
+  font-weight: 700;
+  font-size: 0.8rem;
+}

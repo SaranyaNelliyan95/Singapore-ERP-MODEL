@@ -1,0 +1,5 @@
+@import '../../shared/employee-page.styles.css';
+
+.full {
+  grid-column: 1 / -1;
+}

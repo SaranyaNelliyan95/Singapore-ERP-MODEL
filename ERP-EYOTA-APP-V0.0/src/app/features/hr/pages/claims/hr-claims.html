@@ -1,0 +1,84 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading claims settlement…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Company Claims Settlement</p>
+        <h1>Expense approval list</h1>
+        <p class="ess-sub">
+          Multi-select mass approve or flag. Positive SGD amount checks enforced before settlement.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Claim settlements update mock state only."
+    />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Pending claims ({{ pending().length }})</h2>
+        <label class="select-all">
+          <input
+            type="checkbox"
+            [checked]="selectedIds().size > 0 && selectedIds().size === pending().length"
+            (change)="selectAllPending(($any($event.target)).checked)"
+          />
+          Select all pending
+        </label>
+      </div>
+
+      @if (pending().length === 0) {
+        <p class="empty">No pending claims. File one from Employee → Claims to test sync.</p>
+      } @else {
+        <div class="claim-list">
+          @for (claim of pending(); track claim.id) {
+            <label class="claim-row">
+              <input
+                type="checkbox"
+                [checked]="isSelected(claim.id)"
+                (change)="toggle(claim.id, ($any($event.target)).checked)"
+              />
+              <div>
+                <strong>{{ claim.id }} · {{ hr.employeeName(claim.employeeId) }}</strong>
+                <p>
+                  {{ claim.type }} · {{ formatAmount(claim.amountSgd) }} · {{ claim.costCentre }}
+                </p>
+              </div>
+            </label>
+          }
+        </div>
+
+        <div class="mass-bar">
+          <input
+            type="text"
+            [ngModel]="flagComment()"
+            (ngModelChange)="flagComment.set($event)"
+            placeholder="Flag reason"
+          />
+          <button type="button" class="ess-btn primary" (click)="massApprove()">
+            Mass approve selected
+          </button>
+          <button type="button" class="ess-btn danger" (click)="massFlag()">
+            Flag for review
+          </button>
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Claims register</h2>
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="hr.workforce().claims"
+        trackByKey="id"
+        [pageSize]="8"
+        searchPlaceholder="Search claims…"
+        [emptyState]="{ title: 'No claims', description: 'Employee expense submissions appear here.' }"
+      />
+    </section>
+  </div>
+}

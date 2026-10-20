@@ -1,0 +1,69 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading master data…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">Master Data Settings</p>
+        <h1>Policies that drive ESS &amp; HR</h1>
+      </div>
+      <button type="button" class="ess-btn danger" (click)="restoreOpen.set(true)">
+        Restore demo defaults
+      </button>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+    </aside>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Leave type policies</h2>
+        <button type="button" class="ess-btn primary" (click)="saveLeave()">Save leave</button>
+      </div>
+      @for (row of leaveDraft(); track row.type; let i = $index) {
+        <div class="row">
+          <strong>{{ row.type }}</strong>
+          <label>Entitlement <input type="number" [ngModel]="row.annualEntitlement" (ngModelChange)="updateLeaveRow(i, { annualEntitlement: +$event })" /></label>
+          <label>Carry-fwd <input type="number" [ngModel]="row.carryForwardMax" (ngModelChange)="updateLeaveRow(i, { carryForwardMax: +$event })" /></label>
+          <label><input type="checkbox" [ngModel]="row.enabled" (ngModelChange)="updateLeaveRow(i, { enabled: $event })" /> Enabled</label>
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Claim limits (SGD)</h2>
+        <button type="button" class="ess-btn primary" (click)="saveClaims()">Save claims</button>
+      </div>
+      @for (row of claimDraft(); track row.type; let i = $index) {
+        <div class="row">
+          <strong>{{ row.type }}</strong>
+          <label>Max <input type="number" [ngModel]="row.maxAmountSgd" (ngModelChange)="updateClaimRow(i, { maxAmountSgd: +$event })" /></label>
+          <label><input type="checkbox" [ngModel]="row.requireReceipt" (ngModelChange)="updateClaimRow(i, { requireReceipt: $event })" /> Receipt</label>
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Singapore public holidays</h2>
+        <button type="button" class="ess-btn primary" (click)="saveHolidays()">Save holidays</button>
+      </div>
+      <textarea [ngModel]="holidaysText()" (ngModelChange)="holidaysText.set($event)" rows="5" placeholder="YYYY-MM-DD|Name"></textarea>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Deduction codes &amp; asset categories</h2>
+        <button type="button" class="ess-btn primary" (click)="saveCodes()">Save codes</button>
+      </div>
+      <label class="block">Deductions<textarea [ngModel]="deductionsText()" (ngModelChange)="deductionsText.set($event)"></textarea></label>
+      <label class="block">Assets<textarea [ngModel]="assetsText()" (ngModelChange)="assetsText.set($event)"></textarea></label>
+    </section>
+  </div>
+}
+
+<app-confirm-modal
+  [open]="restoreOpen()"
+  title="Restore demo defaults?"
+  message="This resets leave policies, claim limits, holidays, and org codes to the packaged Singapore sample set."
+  confirmLabel="Restore"
+  (confirmed)="confirmRestore()"
+  (cancelled)="restoreOpen.set(false)"
+/>

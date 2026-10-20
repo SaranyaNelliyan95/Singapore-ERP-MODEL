@@ -1,0 +1,97 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading payroll engine…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Payroll Engine &amp; CPF / SDL Review</p>
+        <h1>Month-end batch simulator</h1>
+        <p class="ess-sub">
+          Itemized cost statements with Employee CPF, Employer CPF, and SDL — clearly simulated.
+        </p>
+      </div>
+      <button type="button" class="ess-btn primary" (click)="requestAuthorize()">
+        Authorize month-end payroll
+      </button>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. CPF schedules and SDL figures are fictional samples."
+    />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Payroll runs</h2>
+      </div>
+      <div class="period-pills">
+        @for (run of hr.workforce().payrollRuns; track run.id) {
+          <button
+            type="button"
+            class="period-pill"
+            [class.active]="selectedRunId() === run.id"
+            (click)="selectRun(run.id)"
+          >
+            {{ run.period }} · {{ run.status }}
+          </button>
+        }
+      </div>
+      <app-data-table
+        [columns]="runColumns"
+        [rows]="hr.workforce().payrollRuns"
+        trackByKey="id"
+        searchPlaceholder="Search payroll periods…"
+        [emptyState]="{ title: 'No payroll runs', description: 'Create a draft run to begin.' }"
+      />
+    </section>
+
+    <div class="ess-grid-2">
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Employees in period</h2>
+        </div>
+        <div class="emp-list">
+          @for (slip of periodPayslips(); track slip.id) {
+            <button
+              type="button"
+              class="emp-row"
+              [class.active]="selectedSlip()?.employeeId === slip.employeeId"
+              (click)="selectEmployee(slip.employeeId)"
+            >
+              <strong>{{ employeeLabel(slip.employeeId) }}</strong>
+              <span>{{ slip.netPay | sgd }}</span>
+            </button>
+          } @empty {
+            <p class="empty">No itemized slips for this period in the mock set.</p>
+          }
+        </div>
+      </section>
+
+      @if (selectedSlip(); as slip) {
+        <section class="ess-panel">
+          <div class="ess-panel-head">
+            <h2>{{ employeeLabel(slip.employeeId) }} · {{ slip.payPeriod }}</h2>
+            <app-status-badge label="DEMO DOCUMENT" tone="warning" />
+          </div>
+          <div class="breakdown">
+            <div><span>Basic</span><strong>{{ slip.basic | sgd }}</strong></div>
+            <div><span>Allowances</span><strong>{{ slip.allowances | sgd }}</strong></div>
+            <div><span>Overtime</span><strong>{{ slip.overtime | sgd }}</strong></div>
+            <div><span>Employee CPF (simulated)</span><strong>{{ slip.cpfEmployee | sgd }}</strong></div>
+            <div><span>Employer CPF (simulated)</span><strong>{{ slip.cpfEmployer | sgd }}</strong></div>
+            <div><span>SDL (simulated)</span><strong>{{ slip.sdl | sgd }}</strong></div>
+            <div class="net"><span>Net pay</span><strong>{{ slip.netPay | sgd }}</strong></div>
+          </div>
+        </section>
+      }
+    </div>
+  </div>
+}
+
+<app-confirm-modal
+  [open]="authorizeOpen()"
+  title="Authorize month-end payroll?"
+  message="This marks the selected draft run as Authorized in the demo store. No CPF Board or bank GIRO files are generated."
+  confirmLabel="Authorize"
+  (confirmed)="confirmAuthorize()"
+  (cancelled)="cancelAuthorize()"
+/>

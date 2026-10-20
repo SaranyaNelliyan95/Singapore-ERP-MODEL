@@ -1,0 +1,32 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading HR module access…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">HR Module Access</p>
+        <h1>Macro override for HR workspace visibility</h1>
+        <p class="ess-sub">
+          Toggle which HR hubs appear in the HR Operations sidebar without exposing Admin-only
+          controls.
+        </p>
+      </div>
+      <button type="button" class="ess-btn primary" (click)="save()">Save visibility map</button>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+    </aside>
+
+    <section class="ess-panel">
+      @for (mod of draft(); track mod.moduleKey; let i = $index) {
+        <label class="mod">
+          <input type="checkbox" [ngModel]="mod.visible" (ngModelChange)="toggle(i, $event)" />
+          <div>
+            <strong>{{ mod.label }}</strong>
+            <p>Key · {{ mod.moduleKey }}</p>
+          </div>
+        </label>
+      }
+    </section>
+  </div>
+}

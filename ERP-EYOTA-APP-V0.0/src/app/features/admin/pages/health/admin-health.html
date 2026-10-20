@@ -1,0 +1,32 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading system health…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">System Health Diagnostics</p>
+        <h1>Frontend · latency · cache · versions</h1>
+      </div>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+    </aside>
+
+    <section class="ess-grid-3">
+      <article class="ess-stat"><p>Mock API latency</p><strong>42 ms</strong><span>Simulated p95</span></article>
+      <article class="ess-stat"><p>Micro-state cache</p><strong>{{ cacheSizeLabel() }}</strong></article>
+      <article class="ess-stat"><p>Package</p><strong>ERP-EYOTA V0.0</strong><span>Angular 22.2</span></article>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Diagnostic log</h2></div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="admin.system().health"
+        trackByKey="id"
+        searchPlaceholder="Search diagnostics…"
+        [emptyState]="{ title: 'No metrics', description: 'Health probes appear here.' }"
+      />
+    </section>
+  </div>
+}

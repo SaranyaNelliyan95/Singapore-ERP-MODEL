@@ -1,0 +1,47 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading company setup…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">Company Setup Grid</p>
+        <h1>Organisation configuration</h1>
+        <p class="ess-sub">UEN, GST, branches, cost centres, departments, job grades, and pay calendar.</p>
+      </div>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+    </aside>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Company profile</h2></div>
+      <form class="ess-form" [formGroup]="companyForm" (ngSubmit)="saveCompany()">
+        <label><span>Legal name</span><input formControlName="legalName" /></label>
+        <label><span>UEN</span><input formControlName="uen" /></label>
+        <label>
+          <span>GST registered</span>
+          <select formControlName="gstRegistered">
+            <option [ngValue]="true">Yes</option>
+            <option [ngValue]="false">No</option>
+          </select>
+        </label>
+        <label><span>GST number (masked)</span><input formControlName="gstNumberMasked" /></label>
+        <label class="full"><span>Singapore address</span><input formControlName="address" /></label>
+        <label><span>Postal code</span><input formControlName="postalCode" maxlength="6" /></label>
+        <label><span>Payroll calendar · pay day</span><input type="number" formControlName="payDay" min="1" max="28" /></label>
+        <div class="ess-actions full"><button class="ess-btn primary" type="submit">Save company</button></div>
+      </form>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Branches · Departments · Cost centres · Job grades</h2></div>
+      <form class="ess-form" [formGroup]="listsForm" (ngSubmit)="saveLists()">
+        <label class="full"><span>Branches (comma-separated)</span><textarea formControlName="branches"></textarea></label>
+        <label class="full"><span>Departments</span><textarea formControlName="departments"></textarea></label>
+        <label class="full"><span>Cost centres</span><textarea formControlName="costCentres"></textarea></label>
+        <label class="full"><span>Job grades</span><textarea formControlName="jobGrades"></textarea></label>
+        <div class="ess-actions full"><button class="ess-btn primary" type="submit">Save org lists</button></div>
+      </form>
+    </section>
+  </div>
+}

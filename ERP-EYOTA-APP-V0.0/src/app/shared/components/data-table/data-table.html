@@ -1,0 +1,70 @@
+<div class="table-card">
+  <div class="toolbar">
+    <label class="search">
+      <span class="sr-only">Search</span>
+      <input
+        type="search"
+        [ngModel]="searchTerm"
+        (ngModelChange)="onSearch($event)"
+        [placeholder]="searchPlaceholder"
+      />
+    </label>
+    <span class="count">{{ filteredRows.length }} record{{ filteredRows.length === 1 ? '' : 's' }}</span>
+  </div>
+
+  @if (filteredRows.length === 0) {
+    <div class="empty">
+      <div class="empty-icon" aria-hidden="true">▦</div>
+      <h3>{{ emptyState.title }}</h3>
+      <p>{{ emptyState.description }}</p>
+      @if (emptyState.actionLabel) {
+        <button type="button" (click)="emptyAction.emit()">{{ emptyState.actionLabel }}</button>
+      }
+    </div>
+  } @else {
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            @for (column of columns; track column.key) {
+              <th
+                [style.width]="column.width || null"
+                [class.sortable]="column.sortable"
+                [class.active]="sortKey === column.key"
+                (click)="toggleSort(column)"
+              >
+                <span>{{ column.label }}</span>
+                @if (column.sortable) {
+                  <span class="sort-ind" aria-hidden="true">
+                    {{ sortKey === column.key ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}
+                  </span>
+                }
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of pagedRows; track trackRow($index, row)) {
+            <tr>
+              @for (column of columns; track column.key) {
+                <td [style.text-align]="column.align || 'left'">
+                  @if (column.badge?.(row); as badge) {
+                    <app-status-badge [label]="badge.label" [tone]="badge.tone" />
+                  } @else {
+                    {{ cellValue(row, column) }}
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <button type="button" [disabled]="page <= 1" (click)="goToPage(page - 1)">Previous</button>
+      <span>Page {{ page }} of {{ totalPages }}</span>
+      <button type="button" [disabled]="page >= totalPages" (click)="goToPage(page + 1)">Next</button>
+    </div>
+  }
+</div>

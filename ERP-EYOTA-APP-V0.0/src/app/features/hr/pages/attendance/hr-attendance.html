@@ -1,0 +1,57 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading attendance monitoring…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Time &amp; Attendance Monitoring</p>
+        <h1>Company-wide clock log</h1>
+        <p class="ess-sub">
+          Includes punches created by employees in Self-Service. Approve overtime hours with one
+          click.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Overtime approvals are simulated only."
+    />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Approve overtime</h2>
+      </div>
+      @if (otPending().length === 0) {
+        <p class="empty">No pending overtime rows.</p>
+      } @else {
+        <div class="ot-list">
+          @for (row of otPending(); track row.id) {
+            <div class="ot-row">
+              <div>
+                <strong>{{ row.employeeName }}</strong>
+                <p>{{ row.date }} · {{ row.otHours }}h · {{ row.location }}</p>
+              </div>
+              <button type="button" class="ess-btn primary" (click)="approveOt(row)">
+                Approve overtime hours
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Attendance register</h2>
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="rows()"
+        trackByKey="id"
+        [pageSize]="8"
+        searchPlaceholder="Search employee, location, status…"
+        [emptyState]="{ title: 'No attendance logs', description: 'Clock events appear as employees punch in.' }"
+      />
+    </section>
+  </div>
+}

@@ -1,0 +1,171 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading profile…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="ess-eyebrow">My Profile</p>
+        <h1>{{ ws().profile.fullName }}</h1>
+        <p class="ess-sub">
+          Read-only employment identity with editable contact fields. Bank changes require HR
+          authorization.
+        </p>
+      </div>
+      <app-status-badge [label]="ws().profile.employmentType" tone="info" />
+    </header>
+
+    <app-demo-notice message="NRIC/FIN remains masked. Full identifiers are never shown in Employee Self-Service." />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Employment identity (read-only)</h2>
+      </div>
+      <div class="ess-readonly-grid">
+        <div><label>Employee ID</label><p>{{ ws().profile.employeeId }}</p></div>
+        <div><label>Designation</label><p>{{ ws().profile.designation }}</p></div>
+        <div><label>NRIC / FIN</label><p>{{ ws().profile.nricOrFin | maskNric }}</p></div>
+        <div><label>Pass type</label><p>{{ ws().profile.employmentType }}</p></div>
+        <div><label>Department</label><p>{{ ws().profile.department }}</p></div>
+        <div><label>Reporting manager</label><p>{{ ws().profile.reportingManager }}</p></div>
+        <div><label>Date of joining</label><p>{{ ws().profile.dateOfJoining | sgDate }}</p></div>
+        <div><label>Probation</label><p>{{ ws().profile.probationStatus }}</p></div>
+      </div>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Contact details</h2>
+        @if (!editing()) {
+          <button type="button" class="ess-btn ghost" (click)="startEdit()">Edit</button>
+        }
+      </div>
+
+      @if (editing()) {
+        <form class="ess-form" [formGroup]="contactForm" (ngSubmit)="saveContact()">
+          <label>
+            <span>Personal email</span>
+            <input type="email" formControlName="personalEmail" />
+            @if (invalidContact('personalEmail')) {
+              <small class="error">Valid email required.</small>
+            }
+          </label>
+          <label>
+            <span>Mobile (+65, 8 digits starting 8/9)</span>
+            <input formControlName="mobile" inputmode="numeric" maxlength="8" />
+            @if (invalidContact('mobile')) {
+              <small class="error">Enter a valid Singapore mobile.</small>
+            }
+          </label>
+          <label class="full">
+            <span>Residential address</span>
+            <input formControlName="residentialAddress" />
+            @if (invalidContact('residentialAddress')) {
+              <small class="error">Include a complete Singapore address.</small>
+            }
+          </label>
+          <label>
+            <span>Emergency contact</span>
+            <input formControlName="emergencyContactName" />
+          </label>
+          <label>
+            <span>Emergency phone</span>
+            <input formControlName="emergencyContactPhone" inputmode="numeric" maxlength="8" />
+          </label>
+          <label>
+            <span>Relationship</span>
+            <input formControlName="emergencyContactRelation" />
+          </label>
+          <div class="ess-actions full">
+            <button type="button" class="ess-btn ghost" (click)="cancelEdit()">Cancel</button>
+            <button type="submit" class="ess-btn primary">Save changes</button>
+          </div>
+        </form>
+      } @else {
+        <div class="ess-readonly-grid">
+          <div><label>Email</label><p>{{ ws().profile.personalEmail }}</p></div>
+          <div><label>Phone</label><p>{{ ws().profile.mobile | phoneSg }}</p></div>
+          <div class="full"><label>Address</label><p>{{ ws().profile.residentialAddress }}</p></div>
+          <div class="full">
+            <label>Emergency</label>
+            <p>
+              {{ ws().profile.emergencyContactName }} ·
+              {{ ws().profile.emergencyContactPhone | phoneSg }}
+              ({{ ws().profile.emergencyContactRelation }})
+            </p>
+          </div>
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Bank details</h2>
+        <button type="button" class="ess-btn ghost" (click)="openBankRequest()">
+          Request bank update
+        </button>
+      </div>
+      <div class="ess-readonly-grid">
+        <div><label>Bank</label><p>{{ ws().profile.bankName }}</p></div>
+        <div><label>Account</label><p>{{ maskedBank(ws().profile.bankAccountNumber) }}</p></div>
+      </div>
+
+      @if (ws().bankRequests.length) {
+        <div class="bank-requests">
+          <h3>Pending / recent HR authorizations</h3>
+          @for (req of ws().bankRequests; track req.id) {
+            <div class="bank-row">
+              <div>
+                <strong>{{ req.id }}</strong>
+                <p>{{ req.bankName }} · •••• {{ req.bankAccountNumber.slice(-4) }}</p>
+              </div>
+              <app-status-badge
+                [label]="req.status"
+                [tone]="req.status === 'Pending HR' ? 'warning' : req.status === 'Approved' ? 'success' : 'danger'"
+              />
+            </div>
+          }
+        </div>
+      }
+    </section>
+  </div>
+}
+
+@if (bankModalOpen()) {
+  <div class="bank-backdrop" role="presentation">
+    <div class="bank-modal" role="dialog" aria-modal="true" aria-labelledby="bank-title">
+      <h2 id="bank-title">Request bank detail update</h2>
+      <p class="hint">
+        This sandboxed flow does not change payroll until HR authorizes the request (simulated).
+      </p>
+      <form class="ess-form" [formGroup]="bankForm">
+        <label>
+          <span>Bank name</span>
+          <input formControlName="bankName" />
+          @if (invalidBank('bankName')) {
+            <small class="error">Bank name required.</small>
+          }
+        </label>
+        <label>
+          <span>New account number</span>
+          <input formControlName="bankAccountNumber" inputmode="numeric" />
+          @if (invalidBank('bankAccountNumber')) {
+            <small class="error">6–12 digits only.</small>
+          }
+        </label>
+        <label class="full">
+          <span>Reason for HR</span>
+          <textarea formControlName="note"></textarea>
+          @if (invalidBank('note')) {
+            <small class="error">Provide a short justification.</small>
+          }
+        </label>
+      </form>
+      <div class="ess-actions">
+        <button type="button" class="ess-btn ghost" (click)="cancelBankRequest()">Cancel</button>
+        <button type="button" class="ess-btn primary" (click)="confirmBankRequest()">
+          Submit to HR
+        </button>
+      </div>
+    </div>
+  </div>
+}

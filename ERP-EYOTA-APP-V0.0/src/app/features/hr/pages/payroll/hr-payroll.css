@@ -1,0 +1,82 @@
+@import '../../shared/hr-page.styles.css';
+
+.period-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.period-pill {
+  border: 1px solid #d8dee8;
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: #445066;
+}
+
+.period-pill.active {
+  background: #0b1f3a;
+  border-color: #0b1f3a;
+  color: #fff;
+}
+
+.emp-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.emp-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid #e5e9ef;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.emp-row.active {
+  border-color: #91a4c0;
+  background: #eaf2ff;
+}
+
+.emp-row span {
+  color: #0b1f3a;
+  font-weight: 700;
+}
+
+.empty {
+  margin: 0;
+  color: #7a889c;
+}
+
+.breakdown {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #eef1f5;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.breakdown span {
+  color: #5b6b82;
+  font-size: 0.84rem;
+}
+
+.breakdown .net {
+  background: #eaf2ff;
+  border-color: #c5d8f5;
+}

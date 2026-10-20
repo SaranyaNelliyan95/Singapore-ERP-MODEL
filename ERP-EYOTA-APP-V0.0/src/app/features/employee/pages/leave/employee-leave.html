@@ -1,0 +1,126 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading leave workspace…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="ess-eyebrow">Leave Management</p>
+        <h1>Balances &amp; applications</h1>
+        <p class="ess-sub">
+          Simulated Singapore leave types with apply form, day-count calculation, and safe cancel for
+          pending requests.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice message="Leave entitlements and balances are simulated sample figures — not statutory entitlements." />
+
+    <section class="balance-grid">
+      @for (bal of ws().leaveBalances; track bal.type) {
+        <article class="ess-stat">
+          <p>{{ bal.type }}</p>
+          <strong>{{ bal.balance }}</strong>
+          <span>{{ bal.used }}/{{ bal.entitled }} used · {{ bal.simulatedNote }}</span>
+        </article>
+      }
+    </section>
+
+    <div class="ess-grid-2">
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Apply leave</h2>
+          <span class="days">{{ dayPreview() }} day(s)</span>
+        </div>
+        <form class="ess-form" [formGroup]="form" (ngSubmit)="applyLeave()">
+          <label>
+            <span>Leave type</span>
+            <select formControlName="type">
+              @for (type of leaveTypes(); track type) {
+                <option [value]="type">{{ type }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>Start date</span>
+            <input type="date" formControlName="fromDate" />
+            @if (invalid('fromDate')) {
+              <small class="error">Start date required.</small>
+            }
+          </label>
+          <label>
+            <span>End date</span>
+            <input type="date" formControlName="toDate" />
+            @if (invalid('toDate') || rangeInvalid) {
+              <small class="error">End date must be on/after start.</small>
+            }
+          </label>
+          <label class="full">
+            <span>Reason</span>
+            <textarea formControlName="reason" placeholder="Brief justification"></textarea>
+            @if (invalid('reason')) {
+              <small class="error">At least 5 characters.</small>
+            }
+          </label>
+          <div class="ess-actions full">
+            <button type="submit" class="ess-btn primary">Submit application</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Pending tracker</h2>
+        </div>
+        @if (pendingRows().length === 0) {
+          <p class="empty">No pending leave requests.</p>
+        } @else {
+          <div class="pending-list">
+            @for (row of pendingRows(); track row.id) {
+              <div class="pending-row">
+                <div>
+                  <strong>{{ row.id }} · {{ row.type }}</strong>
+                  <p>
+                    {{ row.fromDate }} → {{ row.toDate }} · {{ row.days }} day(s)
+                  </p>
+                </div>
+                <div class="pending-actions">
+                  <app-status-badge label="Pending" tone="warning" />
+                  <button type="button" class="ess-btn danger" (click)="requestCancel(row)">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    </div>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Leave history</h2>
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="ws().leaveRequests"
+        trackByKey="id"
+        searchPlaceholder="Search leave requests…"
+        [emptyState]="{ title: 'No leave history', description: 'Applications will appear here.' }"
+      />
+    </section>
+  </div>
+}
+
+<app-confirm-modal
+  [open]="!!cancelTarget()"
+  title="Cancel leave request?"
+  [message]="
+    cancelTarget()
+      ? 'Cancel ' + cancelTarget()!.id + ' and restore simulated leave balance?'
+      : ''
+  "
+  confirmLabel="Cancel request"
+  cancelLabel="Keep pending"
+  (confirmed)="confirmCancel()"
+  (cancelled)="closeCancel()"
+/>

@@ -1,0 +1,51 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading backup & DR…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">Backup &amp; Disaster Recovery</p>
+        <h1>Singapore-region snapshots</h1>
+      </div>
+      <button type="button" class="ess-btn primary" (click)="triggerSnapshot()">Trigger manual snapshot</button>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+    </aside>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Status</h2>
+        <app-status-badge
+          [label]="admin.system().backup.status"
+          [tone]="admin.system().backup.status === 'Ready' ? 'success' : admin.system().backup.status === 'Failed' ? 'danger' : 'info'"
+        />
+      </div>
+      <div class="meta">
+        <div><span>Last backup</span><strong>{{ admin.system().backup.lastBackup | sgDate }}</strong></div>
+        <div><span>Next backup</span><strong>{{ admin.system().backup.nextBackup | sgDate }}</strong></div>
+        <div><span>Restore points</span><strong>{{ admin.system().backup.restorePoints }}</strong></div>
+      </div>
+      <div class="progress">
+        <div class="bar" [style.width.%]="admin.system().backup.progressPercent"></div>
+      </div>
+      <p class="pct">{{ admin.system().backup.progressPercent }}% · {{ admin.system().backup.region }}</p>
+    </section>
+
+    <section class="ess-panel">
+      <form class="ess-form" [formGroup]="form" (ngSubmit)="saveSchedule()">
+        <label><span>Schedule</span><input formControlName="schedule" /></label>
+        <label>
+          <span>Region</span>
+          <select formControlName="region">
+            <option value="Singapore (ap-southeast-1)">Singapore (ap-southeast-1)</option>
+            <option value="Singapore (local lab)">Singapore (local lab)</option>
+          </select>
+        </label>
+        <div class="ess-actions full">
+          <button type="submit" class="ess-btn primary">Save schedule</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

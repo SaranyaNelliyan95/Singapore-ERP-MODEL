@@ -1,0 +1,90 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading leave approval engine…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Global Leave Approval Engine</p>
+        <h1>Company leave queue</h1>
+        <p class="ess-sub">
+          All employee leave applications from the shared store — including requests submitted in
+          Employee Self-Service.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Leave balances and approvals are simulated."
+    />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Pending approvals ({{ pending().length }})</h2>
+      </div>
+      @if (pending().length === 0) {
+        <p class="empty">No pending leave requests.</p>
+      } @else {
+        <div class="queue">
+          @for (row of pending(); track row.id) {
+            <article class="queue-card">
+              <div>
+                <strong>{{ row.id }} · {{ hr.employeeName(row.employeeId) }}</strong>
+                <p>
+                  {{ row.type }} · {{ row.days }} day(s) · {{ row.fromDate }} → {{ row.toDate }}
+                </p>
+                <p class="reason">{{ row.reason }}</p>
+                @if (historyFor(row.employeeId).length) {
+                  <p class="history">
+                    Past:
+                    @for (past of historyFor(row.employeeId); track past.id) {
+                      <app-status-badge [label]="past.id + ' ' + past.status" [tone]="past.status === 'Approved' ? 'success' : 'neutral'" />
+                    }
+                  </p>
+                }
+              </div>
+              <div class="hr-inline-actions">
+                <button type="button" class="ess-btn primary" (click)="approve(row)">Approve</button>
+                <button type="button" class="ess-btn danger" (click)="openReject(row)">
+                  Reject with comments
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Full leave register</h2>
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="hr.workforce().leaveRequests"
+        trackByKey="id"
+        [pageSize]="8"
+        searchPlaceholder="Search leave by employee, type, reason…"
+        [emptyState]="{ title: 'No leave records', description: 'Employee applications appear here in real time.' }"
+      />
+    </section>
+  </div>
+}
+
+@if (rejectTarget(); as target) {
+  <div class="backdrop">
+    <div class="modal">
+      <h2>Reject {{ target.id }}</h2>
+      <p class="hint">Comments are visible to the employee in their leave reason trail (demo).</p>
+      <form class="ess-form" [formGroup]="rejectForm">
+        <label class="full">
+          <span>Rejection comments</span>
+          <textarea formControlName="comments"></textarea>
+        </label>
+      </form>
+      <div class="ess-actions">
+        <button type="button" class="ess-btn ghost" (click)="closeReject()">Cancel</button>
+        <button type="button" class="ess-btn danger" (click)="confirmReject()">Reject</button>
+      </div>
+    </div>
+  </div>
+}

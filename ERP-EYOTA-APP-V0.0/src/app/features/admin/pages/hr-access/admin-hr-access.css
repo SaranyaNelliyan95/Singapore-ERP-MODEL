@@ -1,0 +1,16 @@
+@import '../../shared/admin-page.styles.css';
+
+.mod {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #eef1f5;
+  cursor: pointer;
+}
+
+.mod p {
+  margin: 0.2rem 0 0;
+  color: #7a889c;
+  font-size: 0.78rem;
+}

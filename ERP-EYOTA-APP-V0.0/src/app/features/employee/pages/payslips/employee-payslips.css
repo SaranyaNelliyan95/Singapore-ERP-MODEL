@@ -1,0 +1,69 @@
+@import '../../shared/employee-page.styles.css';
+
+.period-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.period-pill {
+  border: 1px solid #d8dee8;
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  color: #445066;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.period-pill.active {
+  background: #0b1f3a;
+  border-color: #0b1f3a;
+  color: #fff;
+}
+
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #eef1f5;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.breakdown span {
+  color: #5b6b82;
+  font-size: 0.84rem;
+}
+
+.breakdown strong {
+  color: #0b1f3a;
+}
+
+.breakdown .net {
+  grid-column: 1 / -1;
+  background: #eaf2ff;
+  border-color: #c5d8f5;
+}
+
+@media (max-width: 720px) {
+  .breakdown {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,44 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading integrations gateway…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">Integrations Gateway</p>
+        <h1>MOM · CPF · IRAS · GIRO · Biometric</h1>
+      </div>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+      <span>API keys are masked tokens only — raw secrets are never stored.</span>
+    </aside>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Connection actions</h2></div>
+      <div class="actions">
+        @for (row of admin.system().integrations; track row.id) {
+          <div class="row">
+            <div>
+              <strong>{{ row.name }}</strong>
+              <p>{{ row.apiKeyMasked }} · {{ row.status }}</p>
+            </div>
+            <div class="btns">
+              <button type="button" class="ess-btn ghost" (click)="test(row)">Test connection</button>
+              <button type="button" class="ess-btn primary" (click)="sync(row)">Force sync</button>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="ess-panel">
+      <app-data-table
+        [columns]="columns"
+        [rows]="admin.system().integrations"
+        trackByKey="id"
+        searchPlaceholder="Search integrations…"
+        [emptyState]="{ title: 'No integrations', description: 'Configure gateway endpoints.' }"
+      />
+    </section>
+  </div>
+}

@@ -1,0 +1,101 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading your dashboard…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="ess-eyebrow">Dashboard Overview</p>
+        <h1>Hello, {{ ws().profile.fullName.split(' ')[0] }}</h1>
+        <p class="ess-sub">
+          Leave balances, assets, payslip shortcut, and pending approvals — personal records only.
+        </p>
+      </div>
+      <div class="clock-pill">
+        <span>Today</span>
+        <strong>{{ ws().clock.status }}</strong>
+        <small>
+          @if (ws().clock.checkIn) {
+            In {{ ws().clock.checkIn }}
+          } @else {
+            Not clocked in
+          }
+        </small>
+      </div>
+    </header>
+
+    <app-demo-notice />
+
+    <section class="ess-grid-4">
+      <article class="ess-stat">
+        <p>Annual leave (simulated)</p>
+        <strong>{{ annualLeave()?.balance ?? 0 }}</strong>
+        <span>{{ annualLeave()?.used ?? 0 }} used of {{ annualLeave()?.entitled ?? 0 }}</span>
+      </article>
+      <article class="ess-stat">
+        <p>Active assets</p>
+        <strong>{{ assetCount() }}</strong>
+        <span>Assigned corporate items</span>
+      </article>
+      <article class="ess-stat">
+        <p>Pending approvals</p>
+        <strong>{{ pendingLeave() + pendingClaims() }}</strong>
+        <span>{{ pendingLeave() }} leave · {{ pendingClaims() }} claims</span>
+      </article>
+      <article class="ess-stat">
+        <p>Unread alerts</p>
+        <strong>{{ unread() }}</strong>
+        <span>Notifications &amp; reminders</span>
+      </article>
+    </section>
+
+    <div class="ess-grid-2">
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Quick actions</h2>
+        </div>
+        <div class="actions">
+          <a routerLink="/employee/master/leave" class="ess-btn primary">Apply leave</a>
+          <button type="button" class="ess-btn ghost" (click)="quickClock()">
+            {{ ws().clock.status === 'Checked in' ? 'Clock out' : 'Clock in' }}
+          </button>
+          <a routerLink="/employee/master/claims" class="ess-btn ghost">File claim</a>
+        </div>
+      </section>
+
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Latest payslip</h2>
+          <app-status-badge label="DEMO DOCUMENT" tone="warning" />
+        </div>
+        @if (latestPayslip(); as slip) {
+          <p class="period">{{ slip.payPeriod }}</p>
+          <p class="net">Net {{ slip.netPay | sgd }}</p>
+          <p class="meta">Credited {{ slip.bankCreditedDate | sgDate }} · CPF/SDL simulated</p>
+          <a routerLink="/employee/master/payslips" class="ess-btn primary">Open payslip detail</a>
+        } @else {
+          <p class="meta">No payslips available.</p>
+        }
+      </section>
+    </div>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Document &amp; pass alerts</h2>
+      </div>
+      <div class="alerts">
+        @for (alert of ws().passAlerts; track alert.label) {
+          <div class="alert">
+            <div>
+              <strong>{{ alert.label }}</strong>
+              <p>Expires {{ alert.expiryDate | sgDate }}</p>
+            </div>
+            <app-status-badge
+              [label]="alert.daysRemaining + ' days'"
+              [tone]="alert.severity === 'danger' ? 'danger' : alert.severity === 'warning' ? 'warning' : 'info'"
+            />
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+}

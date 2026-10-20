@@ -1,0 +1,57 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading compliance tracker…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Singapore Work Pass &amp; Compliance Tracker</p>
+        <h1>Statutory documentation watch</h1>
+        <p class="ess-sub">
+          Flags work pass expiries, passport validity, and missing medical clearances. Reminders sync
+          into the employee notification feed.
+        </p>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Renewal reminders do not contact MOM or external systems."
+    />
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>All compliance rows</h2>
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="hr.workforce().compliance"
+        trackByKey="id"
+        [pageSize]="8"
+        searchPlaceholder="Search employee, pass, passport…"
+        [emptyState]="{ title: 'No compliance rows', description: 'Workforce compliance items appear here.' }"
+      />
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Action queue — remind employees</h2>
+      </div>
+      @if (flagged().length === 0) {
+        <p class="empty">No expiring or missing items.</p>
+      } @else {
+        <div class="remind-list">
+          @for (item of flagged(); track item.id) {
+            <div class="remind-row">
+              <div>
+                <strong>{{ item.employeeName }} · {{ item.category }}</strong>
+                <p>{{ item.reference }} · {{ item.status }}</p>
+              </div>
+              <button type="button" class="ess-btn primary" (click)="remind(item)">
+                Send renewal reminder
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </section>
+  </div>
+}

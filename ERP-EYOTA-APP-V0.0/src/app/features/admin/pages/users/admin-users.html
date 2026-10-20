@@ -1,0 +1,93 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading users & roles…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="adm-eyebrow">User &amp; Role Management</p>
+        <h1>Accounts, MFA &amp; permission matrix</h1>
+      </div>
+    </header>
+    <aside class="adm-banner" role="note">
+      <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+    </aside>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>User inventory</h2></div>
+      <div class="user-actions">
+        @for (user of admin.system().users; track user.id) {
+          <div class="user-row">
+            <div>
+              <strong>{{ user.displayName }}</strong>
+              <p>{{ user.email }} · {{ user.role }}</p>
+            </div>
+            <div class="hr-inline-actions">
+              <button type="button" class="ess-btn ghost" (click)="toggleMfa(user)">
+                MFA {{ user.mfaEnabled ? 'On' : 'Off' }}
+              </button>
+              <button type="button" class="ess-btn danger" (click)="requestToggle(user)">
+                {{ user.status === 'Active' ? 'Deactivate' : 'Activate' }}
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+      <app-data-table
+        [columns]="columns"
+        [rows]="admin.system().users"
+        trackByKey="id"
+        searchPlaceholder="Search users…"
+        [pageSize]="6"
+        [emptyState]="{ title: 'No users', description: 'Provision accounts to continue.' }"
+      />
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Permission grid matrix</h2></div>
+      <div class="adm-matrix">
+        <table>
+          <thead>
+            <tr>
+              <th>Capability</th>
+              @for (role of roles; track role) {
+                <th>{{ role }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (cap of capabilities(); track cap) {
+              <tr>
+                <td>{{ cap }}</td>
+                @for (role of roles; track role) {
+                  <td>
+                    <input
+                      type="checkbox"
+                      [checked]="permissionFor(role, cap)"
+                      (change)="setPermission(role, cap, $any($event.target).checked)"
+                    />
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+}
+
+<app-confirm-modal
+  [open]="!!deactivateTarget()"
+  [title]="(deactivateTarget()?.status === 'Active' ? 'Deactivate' : 'Activate') + ' account?'"
+  [message]="
+    deactivateTarget()
+      ? deactivateTarget()!.email +
+        (deactivateTarget()!.status === 'Active'
+          ? ' will be blocked from mock login until reactivated.'
+          : ' will regain login access.')
+      : ''
+  "
+  confirmLabel="Confirm"
+  (confirmed)="confirmToggle()"
+  (cancelled)="deactivateTarget.set(null)"
+/>

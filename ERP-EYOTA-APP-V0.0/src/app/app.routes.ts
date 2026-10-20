@@ -1,0 +1,43 @@
+import { Routes } from '@angular/router';
+import { authGuard, guestGuard } from './core/guards/auth.guard';
+
+export const routes: Routes = [
+  {
+    path: '',
+    pathMatch: 'full',
+    redirectTo: 'login',
+  },
+  {
+    path: 'login',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/login/login').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'employee',
+    canActivate: [authGuard],
+    loadChildren: () =>
+      import('./features/employee/employee.routes').then((m) => m.EMPLOYEE_ROUTES),
+  },
+  {
+    path: 'hr',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/hr/hr.routes').then((m) => m.HR_ROUTES),
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuard],
+    loadChildren: () =>
+      import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
+  },
+  {
+    path: 'not-found',
+    loadComponent: () =>
+      import('./features/not-found/not-found').then((m) => m.NotFoundComponent),
+  },
+  {
+    path: '**',
+    loadComponent: () =>
+      import('./features/not-found/not-found').then((m) => m.NotFoundComponent),
+  },
+];
