@@ -17,16 +17,16 @@ import { Component, Input } from '@angular/core';
         gap: 0.45rem 0.75rem;
         align-items: baseline;
         padding: 0.7rem 0.9rem;
-        border-radius: 12px;
-        border: 1px solid #f5d99a;
-        background: #fffaf0;
-        color: #7a5b12;
+        border-radius: var(--radius-md, 12px);
+        border: 1px solid var(--warning-border, #f5d99a);
+        background: var(--warning-bg, #fff6e5);
+        color: var(--warning, #9a6700);
         font-size: 0.82rem;
         line-height: 1.4;
       }
 
       strong {
-        color: #9a6700;
+        color: var(--warning, #9a6700);
       }
     `,
   ],

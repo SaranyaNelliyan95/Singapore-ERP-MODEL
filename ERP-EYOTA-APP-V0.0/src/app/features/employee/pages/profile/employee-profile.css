@@ -3,13 +3,13 @@
 .bank-requests {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #eef1f5;
+  border-top: 1px solid var(--border-color);
 }
 
 .bank-requests h3 {
   margin: 0 0 0.65rem;
   font-size: 0.9rem;
-  color: #0b1f3a;
+  color: var(--text-primary);
 }
 
 .bank-row {
@@ -18,12 +18,12 @@
   gap: 0.75rem;
   align-items: center;
   padding: 0.7rem 0;
-  border-bottom: 1px solid #eef1f5;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .bank-row p {
   margin: 0.2rem 0 0;
-  color: #5b6b82;
+  color: var(--text-secondary);
   font-size: 0.8rem;
 }
 
@@ -31,7 +31,7 @@
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(11, 31, 58, 0.45);
+  background: rgba(38, 59, 73, 0.4);
   display: grid;
   place-items: center;
   padding: 1rem;
@@ -41,20 +41,20 @@
   width: min(480px, 100%);
   background: #fff;
   border-radius: 16px;
-  border: 1px solid #e5e9ef;
+  border: 1px solid var(--border-color);
   padding: 1.25rem;
-  box-shadow: 0 20px 50px rgba(11, 31, 58, 0.2);
+  box-shadow: 0 20px 50px rgba(38, 59, 73, 0.12);
 }
 
 .bank-modal h2 {
   margin: 0;
-  color: #0b1f3a;
+  color: var(--text-primary);
   font-size: 1.1rem;
 }
 
 .hint {
   margin: 0.5rem 0 1rem;
-  color: #5b6b82;
+  color: var(--text-secondary);
   font-size: 0.86rem;
   line-height: 1.45;
 }

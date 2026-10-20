@@ -5,7 +5,9 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'login',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/landing/landing').then((m) => m.LandingComponent),
   },
   {
     path: 'login',

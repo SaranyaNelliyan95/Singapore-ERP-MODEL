@@ -29,7 +29,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         position: fixed;
         inset: 0;
         z-index: 70;
-        background: rgba(11, 31, 58, 0.45);
+        background: rgba(38, 59, 73, 0.4);
         display: grid;
         place-items: center;
         padding: 1rem;
@@ -37,22 +37,22 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 
       .modal {
         width: min(420px, 100%);
-        background: #fff;
-        border-radius: 16px;
-        border: 1px solid #e5e9ef;
+        background: var(--surface, #fff);
+        border-radius: var(--radius-lg, 18px);
+        border: 1px solid var(--border-color, #e1e7eb);
         padding: 1.35rem 1.4rem 1.2rem;
-        box-shadow: 0 20px 50px rgba(11, 31, 58, 0.2);
+        box-shadow: var(--shadow-hover, 0 12px 32px rgba(38, 59, 73, 0.09));
       }
 
       h2 {
         margin: 0;
         font-size: 1.1rem;
-        color: #0b1f3a;
+        color: var(--text-primary, #263b49);
       }
 
       p {
         margin: 0.65rem 0 1.25rem;
-        color: #5b6b82;
+        color: var(--text-secondary, #647783);
         font-size: 0.92rem;
         line-height: 1.5;
       }
@@ -64,7 +64,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
       }
 
       button {
-        border-radius: 10px;
+        border-radius: var(--radius-sm, 8px);
         padding: 0.55rem 0.95rem;
         font-size: 0.88rem;
         font-weight: 600;
@@ -72,15 +72,20 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
       }
 
       .ghost {
-        background: #fff;
-        border: 1px solid #d8dee8;
-        color: #445066;
+        background: var(--surface, #fff);
+        border: 1px solid var(--border-color, #e1e7eb);
+        color: var(--text-secondary, #647783);
       }
 
       .primary {
-        background: #0b1f3a;
-        border: 1px solid #0b1f3a;
+        background: var(--primary, #477d9d);
+        border: 1px solid var(--primary, #477d9d);
         color: #fff;
+      }
+
+      .primary:hover {
+        background: var(--primary-hover, #396b89);
+        border-color: var(--primary-hover, #396b89);
       }
     `,
   ],

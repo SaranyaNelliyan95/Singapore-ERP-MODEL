@@ -6,7 +6,7 @@
   gap: 0.55rem;
   align-items: center;
   padding: 0.45rem 0;
-  border-bottom: 1px solid #eef1f5;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .row label {
@@ -14,22 +14,22 @@
   gap: 0.35rem;
   align-items: center;
   font-size: 0.8rem;
-  color: #445066;
+  color: var(--text-secondary);
 }
 
 .row input[type='number'] {
   width: 88px;
-  border: 1px solid #d8dee8;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 0.35rem 0.45rem;
 }
 
 textarea {
   width: 100%;
-  border: 1px solid #d8dee8;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 0.65rem 0.75rem;
-  background: #f8fafc;
+  background: var(--secondary-bg);
   font: inherit;
 }
 
@@ -39,7 +39,7 @@ textarea {
   margin-bottom: 0.75rem;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #445066;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 800px) {

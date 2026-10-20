@@ -16,18 +16,18 @@
 .clock-bar span {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #445066;
+  color: var(--text-secondary);
 }
 
 .clock-bar select {
-  border: 1px solid #d8dee8;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 0.55rem 0.7rem;
-  background: #f8fafc;
+  background: var(--secondary-bg);
 }
 
 .session {
   margin: 0.9rem 0 0;
-  color: #5b6b82;
+  color: var(--text-secondary);
   font-size: 0.86rem;
 }

@@ -5,12 +5,12 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.82rem;
-  color: #445066;
+  color: var(--text-secondary);
 }
 
 .empty {
   margin: 0;
-  color: #7a889c;
+  color: var(--text-muted);
 }
 
 .claim-list {
@@ -23,15 +23,15 @@
   gap: 0.75rem;
   align-items: flex-start;
   padding: 0.7rem 0.85rem;
-  border: 1px solid #e5e9ef;
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  background: #f8fafc;
+  background: var(--secondary-bg);
   cursor: pointer;
 }
 
 .claim-row p {
   margin: 0.2rem 0 0;
-  color: #5b6b82;
+  color: var(--text-secondary);
   font-size: 0.8rem;
 }
 
@@ -46,8 +46,8 @@
 .mass-bar input {
   flex: 1;
   min-width: 180px;
-  border: 1px solid #d8dee8;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 0.55rem 0.7rem;
-  background: #f8fafc;
+  background: var(--secondary-bg);
 }

@@ -12,7 +12,7 @@
 
 .meta {
   margin: 0.85rem 0 0;
-  color: #7a889c;
+  color: var(--text-muted);
   font-size: 0.82rem;
 }
 
@@ -20,7 +20,7 @@
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(11, 31, 58, 0.45);
+  background: rgba(38, 59, 73, 0.4);
   display: grid;
   place-items: center;
   padding: 1rem;
@@ -30,13 +30,13 @@
   width: min(520px, 100%);
   background: #fff;
   border-radius: 16px;
-  border: 1px solid #e5e9ef;
+  border: 1px solid var(--border-color);
   padding: 1.25rem;
 }
 
 .modal h2 {
   margin: 0 0 1rem;
-  color: #0b1f3a;
+  color: var(--text-primary);
   font-size: 1.1rem;
 }
 

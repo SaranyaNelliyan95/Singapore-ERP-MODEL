@@ -20,8 +20,8 @@
   gap: 0.75rem;
   align-items: center;
   text-align: left;
-  border: 1px solid #e5e9ef;
-  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  background: var(--secondary-bg);
   border-radius: 12px;
   padding: 0.75rem 0.85rem;
   cursor: pointer;
@@ -29,18 +29,18 @@
 
 .download-row strong {
   display: block;
-  color: #0b1f3a;
+  color: var(--text-primary);
   font-size: 0.88rem;
 }
 
 .download-row small {
-  color: #5b6b82;
+  color: var(--text-secondary);
   font-size: 0.76rem;
 }
 
 .download-row em {
   font-style: normal;
-  color: #1f6feb;
+  color: var(--primary);
   font-weight: 700;
   font-size: 0.8rem;
 }

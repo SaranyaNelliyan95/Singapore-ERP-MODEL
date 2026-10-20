@@ -37,22 +37,22 @@ import { ToastService } from '../../../core/services/toast.service';
         justify-content: space-between;
         gap: 0.75rem;
         padding: 0.85rem 1rem;
-        border-radius: 12px;
-        background: #fff;
-        border: 1px solid #e5e9ef;
-        box-shadow: 0 10px 30px rgba(11, 31, 58, 0.12);
+        border-radius: var(--radius-md, 12px);
+        background: var(--surface, #fff);
+        border: 1px solid var(--border-color, #e1e7eb);
+        box-shadow: var(--shadow-hover, 0 12px 32px rgba(38, 59, 73, 0.09));
         animation: slide-in 0.25s ease;
       }
 
       .toast strong {
         display: block;
-        color: #0b1f3a;
+        color: var(--text-primary, #263b49);
         font-size: 0.9rem;
       }
 
       .toast p {
         margin: 0.2rem 0 0;
-        color: #5b6b82;
+        color: var(--text-secondary, #647783);
         font-size: 0.82rem;
         line-height: 1.35;
       }
@@ -60,26 +60,30 @@ import { ToastService } from '../../../core/services/toast.service';
       .toast button {
         border: 0;
         background: transparent;
-        color: #8a97ab;
+        color: var(--text-muted, #788791);
         font-size: 1.1rem;
         cursor: pointer;
         line-height: 1;
       }
 
       .toast[data-tone='success'] {
-        border-left: 4px solid #1f9d55;
+        border-left: 4px solid var(--success, #147a45);
+        background: var(--success-bg, #e8f7ef);
       }
 
       .toast[data-tone='warning'] {
-        border-left: 4px solid #d97706;
+        border-left: 4px solid var(--warning, #9a6700);
+        background: var(--warning-bg, #fff6e5);
       }
 
       .toast[data-tone='danger'] {
-        border-left: 4px solid #dc2626;
+        border-left: 4px solid var(--danger, #b42318);
+        background: var(--danger-bg, #fdecec);
       }
 
       .toast[data-tone='info'] {
-        border-left: 4px solid #2563eb;
+        border-left: 4px solid var(--brand-blue, #5d93b5);
+        background: var(--surface-blue, #eaf2f7);
       }
 
       @keyframes slide-in {

@@ -1,24 +1,18 @@
 .shell {
-  --navy: #0b1f3a;
-  --navy-soft: #16325a;
-  --surface: #f4f6f9;
-  --line: #e5e9ef;
-  --text: #243247;
-  --muted: #5b6b82;
   min-height: 100dvh;
   display: grid;
   grid-template-columns: 268px 1fr;
-  background: var(--surface);
-  color: var(--text);
+  background: var(--page-bg);
+  color: var(--text-primary);
 }
 
 .sidebar {
-  background: linear-gradient(180deg, var(--navy) 0%, #071525 100%);
-  color: #e8eef7;
+  background: var(--surface);
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
-  padding: 1.25rem 1rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 1.15rem 0.9rem;
+  border-right: 1px solid var(--border-color);
   position: sticky;
   top: 0;
   height: 100dvh;
@@ -28,56 +22,59 @@
   display: flex;
   gap: 0.75rem;
   align-items: center;
-  padding: 0.35rem 0.45rem 1.25rem;
+  padding: 0.35rem 0.55rem 1.15rem;
 }
 
 .mark {
   width: 2.4rem;
   height: 2.4rem;
-  border-radius: 10px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  background: #1f6feb;
+  background: linear-gradient(145deg, var(--brand-blue), #7aa8c4);
   color: #fff;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.02em;
+  border: 1px solid rgba(71, 125, 157, 0.25);
 }
 
 .brand-name {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .brand-sub {
   margin: 0.15rem 0 0;
   font-size: 0.75rem;
-  color: #9db0c9;
+  color: var(--text-muted);
 }
 
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
   flex: 1;
   overflow: auto;
 }
 
 .nav-section {
-  margin: 0.85rem 0.55rem 0.35rem;
+  margin: 0.9rem 0.65rem 0.35rem;
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #7f93ad;
+  color: var(--text-muted);
+  font-weight: 650;
 }
 
 .nav a {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  padding: 0.7rem 0.8rem;
-  border-radius: 10px;
-  color: #c9d6e8;
+  padding: 0.68rem 0.8rem;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
@@ -85,14 +82,15 @@
 }
 
 .nav a:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: var(--surface-blue);
+  color: var(--primary);
 }
 
 .nav a.active {
-  background: rgba(31, 111, 235, 0.22);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(125, 180, 255, 0.25);
+  background: var(--surface-blue);
+  color: var(--primary-hover);
+  font-weight: 650;
+  box-shadow: inset 3px 0 0 var(--brand-blue);
 }
 
 .nav-icon {
@@ -102,15 +100,15 @@
 }
 
 .sidebar-footer {
-  padding: 1rem 0.55rem 0.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1rem 0.65rem 0.35rem;
+  border-top: 1px solid var(--border-color);
   margin-top: 1rem;
 }
 
 .sidebar-footer p {
   margin: 0.15rem 0;
   font-size: 0.72rem;
-  color: #8094ad;
+  color: var(--text-muted);
 }
 
 .main {
@@ -127,11 +125,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 68px;
-  padding: 0.75rem 1.35rem;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--line);
+  min-height: 64px;
+  padding: 0.7rem 1.35rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .top-left,
@@ -143,12 +140,13 @@
 
 .menu-btn {
   display: none;
-  border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
   width: 2.4rem;
   height: 2.4rem;
   cursor: pointer;
+  color: var(--text-primary);
 }
 
 .crumbs {
@@ -157,20 +155,20 @@
   gap: 0.45rem;
   flex-wrap: wrap;
   font-size: 0.86rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .crumbs a {
-  color: var(--muted);
+  color: var(--text-secondary);
   text-decoration: none;
 }
 
 .crumbs a:hover {
-  color: var(--navy);
+  color: var(--primary);
 }
 
 .crumbs .current {
-  color: var(--navy);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -182,11 +180,17 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  border: 1px solid var(--line);
-  background: #fff;
+  border: 1px solid var(--border-color);
+  background: var(--surface);
   border-radius: 999px;
   padding: 0.25rem 0.75rem 0.25rem 0.25rem;
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.profile-btn:hover {
+  border-color: var(--brand-blue);
+  background: var(--surface-blue);
 }
 
 .avatar {
@@ -195,7 +199,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--navy);
+  background: var(--primary);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -211,12 +215,12 @@
 
 .profile-meta strong {
   font-size: 0.82rem;
-  color: var(--navy);
+  color: var(--text-primary);
 }
 
 .profile-meta small {
   font-size: 0.7rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 .profile-menu {
@@ -224,27 +228,28 @@
   right: 0;
   top: calc(100% + 0.45rem);
   width: 240px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(11, 31, 58, 0.14);
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-hover);
   overflow: hidden;
   z-index: 30;
 }
 
 .profile-card {
   padding: 0.9rem 1rem;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-mauve);
 }
 
 .profile-card strong {
-  color: var(--navy);
+  color: var(--text-primary);
 }
 
 .profile-card p {
   margin: 0.2rem 0 0;
   font-size: 0.78rem;
-  color: var(--muted);
+  color: var(--text-secondary);
 }
 
 .profile-menu > button {
@@ -254,12 +259,12 @@
   text-align: left;
   padding: 0.85rem 1rem;
   cursor: pointer;
-  color: #b42318;
+  color: var(--danger);
   font-weight: 600;
 }
 
 .profile-menu > button:hover {
-  background: #fdecec;
+  background: var(--danger-bg);
 }
 
 .content {
@@ -282,6 +287,7 @@
     z-index: 40;
     transform: translateX(-105%);
     transition: transform 0.2s ease;
+    box-shadow: var(--shadow-hover);
   }
 
   .shell.sidebar-open .sidebar {
@@ -302,11 +308,19 @@
     position: fixed;
     inset: 0;
     border: 0;
-    background: rgba(7, 21, 37, 0.45);
+    background: rgba(38, 59, 73, 0.35);
     z-index: 35;
   }
 
   .content {
     padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .nav a,
+  .profile-btn {
+    transition: none;
   }
 }

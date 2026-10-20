@@ -9,30 +9,30 @@
 
 .meta span {
   display: block;
-  color: #7a889c;
+  color: var(--text-muted);
   font-size: 0.75rem;
 }
 
 .meta strong {
-  color: #0b1f3a;
+  color: var(--text-primary);
 }
 
 .progress {
   height: 10px;
-  background: #eef1f5;
+  background: var(--border-color);
   border-radius: 999px;
   overflow: hidden;
 }
 
 .bar {
   height: 100%;
-  background: #0b1f3a;
+  background: var(--text-primary);
   transition: width 0.35s ease;
 }
 
 .pct {
   margin: 0.45rem 0 0;
-  color: #5b6b82;
+  color: var(--text-secondary);
   font-size: 0.82rem;
 }
 

@@ -2,7 +2,7 @@
 
 .empty {
   margin: 0;
-  color: #7a889c;
+  color: var(--text-muted);
 }
 
 .queue {
@@ -16,14 +16,14 @@
   gap: 1rem;
   align-items: flex-start;
   padding: 0.85rem 0.95rem;
-  border: 1px solid #e5e9ef;
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  background: #f8fafc;
+  background: var(--secondary-bg);
 }
 
 .queue-card p {
   margin: 0.25rem 0 0;
-  color: #5b6b82;
+  color: var(--text-secondary);
   font-size: 0.84rem;
 }
 
@@ -45,12 +45,12 @@
 .activate-row label span {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #445066;
+  color: var(--text-secondary);
 }
 
 .activate-row input[type='email'] {
   width: 100%;
-  border: 1px solid #d8dee8;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 0.45rem 0.65rem;
   background: #fff;
@@ -62,7 +62,7 @@
   align-items: center;
   gap: 0.45rem;
   font-size: 0.84rem;
-  color: #243247;
+  color: var(--text-primary);
 }
 
 .hire-form {

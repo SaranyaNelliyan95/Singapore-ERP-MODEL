@@ -1,13 +1,66 @@
 @import 'tailwindcss';
 
+/* Workright — dusty blue · mauve-grey · white */
 :root {
-  --eyota-navy: #0b1f3a;
-  --eyota-navy-soft: #16325a;
-  --eyota-surface: #f4f6f9;
-  --eyota-line: #e5e9ef;
-  --eyota-text: #243247;
-  --eyota-muted: #5b6b82;
-  --eyota-accent: #1f6feb;
+  --brand-blue: #5d93b5;
+  --brand-mauve: #b2a3a3;
+  --brand-white: #ffffff;
+
+  --page-bg: #f6f8fa;
+  --secondary-bg: #f0f5f8;
+  --surface: #ffffff;
+  --surface-blue: #eaf2f7;
+  --surface-mauve: #f4efef;
+
+  --text-primary: #263b49;
+  --text-secondary: #647783;
+  --text-muted: #788791;
+
+  --border-color: #e1e7eb;
+  --primary: #477d9d;
+  --primary-hover: #396b89;
+  --accent-mauve: #927d7d;
+
+  --input-bg: #ffffff;
+  --focus-ring: rgba(71, 125, 157, 0.24);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  --shadow-card: 0 4px 20px rgba(38, 59, 73, 0.05);
+  --shadow-hover: 0 12px 32px rgba(38, 59, 73, 0.09);
+
+  --success: #147a45;
+  --success-bg: #e8f7ef;
+  --success-border: #b7e4c7;
+  --warning: #9a6700;
+  --warning-bg: #fff6e5;
+  --warning-border: #f5d99a;
+  --danger: #b42318;
+  --danger-bg: #fdecec;
+  --danger-border: #f3c1c1;
+  --info: #1d4f91;
+  --info-bg: #eaf2ff;
+  --info-border: #c5d8f5;
+
+  /* Legacy aliases */
+  --eyota-navy: var(--primary);
+  --eyota-navy-soft: var(--primary-hover);
+  --eyota-surface: var(--page-bg);
+  --eyota-line: var(--border-color);
+  --eyota-text: var(--text-primary);
+  --eyota-muted: var(--text-secondary);
+  --eyota-accent: var(--brand-blue);
+
+  /* Compatibility with prior mint theme variable names */
+  --brand-mint: var(--brand-blue);
+  --brand-blush: var(--brand-mauve);
+  --surface-green: var(--surface-blue);
+  --surface-pink: var(--surface-mauve);
+  --accent-pink: var(--accent-mauve);
+
   color-scheme: light;
 }
 
@@ -24,9 +77,9 @@ body {
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
-  background: var(--eyota-surface);
-  color: var(--eyota-text);
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+  background: var(--page-bg);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -40,4 +93,27 @@ textarea {
 
 a {
   color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.wr-gradient-bg {
+  background:
+    radial-gradient(ellipse at 12% 10%, rgba(93, 147, 181, 0.34) 0%, transparent 44%),
+    radial-gradient(ellipse at 90% 20%, rgba(178, 163, 163, 0.28) 0%, transparent 42%),
+    radial-gradient(ellipse at 72% 100%, rgba(129, 184, 220, 0.2) 0%, transparent 40%),
+    linear-gradient(135deg, #ffffff 0%, #f4f7f9 52%, #f4eeee 100%);
 }

@@ -8,7 +8,7 @@
   margin: 0 0 0.45rem;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #445066;
+  color: var(--text-secondary);
 }
 
 .checks {
@@ -22,5 +22,5 @@
   gap: 0.35rem;
   align-items: center;
   font-size: 0.86rem;
-  color: #243247;
+  color: var(--text-primary);
 }

@@ -32,8 +32,8 @@ import { Component, Input } from '@angular/core';
         width: 2.25rem;
         height: 2.25rem;
         border-radius: 50%;
-        border: 3px solid #d7e0ec;
-        border-top-color: #0b1f3a;
+        border: 3px solid var(--surface-blue, #eaf2f7);
+        border-top-color: var(--primary, #477d9d);
         animation: spin 0.8s linear infinite;
       }
 

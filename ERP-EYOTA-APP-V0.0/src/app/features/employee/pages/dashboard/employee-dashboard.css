@@ -2,7 +2,7 @@
 
 .clock-pill {
   background: #fff;
-  border: 1px solid #e5e9ef;
+  border: 1px solid var(--border-color);
   border-radius: 14px;
   padding: 0.85rem 1rem;
   min-width: 160px;
@@ -12,12 +12,12 @@
 
 .clock-pill span,
 .clock-pill small {
-  color: #7a889c;
+  color: var(--text-muted);
   font-size: 0.75rem;
 }
 
 .clock-pill strong {
-  color: #0b1f3a;
+  color: var(--text-primary);
 }
 
 .actions {
@@ -32,7 +32,7 @@
 
 .period {
   margin: 0;
-  color: #5b6b82;
+  color: var(--text-secondary);
   font-size: 0.85rem;
 }
 
@@ -40,12 +40,12 @@
   margin: 0.35rem 0;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #0b1f3a;
+  color: var(--text-primary);
 }
 
 .meta {
   margin: 0 0 1rem;
-  color: #7a889c;
+  color: var(--text-muted);
   font-size: 0.82rem;
 }
 
@@ -61,17 +61,17 @@
   align-items: center;
   padding: 0.8rem 0.9rem;
   border-radius: 12px;
-  border: 1px solid #e5e9ef;
-  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  background: var(--secondary-bg);
 }
 
 .alert strong {
-  color: #0b1f3a;
+  color: var(--text-primary);
   font-size: 0.9rem;
 }
 
 .alert p {
   margin: 0.2rem 0 0;
-  color: #5b6b82;
+  color: var(--text-secondary);
   font-size: 0.8rem;
 }

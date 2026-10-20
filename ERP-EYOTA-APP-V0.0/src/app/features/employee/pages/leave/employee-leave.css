@@ -7,7 +7,7 @@
 }
 
 .days {
-  color: #1f6feb;
+  color: var(--primary);
   font-size: 0.85rem;
   font-weight: 700;
 }
@@ -18,7 +18,7 @@
 
 .empty {
   margin: 0;
-  color: #7a889c;
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
 
@@ -33,14 +33,14 @@
   gap: 0.75rem;
   align-items: center;
   padding: 0.75rem 0.85rem;
-  border: 1px solid #e5e9ef;
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  background: #f8fafc;
+  background: var(--secondary-bg);
 }
 
 .pending-row p {
   margin: 0.2rem 0 0;
-  color: #5b6b82;
+  color: var(--text-secondary);
   font-size: 0.8rem;
 }
 

@@ -1,18 +1,13 @@
-<div class="login-page">
-  <section class="hero-panel" aria-hidden="true">
+<div class="login-page wr-gradient-bg">
+  <section class="hero-panel">
+    <a class="back-home" routerLink="/">← Back to home</a>
     <div class="hero-content">
       <p class="eyebrow">Singapore Workright HR ERP</p>
       <h1>EYOTA</h1>
       <p class="tagline">
-        People operations aligned to MOM Workright, CPF, SDL, FWL and IRAS — built for engineering
-        and site manpower teams.
+        People. Connected. A calm workspace for employees, HR, and administrators — organised around
+        Singapore workplace processes.
       </p>
-      <!-- <ul>
-        <li>Role-based master portals</li>
-        <li>Employment Pass & expiry control</li>
-        <li>Itemised payslips & claims in SGD</li>
-      </ul> -->
-      
     </div>
   </section>
 
@@ -20,21 +15,36 @@
     <div class="form-card">
       <p class="welcome">Welcome back</p>
       <h2>Sign in to your portal</h2>
-      <p class="hint">Each role lands directly on its Master Module for rapid access.</p>
+      <p class="hint">Each role lands on its Master Module. Use a demo account to explore quickly.</p>
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <label>
           <span>Work email</span>
-          <input type="email" formControlName="email" autocomplete="username" placeholder="name@eyota.sg" />
+          <input
+            type="email"
+            formControlName="email"
+            autocomplete="username"
+            placeholder="name@eyota.sg"
+          />
           @if (controlInvalid('email')) {
             <small class="error">Enter a valid email address.</small>
           }
         </label>
 
         <label>
-          <span>Password</span>
+          <div class="label-row">
+            <span>Password</span>
+            <button
+              type="button"
+              class="toggle"
+              (click)="showPassword.set(!showPassword())"
+              [attr.aria-pressed]="showPassword()"
+            >
+              {{ showPassword() ? 'Hide' : 'Show' }}
+            </button>
+          </div>
           <input
-            type="password"
+            [type]="showPassword() ? 'text' : 'password'"
             formControlName="password"
             autocomplete="current-password"
             placeholder="••••••••"
