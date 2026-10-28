@@ -1,0 +1,10 @@
+# Local development — activate with SPRING_PROFILES_ACTIVE=dev
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+logging:
+  level:
+    sg.eyota.workright: DEBUG
+    org.springframework.security: INFO

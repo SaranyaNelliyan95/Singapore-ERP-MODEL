@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DataTableColumn } from '../../../../core/models/common.model';
 import { PayslipRecord } from '../../../../core/models/employee.model';
-import { PayrollRun } from '../../../../core/models/hr.model';
+import { PayrollException, PayrollRun } from '../../../../core/models/hr.model';
 import { EmployeeMockService } from '../../../../core/services/employee-mock.service';
 import { HrMockService } from '../../../../core/services/hr-mock.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -14,6 +14,15 @@ import { DemoNoticeComponent } from '../../../employee/shared/demo-notice';
 import { SgdCurrencyPipe } from '../../../../shared/pipes/sgd-currency.pipe';
 
 type PayrollAction = 'submitReview' | 'approve' | 'finalize';
+
+/** Labels aligned to Figma Screen B (Singapore Payroll Operations). */
+const WORKFLOW = [
+  'Draft & Timesheets',
+  'Statutory Validation',
+  'Executive Review',
+  'Director Approval',
+  'Bank GIRO Release',
+] as const;
 
 @Component({
   selector: 'app-hr-payroll',
@@ -39,10 +48,42 @@ export class HrPayrollPage implements OnInit {
   readonly selectedEmployeeId = signal<string>('');
   readonly confirmOpen = signal(false);
   readonly pendingAction = signal<PayrollAction | null>(null);
+  readonly workflow = WORKFLOW;
 
   readonly selectedRun = computed(
     () => this.hr.workforce().payrollRuns.find((run) => run.id === this.selectedRunId()) ?? null,
   );
+
+  readonly payrollKpis = computed(() => {
+    const state = this.hr.workforce();
+    const runs = state.payrollRuns;
+    const active =
+      runs.find((r) => ['Draft', 'Under Review', 'Approved'].includes(r.status)) ?? runs[0];
+    const exceptions = (state.payrollExceptions ?? []).filter(
+      (e) => !e.resolved && (!active || e.runId === active.id),
+    );
+    const published = state.payslips.length;
+    return {
+      currentPeriod: state.policies.statutory.activePayPeriod,
+      periodOpen: state.policies.statutory.payrollPeriodOpen,
+      draftRuns: runs.filter((r) => r.status === 'Draft').length,
+      underReview: runs.filter((r) => r.status === 'Under Review').length,
+      pendingApproval: runs.filter((r) => r.status === 'Under Review' || r.status === 'Draft')
+        .length,
+      processed: runs.filter((r) => r.status === 'Finalized' || r.status === 'Paid').length,
+      employeesInRun: active?.employeeCount ?? 0,
+      exceptions: exceptions.length,
+      blockers: exceptions.filter((e) => e.severity === 'Blocker').length,
+      publishedPayslips: published,
+    };
+  });
+
+  readonly exceptions = computed(() => {
+    const runId = this.selectedRunId();
+    return (this.hr.workforce().payrollExceptions ?? []).filter(
+      (e) => e.runId === runId && !e.resolved,
+    );
+  });
 
   readonly periodPayslips = computed(() => {
     const run = this.selectedRun();
@@ -59,6 +100,27 @@ export class HrPayrollPage implements OnInit {
       this.periodPayslips()[0] ??
       null
     );
+  });
+
+  readonly workflowStep = computed(() => {
+    const run = this.selectedRun();
+    if (!run) {
+      return 0;
+    }
+    // Maps legacy run statuses onto Figma 5-step payroll operations stepper.
+    if (run.status === 'Finalized' || run.status === 'Paid') {
+      return 4;
+    }
+    if (run.status === 'Approved') {
+      return 3;
+    }
+    if (run.status === 'Under Review') {
+      return 2;
+    }
+    if (this.exceptions().some((e) => e.severity === 'Blocker')) {
+      return 1;
+    }
+    return 0;
   });
 
   readonly runColumns: DataTableColumn<PayrollRun>[] = [
@@ -103,10 +165,27 @@ export class HrPayrollPage implements OnInit {
     },
   ];
 
+  readonly exceptionColumns: DataTableColumn<PayrollException>[] = [
+    { key: 'employeeId', label: 'Employee', sortable: true },
+    { key: 'type', label: 'Type', sortable: true },
+    {
+      key: 'severity',
+      label: 'Severity',
+      badge: (row) => ({
+        label: row.severity,
+        tone: row.severity === 'Blocker' ? 'danger' : row.severity === 'Warning' ? 'warning' : 'info',
+      }),
+    },
+    { key: 'message', label: 'Message' },
+  ];
+
   ngOnInit(): void {
     this.hr.getMasterSnapshot().subscribe(() => {
       const runs = this.hr.workforce().payrollRuns;
       this.selectedRunId.set(runs[0]?.id ?? '');
+      if (runs[0]) {
+        this.workforce.refreshPayrollExceptions(runs[0].id);
+      }
       const slips = this.periodPayslips();
       this.selectedEmployeeId.set(slips[0]?.employeeId ?? '');
       this.loading.set(false);
@@ -115,12 +194,43 @@ export class HrPayrollPage implements OnInit {
 
   selectRun(id: string): void {
     this.selectedRunId.set(id);
+    this.workforce.refreshPayrollExceptions(id);
     const slips = this.periodPayslips();
     this.selectedEmployeeId.set(slips[0]?.employeeId ?? '');
   }
 
   selectEmployee(employeeId: string): void {
     this.selectedEmployeeId.set(employeeId);
+  }
+
+  validateRun(): void {
+    const run = this.selectedRun();
+    if (!run) {
+      return;
+    }
+    const generated = this.workforce.refreshPayrollExceptions(run.id);
+    const blockers = generated.filter((e) => e.severity === 'Blocker').length;
+    if (blockers) {
+      this.toast.warning(
+        'Validation complete',
+        `${generated.length} exception(s), ${blockers} blocker(s) — resolve before finalize.`,
+      );
+    } else {
+      this.toast.success(
+        'Validation complete',
+        generated.length
+          ? `${generated.length} warning(s) — review before approval.`
+          : 'No payroll exceptions detected for this run.',
+      );
+    }
+  }
+
+  resolveException(id: string): void {
+    if (this.workforce.resolvePayrollException(id)) {
+      this.toast.success('Exception resolved', id);
+    } else {
+      this.toast.danger('Resolve failed', 'Exception already resolved or missing.');
+    }
   }
 
   requestAction(action: PayrollAction): void {
@@ -143,6 +253,13 @@ export class HrPayrollPage implements OnInit {
       run.status !== 'Draft'
     ) {
       this.toast.warning('Payroll', 'This run is already finalized.');
+      return;
+    }
+    if (action === 'finalize' && this.exceptions().some((e) => e.severity === 'Blocker')) {
+      this.toast.danger(
+        'Blockers open',
+        'Resolve blocker exceptions (e.g. missing bank) before finalize.',
+      );
       return;
     }
     this.pendingAction.set(action);
@@ -173,9 +290,9 @@ export class HrPayrollPage implements OnInit {
       return;
     }
     const labels: Record<PayrollAction, string> = {
-      submitReview: 'submitted for review',
-      approve: 'approved',
-      finalize: 'finalized — simulated payslips generated for active staff',
+      submitReview: 'submitted for HR review',
+      approve: 'authorized / approved',
+      finalize: 'finalized — simulated payslips published to employee accounts',
     };
     this.toast.success('Payroll updated', `${run.period} ${labels[action]} (demo).`);
   }
@@ -188,12 +305,12 @@ export class HrPayrollPage implements OnInit {
   confirmTitle(): string {
     const action = this.pendingAction();
     if (action === 'submitReview') {
-      return 'Submit payroll for review?';
+      return 'Submit payroll for HR review?';
     }
     if (action === 'approve') {
-      return 'Approve payroll run?';
+      return 'Authorize / approve payroll run?';
     }
-    return 'Finalize payroll and generate payslips?';
+    return 'Finalize payroll and publish payslips?';
   }
 
   confirmMessage(): string {

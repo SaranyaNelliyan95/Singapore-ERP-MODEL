@@ -1,25 +1,86 @@
 @if (loading()) {
-  <app-loading-spinner label="Loading employee directory…" />
+  <app-loading-spinner label="Loading employee management…" />
 } @else {
   <div class="ess-page hr-dense">
     <header class="ess-head">
       <div>
-        <p class="hr-eyebrow">Comprehensive Employee Directory</p>
-        <h1>Active staff master</h1>
+        <p class="hr-eyebrow">Employee Management</p>
+        <h1>Engineering &amp; site workforce</h1>
         <p class="ess-sub">
-          Create and edit employee master records. Filters by department, Singapore pass type, and
-          work location. NRIC/FIN remains masked in the grid.
+          Headcount, work-pass renewals, and site assignment risk — Employee Master shared by HR and
+          Admin. Open a row for the full dossier.
         </p>
       </div>
-      <button type="button" class="ess-btn primary" (click)="openCreate()">Add employee</button>
+      <div class="ess-actions">
+        <button
+          type="button"
+          class="ess-btn ghost"
+          disabled
+          title="MOM register export requires configured statutory pack — not enabled yet"
+        >
+          Export MOM Register
+        </button>
+        <button type="button" class="ess-btn primary" (click)="openCreate()">+ Add employee</button>
+      </div>
     </header>
 
     <app-demo-notice
-      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Directory is fictional mock workforce data."
+      [message]="
+        useBackend
+          ? 'API mode: new employees persist to PostgreSQL via Spring Boot. Pass-type fields remain UI-side until DB migration adds work-pass columns.'
+          : 'DEMO COMPLIANCE ENVIRONMENT — directory uses frontend mock/localStorage until useBackendApi is enabled.'
+      "
     />
 
+    <section class="ess-grid-4 em-kpis">
+      <article class="ess-stat">
+        <p>Total headcount</p>
+        <strong>{{ mgmt().totalEmployees }}</strong>
+        <span>{{ mgmt().localCount }} local/PR · {{ mgmt().foreignCount }} foreign pass</span>
+      </article>
+      <article class="ess-stat">
+        <p>MOM pass renewals</p>
+        <strong>{{ mgmt().passRenewalsUrgent }}</strong>
+        <span>Urgent ≤ 30 days · {{ mgmt().upcomingExpiries }} within 90d</span>
+      </article>
+      <article class="ess-stat">
+        <p>BCA CoreTrade (demo %)</p>
+        <strong>{{ mgmt().bcaCoreTradePct === null ? '—' : mgmt().bcaCoreTradePct + '%' }}</strong>
+        <span>From certification tags — not a statutory filing</span>
+      </article>
+      <article class="ess-stat">
+        <p>OT risk flags</p>
+        <strong>{{ mgmt().overtimeRiskCount }}</strong>
+        <span>Attendance rows with OT hours logged</span>
+      </article>
+      <article class="ess-stat">
+        <p>Active / probation</p>
+        <strong>{{ mgmt().activeEmployees }}</strong>
+        <span>{{ mgmt().onProbation }} on probation</span>
+      </article>
+      <article class="ess-stat">
+        <p>On leave</p>
+        <strong>{{ mgmt().onLeave }}</strong>
+        <span>Lifecycle status</span>
+      </article>
+      <article class="ess-stat">
+        <p>Missing documents</p>
+        <strong>{{ mgmt().missingDocuments }}</strong>
+        <span>Pending employee uploads</span>
+      </article>
+      <article class="ess-stat">
+        <p>Serving notice</p>
+        <strong>{{ mgmt().servingNotice }}</strong>
+        <span>Offboarding watch · {{ mgmt().newJoiners }} joiners (90d)</span>
+      </article>
+    </section>
+
     <section class="ess-panel">
-      <div class="hr-filters">
+      <div class="ess-panel-head">
+        <h2>Employee directory</h2>
+        <span class="meta">{{ filtered().length }} matching</span>
+      </div>
+      <div class="hr-filters em-filters">
         <label>
           <span>Department</span>
           <select [ngModel]="department()" (ngModelChange)="department.set($event)">
@@ -29,7 +90,23 @@
           </select>
         </label>
         <label>
-          <span>Pass type</span>
+          <span>Designation</span>
+          <select [ngModel]="designation()" (ngModelChange)="designation.set($event)">
+            @for (d of designations(); track d) {
+              <option [value]="d">{{ d }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Status</span>
+          <select [ngModel]="status()" (ngModelChange)="status.set($event)">
+            @for (s of statusFilters; track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Employment type</span>
           <select [ngModel]="passType()" (ngModelChange)="passType.set($event)">
             @for (pass of passOptions; track pass) {
               <option [value]="pass">{{ pass }}</option>
@@ -44,6 +121,23 @@
             }
           </select>
         </label>
+        <label>
+          <span>Branch</span>
+          <select [ngModel]="branch()" (ngModelChange)="branch.set($event)">
+            @for (b of branches(); track b) {
+              <option [value]="b">{{ b }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Project</span>
+          <select [ngModel]="project()" (ngModelChange)="project.set($event)">
+            @for (p of projects(); track p.id) {
+              <option [value]="p.id">{{ p.name }}</option>
+            }
+            <option value="Unassigned">Unassigned</option>
+          </select>
+        </label>
       </div>
 
       <app-data-table
@@ -56,13 +150,17 @@
       />
 
       <div class="quick-edit">
-        <h3>Quick edit</h3>
-        <p class="hint">Select a row action below to open the master form.</p>
+        <h3>Row actions</h3>
+        <p class="hint">Open the 360° profile or edit master fields for matching staff.</p>
         <div class="quick-list">
-          @for (row of filtered().slice(0, 6); track row.employeeId) {
-            <button type="button" class="ess-btn ghost" (click)="openEdit(row)">
-              Edit {{ row.employeeId }} · {{ row.fullName }}
-            </button>
+          @for (row of filtered().slice(0, 8); track row.employeeId) {
+            <div class="row-actions">
+              <button type="button" class="ess-btn ghost" (click)="openDetail(row)">
+                View {{ row.employeeId }}
+              </button>
+              <button type="button" class="ess-btn ghost" (click)="openEdit(row)">Edit</button>
+              <span class="proj-chip">{{ projectName(row.projectId) }}</span>
+            </div>
           }
         </div>
       </div>
@@ -79,6 +177,12 @@
           <span>Full name</span>
           <input formControlName="fullName" [readonly]="!!editId()" />
         </label>
+        @if (!editId()) {
+          <label>
+            <span>Work email (login + OTP)</span>
+            <input type="email" formControlName="workEmail" placeholder="name@company.sg" />
+          </label>
+        }
         <label>
           <span>Department</span>
           <input formControlName="department" list="dept-list" />
@@ -109,6 +213,24 @@
           </select>
         </label>
         <label>
+          <span>Branch</span>
+          <input formControlName="branch" list="branch-list" />
+          <datalist id="branch-list">
+            @for (b of hr.workforce().policies.branches; track b) {
+              <option [value]="b"></option>
+            }
+          </datalist>
+        </label>
+        <label>
+          <span>Project assignment</span>
+          <select formControlName="projectId">
+            <option value="">Unassigned</option>
+            @for (p of hr.workforce().projects; track p.id) {
+              <option [value]="p.id">{{ p.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
           <span>Date of joining</span>
           <input type="date" formControlName="dateOfJoining" [readonly]="!!editId()" />
         </label>
@@ -132,8 +254,16 @@
         }
         <div class="ess-actions full">
           <button type="button" class="ess-btn ghost" (click)="closeForm()">Cancel</button>
-          <button type="submit" class="ess-btn primary">
-            {{ editId() ? 'Save changes' : 'Create employee' }}
+          <button type="submit" class="ess-btn primary" [disabled]="saving()">
+            {{
+              editId()
+                ? 'Save changes'
+                : useBackend
+                  ? saving()
+                    ? 'Enrolling…'
+                    : 'Enroll & send OTP'
+                  : 'Create employee'
+            }}
           </button>
         </div>
       </form>

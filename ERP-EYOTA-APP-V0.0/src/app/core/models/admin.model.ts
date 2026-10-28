@@ -131,6 +131,22 @@ export interface SystemHealthMetric {
   status: 'Ok' | 'Warn' | 'Fail';
 }
 
+/** Frontend master catalogs for Admin Master Data (persisted in demo store) */
+export interface MasterCatalogs {
+  employmentStatuses: string[];
+  employmentTypes: string[];
+  documentTypes: string[];
+  complianceCategories: string[];
+  workPassCategories: string[];
+  projectRoles: string[];
+  skills: string[];
+  allocationTypes: string[];
+  projectStatuses: string[];
+  projectSites: string[];
+  requiredCertifications: string[];
+  salaryComponents: string[];
+}
+
 export interface SystemPolicies {
   company: CompanyProfile;
   branches: string[];
@@ -144,6 +160,7 @@ export interface SystemPolicies {
   holidays: HolidayEntry[];
   statutory: StatutoryControls;
   hrModules: HrModuleVisibility[];
+  catalogs?: MasterCatalogs;
 }
 
 export interface AdminSystemState {

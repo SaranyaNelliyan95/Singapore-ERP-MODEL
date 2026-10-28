@@ -4,7 +4,8 @@ import { AdminMockService } from '../../../../core/services/admin-mock.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal';
 import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner';
-import { ClaimLimitPolicy, LeavePolicy } from '../../../../core/models/admin.model';
+import { ClaimLimitPolicy, LeavePolicy, MasterCatalogs } from '../../../../core/models/admin.model';
+import { createDefaultSystemPolicies } from '../../../../core/services/system-policies.defaults';
 
 @Component({
   selector: 'app-admin-master-data',
@@ -26,6 +27,11 @@ export class AdminMasterDataPage implements OnInit {
   readonly holidaysText = signal('');
   readonly deductionsText = signal('');
   readonly assetsText = signal('');
+  readonly departmentsText = signal('');
+  readonly branchesText = signal('');
+  readonly jobGradesText = signal('');
+  readonly costCentresText = signal('');
+  readonly catalogDraft = signal<MasterCatalogs>(createDefaultSystemPolicies().catalogs!);
 
   ngOnInit(): void {
     this.admin.bootstrap().subscribe(() => {
@@ -71,6 +77,41 @@ export class AdminMasterDataPage implements OnInit {
     this.toast.success('Codes updated', 'Deduction codes and asset categories saved.');
   }
 
+  saveOrgMasters(): void {
+    const split = (value: string) =>
+      value
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean);
+    this.admin.updateOrgMasters({
+      departments: split(this.departmentsText()),
+      branches: split(this.branchesText()),
+      jobGrades: split(this.jobGradesText()),
+      costCentres: split(this.costCentresText()),
+    });
+    this.toast.success('Org masters saved', 'Departments, branches, grades, and cost centres updated.');
+  }
+
+  saveCatalogs(): void {
+    this.admin.updateMasterCatalogs(this.catalogDraft());
+    this.toast.success(
+      'Catalogs saved',
+      'Employee, payroll, compliance, and project manpower masters updated.',
+    );
+  }
+
+  setCatalogList(key: keyof MasterCatalogs, text: string): void {
+    const list = text
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    this.catalogDraft.update((c) => ({ ...c, [key]: list }));
+  }
+
+  catalogText(key: keyof MasterCatalogs): string {
+    return (this.catalogDraft()[key] ?? []).join(', ');
+  }
+
   confirmRestore(): void {
     this.restoreOpen.set(false);
     this.admin.restoreDemoDefaults();
@@ -102,10 +143,16 @@ export class AdminMasterDataPage implements OnInit {
 
   private reloadDrafts(): void {
     const p = this.policies();
+    const defaults = createDefaultSystemPolicies();
     this.leaveDraft.set(p.leavePolicies.map((row) => ({ ...row })));
     this.claimDraft.set(p.claimLimits.map((row) => ({ ...row })));
     this.holidaysText.set(p.holidays.map((h) => `${h.date}|${h.name}`).join('\n'));
     this.deductionsText.set(p.deductionCodes.join(', '));
     this.assetsText.set(p.assetCategories.join(', '));
+    this.departmentsText.set(p.departments.join(', '));
+    this.branchesText.set(p.branches.join(', '));
+    this.jobGradesText.set(p.jobGrades.join(', '));
+    this.costCentresText.set(p.costCentres.join(', '));
+    this.catalogDraft.set({ ...defaults.catalogs!, ...(p.catalogs ?? {}) });
   }
 }

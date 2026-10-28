@@ -13,6 +13,16 @@ const MASTER_CHILDREN: Routes = [
       import('./pages/directory/hr-directory').then((m) => m.HrDirectoryPage),
   },
   {
+    path: 'directory/:id',
+    loadComponent: () =>
+      import('./pages/employee-detail/hr-employee-detail').then((m) => m.HrEmployeeDetailPage),
+  },
+  {
+    path: 'projects',
+    loadComponent: () =>
+      import('./pages/projects/hr-projects').then((m) => m.HrProjectsPage),
+  },
+  {
     path: 'compliance',
     loadComponent: () =>
       import('./pages/compliance/hr-compliance').then((m) => m.HrCompliancePage),
@@ -55,10 +65,12 @@ const MASTER_CHILDREN: Routes = [
   },
 ];
 
+const SIMPLE_PATHS = MASTER_CHILDREN.filter((r) => !String(r.path).includes(':'));
+
 export const HR_ROUTES: Routes = [
   {
     path: '',
-    canActivate: [roleGuard(['hr'])],
+    canActivate: [roleGuard(['hr', 'admin'])],
     loadComponent: () => import('./hr-shell').then((m) => m.HrShellComponent),
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'master' },
@@ -67,7 +79,7 @@ export const HR_ROUTES: Routes = [
         ...route,
         path: `master/${route.path}`,
       })),
-      ...MASTER_CHILDREN.map((route) => ({
+      ...SIMPLE_PATHS.map((route) => ({
         path: route.path as string,
         redirectTo: `master/${route.path}`,
         pathMatch: 'full' as const,

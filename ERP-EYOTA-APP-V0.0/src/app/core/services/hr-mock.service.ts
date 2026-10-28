@@ -1,7 +1,11 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { Observable, delay, of } from 'rxjs';
 import { EmployeeMockService } from './employee-mock.service';
-import { HrDashboardStats, StaffDirectoryRow } from '../models/hr.model';
+import {
+  EmployeeManagementStats,
+  HrDashboardStats,
+  StaffDirectoryRow,
+} from '../models/hr.model';
 
 @Injectable({ providedIn: 'root' })
 export class HrMockService {
@@ -9,6 +13,10 @@ export class HrMockService {
 
   /** Shared store reference — same instance Employee ESS mutates */
   readonly workforce = this.workforceService.workforce;
+
+  readonly managementStats = computed<EmployeeManagementStats>(() =>
+    this.workforceService.getEmployeeManagementStats(),
+  );
 
   readonly stats = computed<HrDashboardStats>(() => {
     const state = this.workforce();

@@ -1,0 +1,247 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading employee profile…" />
+} @else if (row(); as emp) {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">
+          <a routerLink="/hr/master/directory">Employee Management</a> · {{ emp.employeeId }}
+        </p>
+        <h1>{{ emp.fullName }}</h1>
+        <p class="ess-sub">
+          {{ emp.designation }} · {{ emp.department }} · {{ emp.employmentType }} ·
+          {{ projectLabel(emp.projectId) }}
+        </p>
+      </div>
+      <div class="ess-actions">
+        <app-status-badge [label]="emp.status" tone="info" />
+        <button type="button" class="ess-btn ghost" (click)="openEdit()">Edit</button>
+        <a routerLink="/hr/master/directory" class="ess-btn primary">Back to list</a>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO — 360° view reads the shared Employee Master, leave, claims, payroll, compliance, and project allocations."
+    />
+
+    <nav class="tabs" aria-label="Employee sections">
+      @for (t of [
+        { id: 'overview', label: 'Overview' },
+        { id: 'docs', label: 'Documents' },
+        { id: 'history', label: 'Employment history' },
+        { id: 'checklist', label: 'On / offboarding' },
+        { id: 'related', label: 'Related workflows' },
+      ]; track t.id) {
+        <button
+          type="button"
+          class="tab"
+          [class.active]="tab() === t.id"
+          (click)="tab.set($any(t.id))"
+        >
+          {{ t.label }}
+        </button>
+      }
+    </nav>
+
+    @if (tab() === 'overview') {
+      <div class="ess-grid-2">
+        <section class="ess-panel">
+          <div class="ess-panel-head"><h2>Master data</h2></div>
+          <dl class="detail-grid">
+            <div><dt>NRIC / FIN</dt><dd>{{ maskNricOrFin(emp.nricOrFin) }}</dd></div>
+            <div><dt>Mobile</dt><dd>{{ formatSgPhone(emp.mobile) }}</dd></div>
+            <div><dt>Branch</dt><dd>{{ emp.branch ?? '—' }}</dd></div>
+            <div><dt>Work location</dt><dd>{{ emp.workLocation }}</dd></div>
+            <div><dt>Joined</dt><dd>{{ formatSgDate(emp.dateOfJoining ?? null) }}</dd></div>
+            <div><dt>Pass expiry</dt><dd>{{ formatSgDate(emp.passExpiry) }}</dd></div>
+            <div><dt>Probation end</dt><dd>{{ formatSgDate(emp.probationEndDate ?? null) }}</dd></div>
+            <div><dt>Notice end</dt><dd>{{ formatSgDate(emp.noticeEndDate ?? null) }}</dd></div>
+          </dl>
+          @if (profile(); as p) {
+            <p class="meta">Manager: {{ p.reportingManager }} · Bank: {{ p.bankName }}</p>
+          }
+        </section>
+        <section class="ess-panel">
+          <div class="ess-panel-head"><h2>Status management</h2></div>
+          <form class="ess-form compact" [formGroup]="statusForm" (ngSubmit)="saveStatus()">
+            <label>
+              <span>Lifecycle status</span>
+              <select formControlName="status">
+                @for (s of statusOptions; track s) {
+                  <option [value]="s">{{ s }}</option>
+                }
+              </select>
+            </label>
+            <button type="submit" class="ess-btn primary">Update status</button>
+          </form>
+          <div class="ess-panel-head" style="margin-top: 1rem"><h2>Project assignment</h2></div>
+          @for (a of allocations(); track a.id) {
+            <div class="list-row">
+              <strong>{{ projectLabel(a.projectId) }}</strong>
+              <span>{{ a.role }} · {{ a.allocationPct }}% · {{ a.status }}</span>
+            </div>
+          } @empty {
+            <p class="meta">No active project allocations.</p>
+          }
+        </section>
+      </div>
+    }
+
+    @if (tab() === 'docs') {
+      <section class="ess-panel">
+        <div class="ess-panel-head"><h2>Employee documents</h2></div>
+        @for (doc of documents(); track doc.id) {
+          <div class="list-row">
+            <div>
+              <strong>{{ doc.name }}</strong>
+              <p>{{ doc.category }} · {{ doc.status }}</p>
+            </div>
+            <app-status-badge [label]="doc.status" [tone]="doc.status === 'Verified' ? 'success' : 'warning'" />
+          </div>
+        } @empty {
+          <p class="meta">No documents on file for this employee.</p>
+        }
+        <div class="ess-panel-head" style="margin-top: 1rem"><h2>Compliance items</h2></div>
+        @for (c of compliance(); track c.id) {
+          <div class="list-row">
+            <div>
+              <strong>{{ c.agency ?? '—' }} · {{ c.category }}</strong>
+              <p>{{ c.reference }} · expiry {{ formatSgDate(c.expiryDate) }}</p>
+            </div>
+            <app-status-badge [label]="c.status" tone="warning" />
+          </div>
+        }
+      </section>
+    }
+
+    @if (tab() === 'history') {
+      <section class="ess-panel">
+        <div class="ess-panel-head"><h2>Employment history (demo)</h2></div>
+        <ul class="timeline">
+          <li>
+            <strong>Joined</strong>
+            <span>{{ formatSgDate(emp.dateOfJoining ?? null) }} · {{ emp.designation }}</span>
+          </li>
+          @if (emp.probationEndDate) {
+            <li>
+              <strong>Probation end</strong>
+              <span>{{ formatSgDate(emp.probationEndDate) }}</span>
+            </li>
+          }
+          @if (emp.noticeEndDate) {
+            <li>
+              <strong>Notice period ends</strong>
+              <span>{{ formatSgDate(emp.noticeEndDate) }}</span>
+            </li>
+          }
+          @for (a of allocations(); track a.id) {
+            <li>
+              <strong>Assigned · {{ projectLabel(a.projectId) }}</strong>
+              <span>{{ a.startDate }} → {{ a.endDate ?? 'ongoing' }} · {{ a.role }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (tab() === 'checklist') {
+      <section class="ess-panel">
+        <div class="ess-panel-head"><h2>Onboarding / offboarding checklist</h2></div>
+        @if (emp.status === 'Probation' || onboarding().length) {
+          <ul class="check">
+            <li>Offer &amp; contract signed</li>
+            <li>MOM / ICA documents collected (if applicable)</li>
+            <li>Medical clearance</li>
+            <li>Bank &amp; personal details confirmed</li>
+            <li>Orientation / site induction</li>
+          </ul>
+          <p class="meta">Progress mirrors Onboarding pipeline when a candidate row exists.</p>
+        } @else if (emp.status === 'Notice' || emp.status === 'Resigned') {
+          <ul class="check">
+            <li>Notice acknowledgement</li>
+            <li>Asset return</li>
+            <li>Final payslip / clearance</li>
+            <li>Access revocation (Admin)</li>
+            <li>Work-pass cancellation follow-up (MOM) if foreign worker</li>
+          </ul>
+        } @else {
+          <p class="meta">No active onboarding or offboarding checklist for current status.</p>
+        }
+      </section>
+    }
+
+    @if (tab() === 'related') {
+      <div class="ess-grid-2">
+        <section class="ess-panel">
+          <div class="ess-panel-head">
+            <h2>Leave</h2>
+            <a routerLink="/hr/master/leave" class="ess-btn ghost">Open queue</a>
+          </div>
+          @for (l of leaves().slice(0, 5); track l.id) {
+            <div class="list-row">
+              <strong>{{ l.type }}</strong>
+              <span>{{ l.status }} · {{ l.fromDate }} → {{ l.toDate }}</span>
+            </div>
+          } @empty {
+            <p class="meta">No leave requests.</p>
+          }
+        </section>
+        <section class="ess-panel">
+          <div class="ess-panel-head">
+            <h2>Claims &amp; payslips</h2>
+            <a routerLink="/hr/master/payroll" class="ess-btn ghost">Payroll</a>
+          </div>
+          @for (c of claims().slice(0, 4); track c.id) {
+            <div class="list-row">
+              <strong>{{ c.type }}</strong>
+              <span>{{ c.status }} · {{ c.amountSgd | sgd }}</span>
+            </div>
+          } @empty {
+            <p class="meta">No claims.</p>
+          }
+          @for (p of payslips().slice(0, 3); track p.id) {
+            <div class="list-row">
+              <strong>{{ p.payPeriod }}</strong>
+              <span>{{ p.netPay | sgd }}</span>
+            </div>
+          }
+        </section>
+      </div>
+    }
+  </div>
+}
+
+@if (editOpen()) {
+  <div class="bank-backdrop">
+    <div class="bank-modal wide" role="dialog">
+      <h2>Edit {{ employeeId() }}</h2>
+      <form class="ess-form" [formGroup]="editForm" (ngSubmit)="saveEdit()">
+        <label><span>Department</span><input formControlName="department" /></label>
+        <label><span>Designation</span><input formControlName="designation" /></label>
+        <label>
+          <span>Work location</span>
+          <select formControlName="workLocation">
+            <option value="Office">Office</option>
+            <option value="Site">Site</option>
+            <option value="WFH">WFH</option>
+          </select>
+        </label>
+        <label><span>Branch</span><input formControlName="branch" /></label>
+        <label><span>Mobile</span><input formControlName="mobile" maxlength="8" /></label>
+        <label>
+          <span>Project</span>
+          <select formControlName="projectId">
+            <option value="">Unassigned</option>
+            @for (p of hr.workforce().projects; track p.id) {
+              <option [value]="p.id">{{ p.name }}</option>
+            }
+          </select>
+        </label>
+        <div class="ess-actions full">
+          <button type="button" class="ess-btn ghost" (click)="editOpen.set(false)">Cancel</button>
+          <button type="submit" class="ess-btn primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
