@@ -17,6 +17,13 @@ import {
   TrainingRecord,
 } from './employee.model';
 
+export type EmploymentLifecycleStatus =
+  | 'Active'
+  | 'Resigned'
+  | 'On Leave'
+  | 'Probation'
+  | 'Notice';
+
 export interface StaffDirectoryRow {
   employeeId: string;
   fullName: string;
@@ -24,24 +31,99 @@ export interface StaffDirectoryRow {
   designation: string;
   employmentType: EmploymentPassType;
   workLocation: WorkLocation;
-  status: 'Active' | 'Resigned' | 'On Leave';
+  status: EmploymentLifecycleStatus;
   passExpiry: string | null;
   contractExpiry: string | null;
   nricOrFin: string;
   mobile: string;
   passportExpiry: string | null;
   medicalClearance: 'Valid' | 'Missing' | 'Expired';
+  branch?: string;
+  projectId?: string | null;
+  dateOfJoining?: string;
+  probationEndDate?: string | null;
+  noticeEndDate?: string | null;
 }
+
+export type ComplianceAgency = 'MOM' | 'ICA' | 'Internal';
 
 export interface ComplianceWatchItem {
   id: string;
   employeeId: string;
   employeeName: string;
-  category: 'Work Pass' | 'Passport' | 'Medical' | 'Safety Cert' | 'Contract';
+  category: 'Work Pass' | 'Passport' | 'Medical' | 'Safety Cert' | 'Contract' | 'ICA Record';
+  agency?: ComplianceAgency;
   reference: string;
   expiryDate: string | null;
   daysRemaining: number | null;
-  status: 'Ok' | 'Expiring' | 'Expired' | 'Missing';
+  status: 'Ok' | 'Expiring' | 'Expired' | 'Missing' | 'Pending Review';
+  checklistItem?: string;
+  comments?: string;
+}
+
+export interface EmployeeManagementStats {
+  totalEmployees: number;
+  activeEmployees: number;
+  localCount: number;
+  foreignCount: number;
+  onLeave: number;
+  newJoiners: number;
+  onProbation: number;
+  servingNotice: number;
+  missingDocuments: number;
+  upcomingExpiries: number;
+  /** Work-pass rows with ≤ 30 days remaining (demo / stored compliance data). */
+  passRenewalsUrgent: number;
+  /**
+   * Share of active staff tagged with BCA-related certs in demo data.
+   * Not an official CoreTrade statutory calculation — placeholder until rules are configured.
+   */
+  bcaCoreTradePct: number | null;
+  overtimeRiskCount: number;
+}
+
+export interface ProjectRecord {
+  id: string;
+  name: string;
+  code: string;
+  site: string;
+  status: 'Active' | 'On Hold' | 'Completed';
+  plannedHeadcount: number;
+  startDate: string;
+  endDate: string | null;
+  requiredCerts: string[];
+}
+
+export interface ManpowerRequest {
+  id: string;
+  projectId: string;
+  role: string;
+  skill: string;
+  headcount: number;
+  status: 'Open' | 'Approved' | 'Rejected' | 'Filled';
+  requestedOn: string;
+  notes: string;
+}
+
+export interface ProjectAllocation {
+  id: string;
+  projectId: string;
+  employeeId: string;
+  role: string;
+  startDate: string;
+  endDate: string | null;
+  allocationPct: number;
+  status: 'Active' | 'Ended' | 'Conflict';
+}
+
+export interface PayrollException {
+  id: string;
+  runId: string;
+  employeeId: string;
+  type: 'Missing bank' | 'Missing attendance' | 'OT pending' | 'Claim pending' | 'Other';
+  severity: 'Info' | 'Warning' | 'Blocker';
+  message: string;
+  resolved: boolean;
 }
 
 export interface OnboardingCandidate {
@@ -110,6 +192,10 @@ export interface WorkforceState {
   compliance: ComplianceWatchItem[];
   onboarding: OnboardingCandidate[];
   payrollRuns: PayrollRun[];
+  payrollExceptions: PayrollException[];
+  projects: ProjectRecord[];
+  manpowerRequests: ManpowerRequest[];
+  allocations: ProjectAllocation[];
   costCentres: string[];
   otApprovals: Record<string, boolean>;
   assets: EmployeeAsset[];

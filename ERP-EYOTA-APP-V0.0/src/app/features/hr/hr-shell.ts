@@ -9,15 +9,16 @@ import { AppShellComponent } from '../../shared/components/app-shell/app-shell';
 
 const TITLE_BY_SEGMENT: Record<string, string> = {
   dashboard: 'HR Management Dashboard',
-  directory: 'Employee Directory',
-  compliance: 'Work Pass & Compliance',
-  leave: 'Leave Approval Engine',
+  directory: 'Employee Management',
+  projects: 'Project Manpower & Field Operations',
+  compliance: 'MOM & BCA Compliance Command',
+  leave: 'Leave Approvals',
   attendance: 'Time & Attendance',
-  payroll: 'Payroll & CPF / SDL',
+  payroll: 'Singapore Payroll Operations',
   documents: 'Document & Bank Audit',
   claims: 'Claims Settlement',
   onboarding: 'Onboarding Pipeline',
-  assets: 'Assets & Training',
+  assets: 'Health, Safety & Training',
   reports: 'Reports / Workright',
 };
 
@@ -39,18 +40,20 @@ export class HrShellComponent {
   private readonly workforce = inject(EmployeeMockService);
   private readonly admin = inject(AdminMockService);
 
+  /** Section labels match verified Figma IA (People / Compliance / Operations). */
   private readonly allNav: NavItem[] = [
-    { label: 'Dashboard', route: '/hr/master/dashboard', icon: '⌂', section: 'Operations' },
-    { label: 'Directory', route: '/hr/master/directory', icon: '▤' },
-    { label: 'Compliance', route: '/hr/master/compliance', icon: '◉' },
+    { label: 'Dashboard', route: '/hr/master/dashboard', icon: '⌂', section: 'Overview' },
+    { label: 'Employees', route: '/hr/master/directory', icon: '▤', section: 'People' },
     { label: 'Onboarding', route: '/hr/master/onboarding', icon: '◫' },
-    { label: 'Leave approvals', route: '/hr/master/leave', icon: '▦' },
-    { label: 'Attendance', route: '/hr/master/attendance', icon: '◷', section: 'Pay & files' },
+    { label: 'Attendance', route: '/hr/master/attendance', icon: '◷' },
+    { label: 'Leave', route: '/hr/master/leave', icon: '▦' },
     { label: 'Payroll', route: '/hr/master/payroll', icon: '◈' },
-    { label: 'Documents', route: '/hr/master/documents', icon: '◎' },
     { label: 'Claims', route: '/hr/master/claims', icon: '◍' },
-    { label: 'Assets & training', route: '/hr/master/assets', icon: '◧', section: 'Kit & reports' },
-    { label: 'Reports / Workright', route: '/hr/master/reports', icon: '▣' },
+    { label: 'MOM / BCA Compliance', route: '/hr/master/compliance', icon: '◉', section: 'Compliance' },
+    { label: 'Documents', route: '/hr/master/documents', icon: '◎' },
+    { label: 'Health & Safety', route: '/hr/master/assets', icon: '◧' },
+    { label: 'Project Manpower', route: '/hr/master/projects', icon: '▣', section: 'Operations' },
+    { label: 'Reports / Workright', route: '/hr/master/reports', icon: '▣', section: 'Reports' },
   ];
 
   readonly navItems = computed(() => {
@@ -85,10 +88,15 @@ export class HrShellComponent {
   }
 
   private syncBreadcrumbs(): void {
-    const segment = this.router.url.split('/').pop()?.split('?')[0] ?? 'dashboard';
+    const parts = this.router.url.split('/').filter(Boolean);
+    const masterIdx = parts.indexOf('master');
+    const segment = parts[masterIdx + 1]?.split('?')[0] ?? 'dashboard';
+    const title =
+      TITLE_BY_SEGMENT[segment] ??
+      (segment.startsWith('EY-') ? 'Employee detail' : 'HR Operations');
     this.breadcrumbs.set([
       { label: 'HR', route: '/hr/master/dashboard' },
-      { label: TITLE_BY_SEGMENT[segment] ?? 'Employee Directory Master' },
+      { label: title },
     ]);
   }
 }

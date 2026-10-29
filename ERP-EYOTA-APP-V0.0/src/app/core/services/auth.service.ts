@@ -1,10 +1,26 @@
 import { Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { AuthUser, DemoAccount, LoginCredentials, UserRole } from '../models/user.model';
 import { AdminMockService } from './admin-mock.service';
+import { BackendHttpService } from './backend-http.service';
+import { environment } from '../../../environments/environment';
 
 const SESSION_KEY = 'eyota.hr.session';
 const PROVISIONED_USERS_KEY = 'eyota.demo.provisionedUsers.v1';
+
+interface BackendLoginResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresInMinutes: number;
+  user: {
+    email: string;
+    role: 'ADMIN' | 'HR' | 'EMPLOYEE';
+    employeeId: string | null;
+    employeeCode: string | null;
+    displayName: string;
+  };
+}
 
 type DemoLoginUser = AuthUser & { password: string };
 
@@ -112,7 +128,62 @@ export class AuthService {
     return [...SEED_DEMO_USERS, ...this.provisionedUsers];
   }
 
+  /** Synchronous demo login (local mock users). Prefer loginAsync when backend is enabled. */
   login(credentials: LoginCredentials): { ok: boolean; error?: string } {
+    if (environment.useBackendApi) {
+      return {
+        ok: false,
+        error: 'Backend API mode is on — use the async login path (login form handles this).',
+      };
+    }
+    return this.loginDemo(credentials);
+  }
+
+  async loginAsync(credentials: LoginCredentials): Promise<{ ok: boolean; error?: string }> {
+    if (environment.useBackendApi) {
+      try {
+        const http = this.injector.get(BackendHttpService);
+        const res = await firstValueFrom(
+          http.post<BackendLoginResponse>('/auth/login', {
+            email: credentials.email.trim(),
+            password: credentials.password,
+          }),
+        );
+        await this.applyBackendSession(res);
+        return { ok: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Login failed against backend API.';
+        return { ok: false, error: message };
+      }
+    }
+    return this.loginDemo(credentials);
+  }
+
+  /** Persist JWT session after login or OTP activation. */
+  async applyBackendSession(res: BackendLoginResponse): Promise<void> {
+    const http = this.injector.get(BackendHttpService);
+    http.setAccessToken(res.accessToken);
+    const role = this.mapBackendRole(res.user.role);
+    const displayName = res.user.displayName || res.user.email;
+    const sessionUser: AuthUser = {
+      id: res.user.employeeId ?? res.user.email,
+      email: res.user.email,
+      displayName,
+      role,
+      employeeId: res.user.employeeCode ?? undefined,
+      avatarInitials: displayName
+        .split(/\s+/)
+        .map((p) => p[0] ?? '')
+        .join('')
+        .slice(0, 2)
+        .toUpperCase(),
+    };
+    this.persist(sessionUser);
+    this.currentUserSignal.set(sessionUser);
+    void this.router.navigateByUrl(this.landingRouteFor(sessionUser.role));
+  }
+
+  private loginDemo(credentials: LoginCredentials): { ok: boolean; error?: string } {
     const match = this.allUsers().find(
       (user) =>
         user.email.toLowerCase() === credentials.email.trim().toLowerCase() &&
@@ -131,6 +202,7 @@ export class AuthService {
       };
     }
 
+    this.injector.get(BackendHttpService).setAccessToken(null);
     const { password: _password, ...sessionUser } = match;
     this.persist(sessionUser);
     this.currentUserSignal.set(sessionUser);
@@ -138,8 +210,20 @@ export class AuthService {
     return { ok: true };
   }
 
+  private mapBackendRole(role: 'ADMIN' | 'HR' | 'EMPLOYEE'): UserRole {
+    switch (role) {
+      case 'ADMIN':
+        return 'admin';
+      case 'HR':
+        return 'hr';
+      default:
+        return 'employee';
+    }
+  }
+
   logout(): void {
     sessionStorage.removeItem(SESSION_KEY);
+    this.injector.get(BackendHttpService).setAccessToken(null);
     this.currentUserSignal.set(null);
     void this.router.navigateByUrl('/login');
   }

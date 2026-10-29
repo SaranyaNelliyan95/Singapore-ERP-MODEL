@@ -58,3 +58,35 @@
 .full {
   grid-column: 1 / -1;
 }
+
+.em-kpis {
+  margin-bottom: 1rem;
+}
+
+.em-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.proj-chip {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--brand-blue) 12%, white);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+
+.meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}

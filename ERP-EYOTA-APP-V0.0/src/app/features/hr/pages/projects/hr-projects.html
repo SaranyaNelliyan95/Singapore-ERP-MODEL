@@ -1,0 +1,248 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading project manpower…" />
+} @else {
+  <div class="ess-page hr-dense">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Project Manpower &amp; Field Operations</p>
+        <h1>Site deployment &amp; allocations</h1>
+        <p class="ess-sub">
+          Deployed headcount, resource gaps, open manpower requests, and certification alerts —
+          linked to Employee Master assignments.
+        </p>
+      </div>
+      <div class="ess-actions">
+        <button type="button" class="ess-btn ghost" (click)="openCreateProject()">New project</button>
+        <button type="button" class="ess-btn ghost" (click)="openRequest()">Manpower request</button>
+        <button type="button" class="ess-btn primary" (click)="openAllocate()">Allocate staff</button>
+      </div>
+    </header>
+
+    <app-demo-notice
+      message="DEMO — Project Manpower persists in the frontend shared store only until /projects API mode is enabled."
+    />
+
+    <section class="ess-grid-4">
+      <article class="ess-stat">
+        <p>Total deployed</p>
+        <strong>{{ kpis().allocated }}</strong>
+        <span>{{ kpis().activeProjects }} active projects</span>
+      </article>
+      <article class="ess-stat">
+        <p>Resource gap</p>
+        <strong>{{ kpis().unfilled > 0 ? '-' + kpis().unfilled : 0 }}</strong>
+        <span>Planned {{ kpis().planned }} − allocated</span>
+      </article>
+      <article class="ess-stat">
+        <p>Available manpower</p>
+        <strong>{{ kpis().available }}</strong>
+        <span>Not fully allocated</span>
+      </article>
+      <article class="ess-stat">
+        <p>Open requests</p>
+        <strong>{{ kpis().openRequests }}</strong>
+        <span>{{ kpis().conflicts }} allocation conflicts</span>
+      </article>
+      <article class="ess-stat">
+        <p>Assignments ending ≤ 30d</p>
+        <strong>{{ kpis().endingSoon }}</strong>
+        <span>Cert alerts: {{ kpis().certAlerts }}</span>
+      </article>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Projects</h2></div>
+      <div class="period-pills">
+        @for (p of hr.workforce().projects; track p.id) {
+          <button
+            type="button"
+            class="period-pill"
+            [class.active]="selectedProjectId() === p.id"
+            (click)="selectProject(p.id)"
+          >
+            {{ p.code }} · {{ p.status }}
+          </button>
+        }
+      </div>
+      <app-data-table
+        [columns]="projectColumns"
+        [rows]="hr.workforce().projects"
+        trackByKey="id"
+        searchPlaceholder="Search projects…"
+        [emptyState]="{ title: 'No projects', description: 'Create a project to begin manpower planning.' }"
+      />
+    </section>
+
+    @if (selectedProject(); as project) {
+      <div class="ess-grid-2">
+        <section class="ess-panel">
+          <div class="ess-panel-head">
+            <h2>{{ project.name }}</h2>
+            <span class="meta">{{ project.site }} · HC {{ project.plannedHeadcount }}</span>
+          </div>
+          <p class="meta">
+            {{ project.startDate }} → {{ project.endDate ?? 'ongoing' }} · Required:
+            {{ project.requiredCerts.join(', ') || '—' }}
+          </p>
+          <h3>Manpower requests</h3>
+          <app-data-table
+            [columns]="requestColumns"
+            [rows]="projectRequests()"
+            trackByKey="id"
+            [pageSize]="5"
+            searchPlaceholder="Search requests…"
+            [emptyState]="{ title: 'No requests', description: 'Raise a manpower request for this site.' }"
+          />
+          <div class="quick-list">
+            @for (req of projectRequests().filter((r) => r.status === 'Open'); track req.id) {
+              <div class="row-actions">
+                <span>{{ req.id }} · {{ req.role }} × {{ req.headcount }}</span>
+                <button type="button" class="ess-btn primary" (click)="approveRequest(req.id)">
+                  Approve
+                </button>
+                <button type="button" class="ess-btn ghost" (click)="rejectRequest(req.id)">
+                  Reject
+                </button>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="ess-panel">
+          <div class="ess-panel-head"><h2>Allocations</h2></div>
+          <app-data-table
+            [columns]="allocationColumns"
+            [rows]="projectAllocations()"
+            trackByKey="id"
+            [pageSize]="6"
+            searchPlaceholder="Search allocations…"
+            [emptyState]="{ title: 'No allocations', description: 'Allocate approved headcount to this project.' }"
+          />
+          <div class="quick-list">
+            @for (a of projectAllocations().filter((x) => x.status === 'Active'); track a.id) {
+              <div class="row-actions">
+                <span>{{ employeeName(a.employeeId) }} · {{ a.allocationPct }}%</span>
+                <button type="button" class="ess-btn ghost" (click)="endAllocation(a.id)">
+                  End assignment
+                </button>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+    }
+  </div>
+}
+
+@if (projectFormOpen()) {
+  <div class="bank-backdrop">
+    <div class="bank-modal wide" role="dialog">
+      <h2>Create / update project</h2>
+      <form class="ess-form" [formGroup]="projectForm" (ngSubmit)="saveProject()">
+        <label><span>Name</span><input formControlName="name" /></label>
+        <label><span>Code</span><input formControlName="code" /></label>
+        <label>
+          <span>Site</span>
+          <input formControlName="site" list="site-list" />
+          <datalist id="site-list">
+            @for (s of catalogs()?.projectSites ?? []; track s) {
+              <option [value]="s"></option>
+            }
+          </datalist>
+        </label>
+        <label>
+          <span>Status</span>
+          <select formControlName="status">
+            <option value="Active">Active</option>
+            <option value="On Hold">On Hold</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </label>
+        <label><span>Planned headcount</span><input type="number" formControlName="plannedHeadcount" /></label>
+        <label><span>Start</span><input type="date" formControlName="startDate" /></label>
+        <label><span>End</span><input type="date" formControlName="endDate" /></label>
+        <label><span>Required certs (comma-separated)</span><input formControlName="requiredCerts" /></label>
+        <div class="ess-actions full">
+          <button type="button" class="ess-btn ghost" (click)="projectFormOpen.set(false)">Cancel</button>
+          <button type="submit" class="ess-btn primary">Save project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (requestFormOpen()) {
+  <div class="bank-backdrop">
+    <div class="bank-modal" role="dialog">
+      <h2>Manpower request</h2>
+      <form class="ess-form" [formGroup]="requestForm" (ngSubmit)="saveRequest()">
+        <label>
+          <span>Role</span>
+          <select formControlName="role">
+            @for (r of catalogs()?.projectRoles ?? []; track r) {
+              <option [value]="r">{{ r }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Skill</span>
+          <select formControlName="skill">
+            @for (s of catalogs()?.skills ?? []; track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </label>
+        <label><span>Headcount</span><input type="number" formControlName="headcount" /></label>
+        <label><span>Notes</span><textarea formControlName="notes" rows="2"></textarea></label>
+        <div class="ess-actions full">
+          <button type="button" class="ess-btn ghost" (click)="requestFormOpen.set(false)">Cancel</button>
+          <button type="submit" class="ess-btn primary">Submit request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (allocateFormOpen()) {
+  <div class="bank-backdrop">
+    <div class="bank-modal" role="dialog">
+      <h2>Allocate employee</h2>
+      <form class="ess-form" [formGroup]="allocateForm" (ngSubmit)="saveAllocate()">
+        <label>
+          <span>Employee</span>
+          <select formControlName="employeeId">
+            @for (e of hr.workforce().directory; track e.employeeId) {
+              @if (e.status !== 'Resigned') {
+                <option [value]="e.employeeId">{{ e.employeeId }} · {{ e.fullName }}</option>
+              }
+            }
+          </select>
+        </label>
+        <label>
+          <span>Role</span>
+          <select formControlName="role">
+            @for (r of catalogs()?.projectRoles ?? []; track r) {
+              <option [value]="r">{{ r }}</option>
+            }
+          </select>
+        </label>
+        <label><span>Start</span><input type="date" formControlName="startDate" /></label>
+        <label><span>End</span><input type="date" formControlName="endDate" /></label>
+        <label><span>Allocation %</span><input type="number" formControlName="allocationPct" /></label>
+        <div class="ess-actions full">
+          <button type="button" class="ess-btn ghost" (click)="allocateFormOpen.set(false)">Cancel</button>
+          <button type="submit" class="ess-btn primary">Allocate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<app-confirm-modal
+  [open]="!!pendingRejectId()"
+  title="Reject manpower request?"
+  message="This marks the open request as Rejected in the shared demo store."
+  confirmLabel="Reject"
+  (confirmed)="confirmReject()"
+  (cancelled)="pendingRejectId.set(null)"
+/>

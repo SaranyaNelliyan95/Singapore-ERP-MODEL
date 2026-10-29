@@ -4,8 +4,8 @@
   <div class="ess-page">
     <header class="ess-head">
       <div>
-        <p class="adm-eyebrow">Master Data Settings</p>
-        <h1>Policies that drive ESS &amp; HR</h1>
+        <p class="adm-eyebrow">Admin Master Data</p>
+        <h1>Employee · Payroll · Compliance · Project catalogs</h1>
       </div>
       <div class="ess-actions">
         <button type="button" class="ess-btn ghost" (click)="restoreOpen.set(true)">
@@ -18,7 +18,124 @@
     </header>
     <aside class="adm-banner" role="note">
       <strong>DEMO CONFIGURATION ENVIRONMENT - NO PRODUCTION OR STATUTORY EFFECTS.</strong>
+      Catalogs drive HR Employee Management, Payroll Control, MOM/ICA Compliance, and Project Manpower UIs.
     </aside>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Employee masters — org structure</h2>
+        <button type="button" class="ess-btn primary" (click)="saveOrgMasters()">Save org</button>
+      </div>
+      <label class="block">Departments<textarea [ngModel]="departmentsText()" (ngModelChange)="departmentsText.set($event)" rows="2"></textarea></label>
+      <label class="block">Branches / work locations<textarea [ngModel]="branchesText()" (ngModelChange)="branchesText.set($event)" rows="2"></textarea></label>
+      <label class="block">Job grades<textarea [ngModel]="jobGradesText()" (ngModelChange)="jobGradesText.set($event)" rows="2"></textarea></label>
+      <label class="block">Cost centres<textarea [ngModel]="costCentresText()" (ngModelChange)="costCentresText.set($event)" rows="2"></textarea></label>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Catalog masters (comma-separated)</h2>
+        <button type="button" class="ess-btn primary" (click)="saveCatalogs()">Save catalogs</button>
+      </div>
+      <div class="catalog-grid">
+        <label class="block">
+          Employment status
+          <textarea
+            [ngModel]="catalogText('employmentStatuses')"
+            (ngModelChange)="setCatalogList('employmentStatuses', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Employment type / pass
+          <textarea
+            [ngModel]="catalogText('employmentTypes')"
+            (ngModelChange)="setCatalogList('employmentTypes', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Document types
+          <textarea
+            [ngModel]="catalogText('documentTypes')"
+            (ngModelChange)="setCatalogList('documentTypes', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Salary components
+          <textarea
+            [ngModel]="catalogText('salaryComponents')"
+            (ngModelChange)="setCatalogList('salaryComponents', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Compliance categories
+          <textarea
+            [ngModel]="catalogText('complianceCategories')"
+            (ngModelChange)="setCatalogList('complianceCategories', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Work-pass categories
+          <textarea
+            [ngModel]="catalogText('workPassCategories')"
+            (ngModelChange)="setCatalogList('workPassCategories', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Project roles
+          <textarea
+            [ngModel]="catalogText('projectRoles')"
+            (ngModelChange)="setCatalogList('projectRoles', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Skills / competencies
+          <textarea
+            [ngModel]="catalogText('skills')"
+            (ngModelChange)="setCatalogList('skills', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Allocation types
+          <textarea
+            [ngModel]="catalogText('allocationTypes')"
+            (ngModelChange)="setCatalogList('allocationTypes', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Project statuses
+          <textarea
+            [ngModel]="catalogText('projectStatuses')"
+            (ngModelChange)="setCatalogList('projectStatuses', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Project sites
+          <textarea
+            [ngModel]="catalogText('projectSites')"
+            (ngModelChange)="setCatalogList('projectSites', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+        <label class="block">
+          Required certifications
+          <textarea
+            [ngModel]="catalogText('requiredCertifications')"
+            (ngModelChange)="setCatalogList('requiredCertifications', $event)"
+            rows="2"
+          ></textarea>
+        </label>
+      </div>
+    </section>
 
     <section class="ess-panel">
       <div class="ess-panel-head"><h2>Leave type policies</h2>

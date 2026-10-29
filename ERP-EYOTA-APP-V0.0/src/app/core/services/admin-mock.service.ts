@@ -146,6 +146,21 @@ export class AdminMockService {
     this.audit('Codes & assets', 'Master Data', 'updated', 'codes');
   }
 
+  updateMasterCatalogs(catalogs: NonNullable<SystemPolicies['catalogs']>): void {
+    this.workforce.patchPolicies({ catalogs });
+    this.audit('Master catalogs', 'Master Data', 'updated', 'employee/payroll/compliance/project');
+  }
+
+  updateOrgMasters(input: {
+    departments: string[];
+    branches: string[];
+    jobGrades: string[];
+    costCentres: string[];
+  }): void {
+    this.workforce.patchPolicies(input);
+    this.audit('Org masters', 'Master Data', 'updated', `${input.departments.length} depts`);
+  }
+
   restoreDemoDefaults(): void {
     const policies = this.workforce.restoreDemoPolicies();
     this.audit('Restore demo defaults', 'Master Data', 'custom', policies.company.legalName);

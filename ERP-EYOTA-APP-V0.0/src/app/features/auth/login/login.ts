@@ -40,14 +40,12 @@ export class LoginComponent {
     this.submitting.set(true);
     this.formError.set(null);
 
-    const result = this.auth.login(this.form.getRawValue());
-    if (!result.ok) {
-      this.formError.set(result.error ?? 'Login failed.');
+    void this.auth.loginAsync(this.form.getRawValue()).then((result) => {
+      if (!result.ok) {
+        this.formError.set(result.error ?? 'Login failed.');
+      }
       this.submitting.set(false);
-      return;
-    }
-
-    this.submitting.set(false);
+    });
   }
 
   controlInvalid(name: 'email' | 'password'): boolean {

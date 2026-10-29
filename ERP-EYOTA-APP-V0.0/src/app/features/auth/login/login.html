@@ -63,8 +63,12 @@
         </button>
       </form>
 
+      <p class="hint activate-link">
+        New hire? <a routerLink="/activate">Activate account with OTP</a>
+      </p>
+
       <div class="demo">
-        <p>Demo accounts (fictional mock data)</p>
+        <p>Demo accounts (seeded when Spring Boot runs with profile=dev)</p>
         <div class="demo-grid">
           @for (account of demoAccounts; track account.email) {
             <button type="button" class="demo-card" (click)="fillDemo(account)">

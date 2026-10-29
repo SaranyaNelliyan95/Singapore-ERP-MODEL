@@ -33,6 +33,12 @@ textarea {
   font: inherit;
 }
 
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
 .block {
   display: grid;
   gap: 0.35rem;

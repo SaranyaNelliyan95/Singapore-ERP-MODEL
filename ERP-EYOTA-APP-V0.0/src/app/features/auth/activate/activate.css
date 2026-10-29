@@ -1,0 +1,11 @@
+@import '../login/login.css';
+
+.banner.ok {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+
+code {
+  font-size: 0.85em;
+}

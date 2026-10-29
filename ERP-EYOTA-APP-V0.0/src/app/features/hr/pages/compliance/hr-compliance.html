@@ -1,53 +1,207 @@
 @if (loading()) {
-  <app-loading-spinner label="Loading compliance tracker…" />
+  <app-loading-spinner label="Loading MOM & BCA compliance…" />
 } @else {
   <div class="ess-page hr-dense">
     <header class="ess-head">
       <div>
-        <p class="hr-eyebrow">Singapore Work Pass &amp; Compliance Tracker</p>
-        <h1>Statutory documentation watch</h1>
+        <p class="hr-eyebrow">MOM &amp; BCA Compliance Command</p>
+        <h1>Statutory workforce governance</h1>
         <p class="ess-sub">
-          Flags work pass expiries, passport validity, and missing medical clearances. Reminders sync
-          into the employee notification feed.
+          Work-pass expiry pipeline, BCA skill coverage by site, and Workright checklist evidence —
+          status is evidence-based from stored records, not “upload = compliant”.
         </p>
+      </div>
+      <div class="ess-actions">
+        <button
+          type="button"
+          class="ess-btn ghost"
+          disabled
+          title="Inspection pack generator not connected yet"
+        >
+          Generate inspection pack
+        </button>
       </div>
     </header>
 
     <app-demo-notice
-      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Renewal reminders do not contact MOM or external systems."
+      message="DEMO COMPLIANCE ENVIRONMENT — NO STATUTORY EFFECTS. Checklist scores reflect demo evidence flags only; MOM/BCA APIs are not connected."
     />
 
+    <section class="ess-grid-4">
+      <article class="ess-stat">
+        <p>MOM readiness (demo)</p>
+        <strong>{{ commandKpis().momReadinessPct }}%</strong>
+        <span>Verified MOM items / MOM rows</span>
+      </article>
+      <article class="ess-stat">
+        <p>Passes expiring &lt; 30d</p>
+        <strong class="text-danger">{{ commandKpis().criticalPasses }}</strong>
+        <span>{{ commandKpis().window30to90 }} in 30–90 days</span>
+      </article>
+      <article class="ess-stat">
+        <p>BCA cert coverage (demo)</p>
+        <strong>{{ commandKpis().bcaCoveragePct }}%</strong>
+        <span>{{ commandKpis().bcaCertified }} staff with BCA-tagged certs</span>
+      </article>
+      <article class="ess-stat">
+        <p>Workright open items</p>
+        <strong>{{ commandKpis().openChecklist }}</strong>
+        <span>{{ commandKpis().overdue }} expired · {{ commandKpis().pending }} pending/missing</span>
+      </article>
+    </section>
+
+    <div class="ess-grid-2 compliance-command">
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Work pass expiry &amp; renewal</h2>
+          <span class="meta">{{ passBucketCount() }} in view</span>
+        </div>
+        <div class="period-pills">
+          @for (tab of passTabs; track tab.id) {
+            <button
+              type="button"
+              class="period-pill"
+              [class.active]="passBucket() === tab.id"
+              (click)="passBucket.set(tab.id)"
+            >
+              {{ tab.label }}
+            </button>
+          }
+        </div>
+        <app-data-table
+          [columns]="columns"
+          [rows]="passPipeline()"
+          trackByKey="id"
+          [pageSize]="8"
+          searchPlaceholder="Search employee, pass, FIN…"
+          [emptyState]="{
+            title: 'No passes in this bucket',
+            description: 'Adjust the day window or clear search.',
+          }"
+        />
+      </section>
+
+      <section class="ess-panel">
+        <div class="ess-panel-head"><h2>MOM Workright checklist</h2></div>
+        <p class="ess-sub checklist-note">
+          Each row is driven by stored compliance evidence. Incomplete items stay incomplete until
+          verified.
+        </p>
+        <ul class="workright-checklist">
+          @for (item of workrightChecklist(); track item.id) {
+            <li>
+              <div>
+                <strong>{{ item.label }}</strong>
+                <p>{{ item.detail }}</p>
+              </div>
+              <span
+                class="checklist-pct"
+                [class.ok]="item.pct >= 100"
+                [class.warn]="item.pct < 100 && item.pct >= 80"
+                [class.bad]="item.pct < 80"
+              >
+                {{ item.pct }}%
+              </span>
+            </li>
+          }
+        </ul>
+        <div class="inspection-vault">
+          <strong>Inspection pack</strong>
+          <p>SHA dossier export is not generated in this build. Use verified document list below.</p>
+          <button type="button" class="ess-btn ghost" disabled>Download dossier (PDF/ZIP)</button>
+        </div>
+      </section>
+    </div>
+
     <section class="ess-panel">
-      <div class="ess-panel-head">
-        <h2>All compliance rows</h2>
+      <div class="ess-panel-head"><h2>BCA workforce matrix (by project)</h2></div>
+      @if (bcaMatrix().length === 0) {
+        <p class="empty">No active projects — add projects under Project Manpower.</p>
+      } @else {
+        <div class="bca-matrix">
+          @for (row of bcaMatrix(); track row.projectId) {
+            <article class="bca-row">
+              <div>
+                <strong>{{ row.projectName }}</strong>
+                <p>{{ row.site }} · required certs: {{ row.requiredCerts.join(', ') || 'None listed' }}</p>
+              </div>
+              <div class="bca-counts">
+                <span>Planned {{ row.planned }}</span>
+                <span>Allocated {{ row.allocated }}</span>
+                <span [class.bad]="row.gap > 0">Gap {{ row.gap }}</span>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>All compliance filters</h2></div>
+      <div class="hr-filters">
+        <label>
+          <span>Agency</span>
+          <select [ngModel]="agency()" (ngModelChange)="agency.set($event)">
+            @for (a of agencyOptions; track a) {
+              <option [value]="a">{{ a }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Status</span>
+          <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+            @for (s of statusOptions; track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </label>
       </div>
       <app-data-table
         [columns]="columns"
-        [rows]="hr.workforce().compliance"
+        [rows]="filtered()"
         trackByKey="id"
         [pageSize]="8"
-        searchPlaceholder="Search employee, pass, passport…"
-        [emptyState]="{ title: 'No compliance rows', description: 'Workforce compliance items appear here.' }"
+        searchPlaceholder="Search employee, MOM, ICA…"
+        [emptyState]="{ title: 'No compliance rows', description: 'Adjust agency or status filters.' }"
       />
     </section>
 
     <section class="ess-panel">
-      <div class="ess-panel-head">
-        <h2>Action queue — remind employees</h2>
-      </div>
+      <div class="ess-panel-head"><h2>Review queue</h2></div>
+      <label class="comment-field">
+        <span>Review comment (applied on next verify / return)</span>
+        <input
+          [ngModel]="commentDraft()"
+          (ngModelChange)="commentDraft.set($event)"
+          placeholder="Optional HR comment"
+        />
+      </label>
       @if (flagged().length === 0) {
-        <p class="empty">No expiring or missing items.</p>
+        <p class="empty">No pending, missing, or expiring items in the current filter.</p>
       } @else {
         <div class="remind-list">
           @for (item of flagged(); track item.id) {
             <div class="remind-row">
               <div>
-                <strong>{{ item.employeeName }} · {{ item.category }}</strong>
-                <p>{{ item.reference }} · {{ item.status }}</p>
+                <strong>
+                  {{ item.employeeName }} · {{ item.agency }} · {{ item.category }}
+                </strong>
+                <p>
+                  {{ item.reference }} · {{ item.status }}
+                  @if (item.comments) {
+                    · {{ item.comments }}
+                  }
+                </p>
               </div>
-              <button type="button" class="ess-btn primary" (click)="remind(item)">
-                Send renewal reminder
-              </button>
+              <div class="actions">
+                <button type="button" class="ess-btn ghost" (click)="remind(item)">Remind</button>
+                <button type="button" class="ess-btn primary" (click)="verify(item, true)">
+                  Verify
+                </button>
+                <button type="button" class="ess-btn ghost" (click)="verify(item, false)">
+                  Needs review
+                </button>
+              </div>
             </div>
           }
         </div>

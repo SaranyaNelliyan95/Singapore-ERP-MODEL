@@ -1,0 +1,89 @@
+<div class="login-page wr-gradient-bg">
+  <section class="hero-panel">
+    <a class="back-home" routerLink="/login">← Back to sign in</a>
+    <div class="hero-content">
+      <p class="eyebrow">New employee signup</p>
+      <h1>Activate account</h1>
+      <p class="tagline">
+        Enter the OTP from your enrollment email, then create a password. After that you can use leave,
+        claims, attendance, and payslips.
+      </p>
+    </div>
+  </section>
+
+  <section class="form-panel">
+    <div class="form-card">
+      <p class="welcome">Step {{ step() === 'otp' ? '1 of 2' : '2 of 2' }}</p>
+      <h2>{{ step() === 'otp' ? 'Verify OTP' : 'Set new password' }}</h2>
+      <p class="hint">
+        @if (useBackend) {
+          OTP is emailed (and logged by the backend in local/dev).
+        } @else {
+          Enable <code>useBackendApi</code> and run Spring Boot to activate.
+        }
+      </p>
+
+      @if (step() === 'otp') {
+        <form [formGroup]="otpForm" (ngSubmit)="verifyOtp()" novalidate>
+          <label>
+            <span>Work email</span>
+            <input type="email" formControlName="email" autocomplete="username" />
+          </label>
+          <label>
+            <span>6-digit OTP</span>
+            <input
+              type="text"
+              formControlName="otp"
+              maxlength="6"
+              inputmode="numeric"
+              placeholder="123456"
+            />
+          </label>
+          @if (formError()) {
+            <div class="banner" role="alert">{{ formError() }}</div>
+          }
+          @if (info()) {
+            <div class="banner ok" role="status">{{ info() }}</div>
+          }
+          <button type="submit" class="ess-btn primary" [disabled]="submitting()">
+            {{ submitting() ? 'Verifying…' : 'Verify OTP' }}
+          </button>
+        </form>
+      } @else {
+        <form [formGroup]="passwordForm" (ngSubmit)="complete()" novalidate>
+          <label>
+            <div class="label-row">
+              <span>New password</span>
+              <button
+                type="button"
+                class="toggle"
+                (click)="showPassword.set(!showPassword())"
+              >
+                {{ showPassword() ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+            <input
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="newPassword"
+              autocomplete="new-password"
+            />
+          </label>
+          <label>
+            <span>Confirm password</span>
+            <input
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="confirmPassword"
+              autocomplete="new-password"
+            />
+          </label>
+          @if (formError()) {
+            <div class="banner" role="alert">{{ formError() }}</div>
+          }
+          <button type="submit" class="ess-btn primary" [disabled]="submitting()">
+            {{ submitting() ? 'Activating…' : 'Activate & sign in' }}
+          </button>
+        </form>
+      }
+    </div>
+  </section>
+</div>
