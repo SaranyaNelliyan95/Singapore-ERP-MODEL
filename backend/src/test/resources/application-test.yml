@@ -27,6 +27,10 @@ eyota:
     location-timeout-ms: 15000
     default-geofence-radius-metres: 150
   enrollment:
-    otp-ttl-minutes: 30
-    expose-otp-in-api: true
+    otp-ttl-minutes: 10
+    expose-otp-in-api: false
     activate-base-url: http://localhost:4200/activate
+  mail:
+    enabled: false
+    from: noreply@test.local
+    from-name: Test

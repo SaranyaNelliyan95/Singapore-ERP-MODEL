@@ -22,10 +22,13 @@ export type EmploymentLifecycleStatus =
   | 'Resigned'
   | 'On Leave'
   | 'Probation'
-  | 'Notice';
+  | 'Notice'
+  | 'Pending';
 
 export interface StaffDirectoryRow {
   employeeId: string;
+  /** Backend UUID when loaded from API (for resend / payroll readiness). */
+  apiId?: string;
   fullName: string;
   department: string;
   designation: string;
@@ -43,6 +46,13 @@ export interface StaffDirectoryRow {
   dateOfJoining?: string;
   probationEndDate?: string | null;
   noticeEndDate?: string | null;
+  workEmail?: string;
+  invitationEmailStatus?: string | null;
+  accountStatus?: string | null;
+  /** Login-enabled flag (Active/Inactive) from app_users / employees.active */
+  loginActive?: boolean;
+  /** Employment type label from API (Full-time etc.) when not using pass types. */
+  employmentTypeLabel?: string;
 }
 
 export type ComplianceAgency = 'MOM' | 'ICA' | 'Internal';

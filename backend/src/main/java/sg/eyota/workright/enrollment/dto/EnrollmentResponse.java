@@ -9,9 +9,11 @@ public record EnrollmentResponse(
         String employeeCode,
         String fullName,
         String workEmail,
-        String status,
+        String employmentStatus,
+        String accountStatus,
+        String invitationEmailStatus,
         Instant otpExpiresAt,
-        /** Present only when eyota.enrollment.expose-otp-in-api=true (local/dev). */
-        String devOtpPreview,
+        /** Present only when eyota.enrollment.expose-otp-in-api=true (local/dev). Never in production. */
+        String debugOtpPreview,
         String message
 ) {}

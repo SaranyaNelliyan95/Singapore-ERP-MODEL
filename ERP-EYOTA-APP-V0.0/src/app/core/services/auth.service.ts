@@ -198,7 +198,8 @@ export class AuthService {
     if (!admin.isUserActive(match.email)) {
       return {
         ok: false,
-        error: 'This account is deactivated by System Admin. Contact IT (demo).',
+        error:
+          'Your account is inactive. Please contact Admin (admin@eyota.sg) to activate your account.',
       };
     }
 

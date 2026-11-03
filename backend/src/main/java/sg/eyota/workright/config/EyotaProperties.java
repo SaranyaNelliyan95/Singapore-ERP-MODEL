@@ -28,7 +28,26 @@ public record EyotaProperties(
 
     public record Enrollment(
             int otpTtlMinutes,
+            int otpTtlSeconds,
+            int invitationTtlHours,
+            int otpResendCooldownSeconds,
+            int otpMaxAttempts,
             boolean exposeOtpInApi,
             String activateBaseUrl
-    ) {}
+    ) {
+        public Enrollment {
+            if (otpTtlSeconds <= 0) {
+                otpTtlSeconds = otpTtlMinutes > 0 ? otpTtlMinutes * 60 : 120;
+            }
+            if (invitationTtlHours <= 0) {
+                invitationTtlHours = 72;
+            }
+            if (otpResendCooldownSeconds <= 0) {
+                otpResendCooldownSeconds = 30;
+            }
+            if (otpMaxAttempts <= 0) {
+                otpMaxAttempts = 5;
+            }
+        }
+    }
 }

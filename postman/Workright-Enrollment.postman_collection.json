@@ -1,0 +1,142 @@
+{
+  "info": {
+    "name": "Eyota Workright — Enrollment & Payroll Readiness",
+    "description": "HR enroll → OTP → activate → login → profile → leave config → payroll readiness. Replace tokens and emails. Never commit real SMTP secrets or OTPs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api/v1" },
+    { "key": "hrToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "employeeToken", "value": "" },
+    { "key": "employeeUuid", "value": "" },
+    { "key": "activationToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth — HR login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"hr@eyota.sg\",\n  \"password\": \"HrManager@123\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/login"
+      }
+    },
+    {
+      "name": "HR — Enroll employee",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{hrToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Alex Tan\",\n  \"email\": \"alex.tan.new@example.sg\",\n  \"mobile\": \"91234567\",\n  \"designation\": \"Site Engineer\",\n  \"employmentType\": \"FULL_TIME\",\n  \"dateOfJoining\": \"2026-04-01\",\n  \"department\": \"Projects\"\n}"
+        },
+        "url": "{{baseUrl}}/hr/employees"
+      }
+    },
+    {
+      "name": "Auth — Verify OTP",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"alex.tan.new@example.sg\",\n  \"otp\": \"000000\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/activate/verify-otp"
+      }
+    },
+    {
+      "name": "Auth — Complete registration",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activationToken\": \"{{activationToken}}\",\n  \"newPassword\": \"Welcome@123\",\n  \"confirmPassword\": \"Welcome@123\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/complete-registration"
+      }
+    },
+    {
+      "name": "Auth — Resend OTP",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"alex.tan.new@example.sg\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/resend-otp"
+      }
+    },
+    {
+      "name": "Employee — Me",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{employeeToken}}" }],
+        "url": "{{baseUrl}}/employees/me"
+      }
+    },
+    {
+      "name": "Employee — Update profile",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{employeeToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mobile\": \"98765432\",\n  \"residentialAddress\": \"12 Example Road #01-01 Singapore 123456\",\n  \"nationality\": \"Singaporean\",\n  \"gender\": \"F\"\n}"
+        },
+        "url": "{{baseUrl}}/employees/me/profile"
+      }
+    },
+    {
+      "name": "HR — Payroll readiness",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{hrToken}}" }],
+        "url": "{{baseUrl}}/hr/employees/{{employeeUuid}}/payroll-readiness"
+      }
+    },
+    {
+      "name": "Admin — Get leave configurations",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": "{{baseUrl}}/admin/master-data/leave-configurations"
+      }
+    },
+    {
+      "name": "Admin — Update leave configurations",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  { \"code\": \"ANNUAL\", \"annualDays\": 7 },\n  { \"code\": \"SICK\", \"annualDays\": 7 },\n  { \"code\": \"HOSPITALISATION\", \"annualDays\": 60 }\n]"
+        },
+        "url": "{{baseUrl}}/admin/master-data/leave-configurations"
+      }
+    },
+    {
+      "name": "HR — Resend invitation",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{hrToken}}" }],
+        "url": "{{baseUrl}}/hr/employees/{{employeeUuid}}/resend-invitation"
+      }
+    }
+  ]
+}

@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sg.eyota.workright.employee.dto.EmployeeDto;
+import sg.eyota.workright.employee.dto.EmployeeProfileUpdateRequest;
 import sg.eyota.workright.employee.dto.EmployeeUpsertRequest;
+import sg.eyota.workright.employee.dto.SetEmployeeActiveRequest;
 import sg.eyota.workright.security.SecurityUtils;
 import sg.eyota.workright.security.WorkrightUserDetails;
 
@@ -32,6 +34,12 @@ public class EmployeeController {
     public EmployeeDto me() {
         WorkrightUserDetails user = SecurityUtils.currentUser();
         return employeeService.me(user.getUser().getEmployeeId());
+    }
+
+    @PutMapping("/me/profile")
+    public EmployeeDto updateMyProfile(@Valid @RequestBody EmployeeProfileUpdateRequest request) {
+        WorkrightUserDetails user = SecurityUtils.currentUser();
+        return employeeService.updateMyProfile(user.getUser().getEmployeeId(), request);
     }
 
     @GetMapping
@@ -58,9 +66,16 @@ public class EmployeeController {
         return employeeService.update(id, request);
     }
 
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
+    public EmployeeDto setStatus(@PathVariable UUID id, @Valid @RequestBody SetEmployeeActiveRequest request) {
+        return employeeService.setLoginActive(id, request.active());
+    }
+
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
     public void delete(@PathVariable UUID id) {
-        employeeService.delete(id);
+        WorkrightUserDetails actor = SecurityUtils.currentUser();
+        employeeService.delete(id, actor.getUserId());
     }
 }

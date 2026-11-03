@@ -2,41 +2,73 @@
   <section class="hero-panel">
     <a class="back-home" routerLink="/login">← Back to sign in</a>
     <div class="hero-content">
-      <p class="eyebrow">New employee signup</p>
-      <h1>Activate account</h1>
+      <p class="eyebrow">Eyota Pvt. Ltd.</p>
+      <h1>Welcome to Eyota</h1>
       <p class="tagline">
-        Enter the OTP from your enrollment email, then create a password. After that you can use leave,
-        claims, attendance, and payslips.
+        Verify your email and create a password to activate your employee account. Employment status
+        is managed separately by HR.
       </p>
     </div>
   </section>
 
   <section class="form-panel">
     <div class="form-card">
-      <p class="welcome">Step {{ step() === 'otp' ? '1 of 2' : '2 of 2' }}</p>
-      <h2>{{ step() === 'otp' ? 'Verify OTP' : 'Set new password' }}</h2>
-      <p class="hint">
-        @if (useBackend) {
-          OTP is emailed (and logged by the backend in local/dev).
-        } @else {
-          Enable <code>useBackendApi</code> and run Spring Boot to activate.
+      @if (step() === 'error') {
+        <h2>Activation unavailable</h2>
+        @if (formError()) {
+          <div class="banner" role="alert">{{ formError() }}</div>
         }
-      </p>
+        <a routerLink="/login" class="ess-btn primary">Go to Login</a>
+      }
+
+      @if (step() === 'landing') {
+        <p class="welcome">Employee account activation</p>
+        <h2>Welcome to Eyota Pvt. Ltd.</h2>
+        <p class="hint">
+          Congratulations on your enrollment. Send a one-time password (OTP) to your registered email
+          to continue, or cancel to return to sign in.
+        </p>
+        @if (employeeName()) {
+          <p class="hint"><strong>{{ employeeName() }}</strong></p>
+        }
+        <p class="hint">Registered email: <strong>{{ maskedEmail() }}</strong></p>
+        @if (formError()) {
+          <div class="banner" role="alert">{{ formError() }}</div>
+        }
+        @if (info()) {
+          <div class="banner ok" role="status">{{ info() }}</div>
+        }
+        <button type="button" class="ess-btn primary" [disabled]="submitting()" (click)="sendOtp()">
+          {{ submitting() ? 'Sending…' : 'Send OTP' }}
+        </button>
+        <button type="button" class="ess-btn ghost" [disabled]="submitting()" (click)="cancel()">
+          Cancel
+        </button>
+      }
 
       @if (step() === 'otp') {
+        <p class="welcome">Step 2 of 3</p>
+        <h2>Verify Your Email</h2>
+        <p class="hint">
+          We sent a 6-digit OTP to {{ maskedEmail() }}. Copy it from your email and paste it below
+          (valid for 2 minutes).
+        </p>
+        <p class="hint">
+          @if (secondsLeft() > 0) {
+            Code expires in {{ secondsLeft() }}s
+          } @else {
+            Your verification code has expired. Please request a new OTP.
+          }
+        </p>
         <form [formGroup]="otpForm" (ngSubmit)="verifyOtp()" novalidate>
           <label>
-            <span>Work email</span>
-            <input type="email" formControlName="email" autocomplete="username" />
-          </label>
-          <label>
-            <span>6-digit OTP</span>
+            <span>Paste 6-digit OTP</span>
             <input
               type="text"
               formControlName="otp"
               maxlength="6"
               inputmode="numeric"
-              placeholder="123456"
+              autocomplete="one-time-code"
             />
           </label>
           @if (formError()) {
@@ -45,20 +77,30 @@
           @if (info()) {
             <div class="banner ok" role="status">{{ info() }}</div>
           }
-          <button type="submit" class="ess-btn primary" [disabled]="submitting()">
+          <button type="submit" class="ess-btn primary" [disabled]="submitting() || secondsLeft() === 0">
             {{ submitting() ? 'Verifying…' : 'Verify OTP' }}
           </button>
+          <button
+            type="button"
+            class="ess-btn ghost"
+            [disabled]="submitting() || cooldownLeft() > 0"
+            (click)="sendOtp()"
+          >
+            {{ cooldownLeft() > 0 ? 'Resend in ' + cooldownLeft() + 's' : 'Resend OTP' }}
+          </button>
+          <button type="button" class="ess-btn ghost" (click)="cancel()">Cancel</button>
         </form>
-      } @else {
+      }
+
+      @if (step() === 'password') {
+        <p class="welcome">Step 3 of 3</p>
+        <h2>Create Your Employee Account Password</h2>
+        <p class="hint">Choose a password, confirm it, then continue to login.</p>
         <form [formGroup]="passwordForm" (ngSubmit)="complete()" novalidate>
           <label>
             <div class="label-row">
               <span>New password</span>
-              <button
-                type="button"
-                class="toggle"
-                (click)="showPassword.set(!showPassword())"
-              >
+              <button type="button" class="toggle" (click)="showPassword.set(!showPassword())">
                 {{ showPassword() ? 'Hide' : 'Show' }}
               </button>
             </div>
@@ -80,9 +122,17 @@
             <div class="banner" role="alert">{{ formError() }}</div>
           }
           <button type="submit" class="ess-btn primary" [disabled]="submitting()">
-            {{ submitting() ? 'Activating…' : 'Activate & sign in' }}
+            {{ submitting() ? 'Creating…' : 'Create password' }}
           </button>
         </form>
+      }
+
+      @if (step() === 'success') {
+        <h2>Account activated</h2>
+        <p class="hint">
+          Your employee account has been activated successfully. Use Login to sign in to Eyota HR ERP.
+        </p>
+        <button type="button" class="ess-btn primary" (click)="goToLogin()">Login</button>
       }
     </div>
   </section>

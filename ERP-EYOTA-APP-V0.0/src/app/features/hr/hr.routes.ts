@@ -13,6 +13,16 @@ const MASTER_CHILDREN: Routes = [
       import('./pages/directory/hr-directory').then((m) => m.HrDirectoryPage),
   },
   {
+    path: 'employees/new',
+    loadComponent: () =>
+      import('./pages/employee-form/hr-employee-form').then((m) => m.HrEmployeeFormPage),
+  },
+  {
+    path: 'employees/:id/edit',
+    loadComponent: () =>
+      import('./pages/employee-form/hr-employee-form').then((m) => m.HrEmployeeFormPage),
+  },
+  {
     path: 'directory/:id',
     loadComponent: () =>
       import('./pages/employee-detail/hr-employee-detail').then((m) => m.HrEmployeeDetailPage),

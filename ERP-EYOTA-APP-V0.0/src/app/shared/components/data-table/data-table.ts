@@ -22,6 +22,7 @@ export class DataTableComponent<T extends object> implements OnChanges {
   @Input() trackByKey: keyof T & string = 'id' as keyof T & string;
 
   @Output() readonly emptyAction = new EventEmitter<void>();
+  @Output() readonly cellAction = new EventEmitter<{ actionId: string; row: T }>();
 
   searchTerm = '';
   sortKey: (keyof T & string) | null = null;

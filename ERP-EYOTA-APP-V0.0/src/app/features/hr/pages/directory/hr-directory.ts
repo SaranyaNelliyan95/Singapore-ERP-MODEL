@@ -11,6 +11,7 @@ import { HrMockService } from '../../../../core/services/hr-mock.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { formatSgDate, formatSgPhone, maskNricOrFin } from '../../../../core/utils/singapore.utils';
 import { environment } from '../../../../../environments/environment';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal';
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table';
 import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner';
 import { DemoNoticeComponent } from '../../../employee/shared/demo-notice';
@@ -24,6 +25,7 @@ import { DemoNoticeComponent } from '../../../employee/shared/demo-notice';
     DataTableComponent,
     LoadingSpinnerComponent,
     DemoNoticeComponent,
+    ConfirmModalComponent,
   ],
   templateUrl: './hr-directory.html',
   styleUrl: './hr-directory.css',
@@ -42,6 +44,8 @@ export class HrDirectoryPage implements OnInit {
   readonly saving = signal(false);
   readonly apiRows = signal<StaffDirectoryRow[]>([]);
   readonly lastOtpPreview = signal<string | null>(null);
+  readonly statusTarget = signal<StaffDirectoryRow | null>(null);
+  readonly deleteTarget = signal<StaffDirectoryRow | null>(null);
   readonly department = signal<string>('All');
   readonly designation = signal<string>('All');
   readonly status = signal<string>('All');
@@ -100,60 +104,135 @@ export class HrDirectoryPage implements OnInit {
   readonly form = this.fb.nonNullable.group({
     fullName: ['', [Validators.required, Validators.minLength(3)]],
     workEmail: ['', [Validators.required, Validators.email]],
-    department: ['', Validators.required],
+    department: [''],
     designation: ['', Validators.required],
+    apiEmploymentType: ['FULL_TIME' as 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'TEMPORARY', Validators.required],
     employmentType: ['Local' as EmploymentPassType, Validators.required],
     workLocation: ['Office' as WorkLocation, Validators.required],
     branch: ['HQ — Paya Lebar', Validators.required],
     projectId: [''],
     dateOfJoining: ['', Validators.required],
     mobile: ['', [Validators.required, Validators.pattern(/^[89]\d{7}$/)]],
-    nricOrFin: ['', [Validators.required, Validators.minLength(9)]],
+    nricOrFin: [''],
     status: ['Active' as StaffDirectoryRow['status'], Validators.required],
   });
+
+  readonly apiEmploymentTypes = [
+    { value: 'FULL_TIME', label: 'Full-time' },
+    { value: 'PART_TIME', label: 'Part-time' },
+    { value: 'CONTRACT', label: 'Contract' },
+    { value: 'TEMPORARY', label: 'Temporary' },
+  ] as const;
 
   readonly columns: DataTableColumn<StaffDirectoryRow>[] = [
     { key: 'employeeId', label: 'Employee ID', sortable: true },
     { key: 'fullName', label: 'Full name', sortable: true },
     { key: 'designation', label: 'Designation', sortable: true },
-    { key: 'department', label: 'Department', sortable: true },
     {
-      key: 'branch',
-      label: 'Branch',
-      format: (row) => row.branch ?? '—',
+      key: 'workEmail',
+      label: 'Email',
+      format: (row) => row.workEmail ?? '—',
       sortable: true,
     },
     {
-      key: 'nricOrFin',
-      label: 'NRIC / FIN',
-      format: (row) => maskNricOrFin(row.nricOrFin),
+      key: 'dateOfJoining',
+      label: 'Joined',
+      format: (row) => formatSgDate(row.dateOfJoining ?? null),
+      sortable: true,
     },
-    { key: 'employmentType', label: 'Pass type', sortable: true },
-    { key: 'workLocation', label: 'Location', sortable: true },
+    { key: 'department', label: 'Department', sortable: true },
+    {
+      key: 'employmentTypeLabel',
+      label: 'Employment type',
+      format: (row) => row.employmentTypeLabel ?? row.employmentType,
+      sortable: true,
+    },
     {
       key: 'mobile',
       label: 'Mobile',
       format: (row) => formatSgPhone(row.mobile),
     },
     {
-      key: 'passExpiry',
-      label: 'Pass expiry',
-      format: (row) => formatSgDate(row.passExpiry),
-    },
-    {
       key: 'status',
-      label: 'Status',
+      label: 'Employment',
       badge: (row) => ({
         label: row.status,
         tone:
           row.status === 'Active'
             ? 'success'
-            : row.status === 'On Leave' || row.status === 'Probation'
+            : row.status === 'On Leave' || row.status === 'Probation' || row.status === 'Pending'
               ? 'warning'
               : row.status === 'Notice'
                 ? 'info'
                 : 'neutral',
       }),
+    },
+    {
+      key: 'loginActive',
+      label: 'Status',
+      badge: (row) => ({
+        label: row.loginActive ? 'Active' : 'Inactive',
+        tone: row.loginActive ? 'success' : 'neutral',
+      }),
+      actions: (row) => {
+        if (!this.useBackend || !row.apiId) {
+          return null;
+        }
+        const actions = [
+          {
+            id: 'toggle-status',
+            label: row.loginActive ? 'Set Inactive' : 'Set Active',
+            tone: (row.loginActive ? 'danger' : 'primary') as 'danger' | 'primary',
+            disabled: this.saving(),
+          },
+          {
+            id: 'delete-employee',
+            label: 'Delete',
+            tone: 'danger' as const,
+            disabled: this.saving(),
+          },
+        ];
+        return actions;
+      },
+    },
+    {
+      key: 'invitationEmailStatus',
+      label: 'Invitation',
+      format: (row) => this.invitationLabel(row),
+      badge: (row) => {
+        const label = this.invitationLabel(row);
+        const tone =
+          label === 'Account Activated' || label === 'Accepted' || label === 'Sent'
+            ? 'success'
+            : label === 'Failed'
+              ? 'danger'
+              : 'warning';
+        return { label, tone };
+      },
+      actions: (row) => {
+        if (!this.canResendInvitation(row)) {
+          return null;
+        }
+        const status = (row.invitationEmailStatus ?? 'NOT_SENT').toUpperCase();
+        const firstSend =
+          !row.invitationEmailStatus ||
+          status === 'NOT_SENT' ||
+          status === 'PENDING' ||
+          status === 'FAILED';
+        return [
+          {
+            id: 'resend-invitation',
+            label: firstSend ? 'Send invitation' : 'Resend invitation',
+            tone: 'primary' as const,
+            disabled: this.saving(),
+          },
+        ];
+      },
+    },
+    {
+      key: 'accountStatus',
+      label: 'Account',
+      format: (row) => this.accountLabel(row),
     },
   ];
 
@@ -169,6 +248,7 @@ export class HrDirectoryPage implements OnInit {
   readonly employmentTypes: EmploymentPassType[] = ['Local', 'PR', 'WP', 'S Pass', 'EP'];
   readonly workLocations: WorkLocation[] = ['Office', 'Site', 'WFH'];
   readonly statusOptions: StaffDirectoryRow['status'][] = [
+    'Pending',
     'Active',
     'Probation',
     'On Leave',
@@ -200,11 +280,20 @@ export class HrDirectoryPage implements OnInit {
 
   private mapEmployeeDto(e: EmployeeDto): StaffDirectoryRow {
     const statusMap: Record<string, StaffDirectoryRow['status']> = {
+      PENDING: 'Pending',
       ACTIVE: 'Active',
       PROBATION: 'Probation',
       NOTICE: 'Notice',
+      ON_LEAVE: 'On Leave',
       RESIGNED: 'Resigned',
       TERMINATED: 'Resigned',
+    };
+    const typeLabel: Record<string, string> = {
+      FULL_TIME: 'Full-time',
+      PART_TIME: 'Part-time',
+      CONTRACT: 'Contract',
+      TEMPORARY: 'Temporary',
+      INTERN: 'Intern',
     };
     const locMap: Record<string, WorkLocation> = {
       OFFICE: 'Office',
@@ -214,22 +303,148 @@ export class HrDirectoryPage implements OnInit {
     };
     return {
       employeeId: e.employeeCode,
+      apiId: e.id,
       fullName: e.fullName,
       designation: e.designation ?? '—',
       department: e.department ?? '—',
       branch: '—',
-      nricOrFin: '—',
+      nricOrFin: e.finNumber ?? '—',
       employmentType: 'Local',
+      employmentTypeLabel: typeLabel[e.employmentType] ?? e.employmentType,
       workLocation: locMap[e.workLocationMode] ?? 'Office',
       mobile: e.mobile ?? '',
-      passExpiry: null,
+      passExpiry: e.workPassExpiry,
       contractExpiry: null,
-      passportExpiry: null,
+      passportExpiry: e.passportExpiry,
       medicalClearance: 'Missing',
-      status: statusMap[e.employmentStatus] ?? 'Active',
+      status: statusMap[e.employmentStatus] ?? 'Pending',
       dateOfJoining: e.dateOfJoining ?? '',
       projectId: null,
+      workEmail: e.personalEmail ?? undefined,
+      invitationEmailStatus: e.invitationEmailStatus,
+      accountStatus: e.accountStatus,
+      loginActive: e.active,
     };
+  }
+
+  accountLabel(row: StaffDirectoryRow): string {
+    const s = (row.accountStatus ?? '').toUpperCase();
+    if (s === 'ACTIVE') {
+      return 'Activated';
+    }
+    if (s === 'INACTIVE') {
+      return 'Inactive';
+    }
+    return 'Pending activation';
+  }
+
+  invitationLabel(row: StaffDirectoryRow): string {
+    if (row.accountStatus === 'ACTIVE') {
+      return 'Account Activated';
+    }
+    const s = (row.invitationEmailStatus ?? 'NOT_SENT').toUpperCase();
+    switch (s) {
+      case 'SENT':
+        return 'Sent';
+      case 'FAILED':
+        return 'Failed';
+      case 'SENDING':
+        return 'Sending';
+      case 'ACCEPTED':
+        return 'Accepted';
+      case 'EXPIRED':
+        return 'Expired';
+      default:
+        return 'Not Sent';
+    }
+  }
+
+  canResendInvitation(row: StaffDirectoryRow): boolean {
+    // Pending employment + account not yet activated — HR can (re)send the invitation email.
+    return (
+      this.useBackend &&
+      !!row.apiId &&
+      row.status === 'Pending' &&
+      row.accountStatus !== 'ACTIVE' &&
+      row.invitationEmailStatus !== 'ACCEPTED'
+    );
+  }
+
+  onDirectoryCellAction(event: { actionId: string; row: StaffDirectoryRow }): void {
+    if (event.actionId === 'resend-invitation') {
+      void this.resendInvitation(event.row);
+    } else if (event.actionId === 'toggle-status') {
+      this.statusTarget.set(event.row);
+    } else if (event.actionId === 'delete-employee') {
+      this.deleteTarget.set(event.row);
+    }
+  }
+
+  confirmStatusToggle(): void {
+    const row = this.statusTarget();
+    this.statusTarget.set(null);
+    if (!row?.apiId) {
+      return;
+    }
+    void this.toggleLoginStatus(row);
+  }
+
+  confirmDelete(): void {
+    const row = this.deleteTarget();
+    this.deleteTarget.set(null);
+    if (!row?.apiId) {
+      return;
+    }
+    void this.deleteEmployee(row);
+  }
+
+  private async toggleLoginStatus(row: StaffDirectoryRow): Promise<void> {
+    this.saving.set(true);
+    try {
+      const updated = await firstValueFrom(
+        this.employeeApi.setStatus(row.apiId!, !row.loginActive),
+      );
+      this.apiRows.update((rows) =>
+        rows.map((r) => (r.apiId === row.apiId ? this.mapEmployeeDto(updated) : r)),
+      );
+      this.toast.success(
+        'Status updated',
+        `${updated.employeeCode} is now ${updated.active ? 'Active' : 'Inactive'}.`,
+      );
+    } catch (err) {
+      this.toast.danger('Status update', err instanceof Error ? err.message : 'Failed');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  private async deleteEmployee(row: StaffDirectoryRow): Promise<void> {
+    this.saving.set(true);
+    try {
+      await firstValueFrom(this.employeeApi.delete(row.apiId!));
+      this.apiRows.update((rows) => rows.filter((r) => r.apiId !== row.apiId));
+      this.toast.success(
+        'Employee deleted',
+        `${row.employeeId} and related records were removed. You can re-enrol to retest OTP.`,
+      );
+    } catch (err) {
+      this.toast.danger('Delete failed', err instanceof Error ? err.message : 'Failed');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  invitationActionLabel(row: StaffDirectoryRow): string {
+    const status = (row.invitationEmailStatus ?? 'NOT_SENT').toUpperCase();
+    if (
+      !row.invitationEmailStatus ||
+      status === 'NOT_SENT' ||
+      status === 'PENDING' ||
+      status === 'FAILED'
+    ) {
+      return 'Send invitation';
+    }
+    return 'Resend invitation';
   }
 
   projectName(projectId: string | null | undefined): string {
@@ -240,6 +455,10 @@ export class HrDirectoryPage implements OnInit {
   }
 
   openCreate(): void {
+    if (this.useBackend) {
+      void this.router.navigateByUrl('/hr/master/employees/new');
+      return;
+    }
     this.editId.set(null);
     this.lastOtpPreview.set(null);
     const depts = this.hr.workforce().policies.departments;
@@ -247,21 +466,26 @@ export class HrDirectoryPage implements OnInit {
     this.form.reset({
       fullName: '',
       workEmail: '',
-      department: depts[0] ?? 'Projects',
+      department: depts[0] ?? '',
       designation: '',
+      apiEmploymentType: 'FULL_TIME',
       employmentType: 'Local',
       workLocation: 'Office',
       branch: branches[0] ?? 'HQ — Paya Lebar',
       projectId: '',
       dateOfJoining: new Date().toISOString().slice(0, 10),
       mobile: '',
-      nricOrFin: 'S0000000A',
-      status: 'Probation',
+      nricOrFin: '',
+      status: 'Pending',
     });
     this.formOpen.set(true);
   }
 
   openEdit(row: StaffDirectoryRow): void {
+    if (this.useBackend && row.apiId) {
+      void this.router.navigate(['/hr/master/employees', row.apiId, 'edit']);
+      return;
+    }
     this.editId.set(row.employeeId);
     const profile = this.hr.workforce().profiles[row.employeeId];
     this.form.reset({
@@ -281,7 +505,8 @@ export class HrDirectoryPage implements OnInit {
   }
 
   openDetail(row: StaffDirectoryRow): void {
-    void this.router.navigate(['/hr/master/directory', row.employeeId]);
+    const id = row.apiId ?? row.employeeId;
+    void this.router.navigate(['/hr/master/directory', id]);
   }
 
   closeForm(): void {
@@ -291,14 +516,14 @@ export class HrDirectoryPage implements OnInit {
 
   saveEmployee(): void {
     this.form.markAllAsTouched();
-    if (this.form.invalid) {
-      this.toast.warning('Employee form', 'Complete required fields with valid SG mobile and NRIC/FIN.');
-      return;
-    }
     const values = this.form.getRawValue();
     const editId = this.editId();
     if (this.useBackend && !editId) {
-      void this.createViaApi(values);
+      void this.router.navigateByUrl('/hr/master/employees/new');
+      return;
+    }
+    if (this.form.invalid) {
+      this.toast.warning('Employee form', 'Complete required fields with valid SG mobile.');
       return;
     }
     if (editId) {
@@ -342,41 +567,31 @@ export class HrDirectoryPage implements OnInit {
     this.closeForm();
   }
 
-  private async createViaApi(values: ReturnType<typeof this.form.getRawValue>): Promise<void> {
+  async resendInvitation(row: StaffDirectoryRow): Promise<void> {
+    if (!row.apiId) {
+      this.toast.warning('Resend', 'API employee id missing — reload the directory.');
+      return;
+    }
     this.saving.set(true);
-    const employeeCode = `EY-${Date.now().toString().slice(-6)}`;
-    const workLocationMode =
-      values.workLocation === 'Site' ? 'SITE' : values.workLocation === 'WFH' ? 'REMOTE' : 'OFFICE';
     try {
-      const enrolled = await firstValueFrom(
-        this.enrollmentApi.enroll({
-          employeeCode,
-          fullName: values.fullName,
-          workEmail: values.workEmail.trim().toLowerCase(),
-          department: values.department,
-          designation: values.designation,
-          employmentType: 'FULL_TIME',
-          employmentStatus: 'PROBATION',
-          workLocationMode,
-          dateOfJoining: values.dateOfJoining,
-          mobile: values.mobile,
-        }),
-      );
-      this.lastOtpPreview.set(enrolled.devOtpPreview);
-      const otpHint = enrolled.devOtpPreview
-        ? ` Dev OTP (local only): ${enrolled.devOtpPreview}`
-        : ' OTP emailed / logged by backend.';
-      this.toast.success(
-        'Employee enrolled',
-        `${enrolled.employeeCode} invited at ${enrolled.workEmail}.${otpHint} They must open /activate before login.`,
-      );
+      const enrolled = await firstValueFrom(this.enrollmentApi.resendInvitation(row.apiId));
+      if (enrolled.invitationEmailStatus === 'FAILED') {
+        this.toast.warning(
+          'Invitation not delivered',
+          `${enrolled.employeeCode}: ${enrolled.message}`,
+        );
+      } else {
+        this.toast.success(
+          'Invitation sent',
+          `${enrolled.employeeCode}: ${enrolled.message}`,
+        );
+      }
       await this.reloadApiDirectory();
-      this.closeForm();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Enrollment failed';
-      this.toast.danger('Enrollment failed', message);
+      this.toast.danger('Resend failed', err instanceof Error ? err.message : 'Failed');
     } finally {
       this.saving.set(false);
     }
   }
+
 }

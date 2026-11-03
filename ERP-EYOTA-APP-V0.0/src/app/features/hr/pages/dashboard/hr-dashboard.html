@@ -48,8 +48,8 @@
         <h2>Critical quick actions</h2>
       </div>
       <div class="actions">
-        <button type="button" class="ess-btn primary" (click)="openHire()">Add new hire</button>
-        <a routerLink="/hr/master/directory" class="ess-btn ghost">Employee Management</a>
+        <button type="button" class="ess-btn primary" (click)="openHire()">Add New Hire</button>
+        <!-- <a routerLink="/hr/master/directory" class="ess-btn ghost">Employee Management</a> -->
         <a routerLink="/hr/master/projects" class="ess-btn ghost">Project Manpower</a>
         <a routerLink="/hr/master/onboarding" class="ess-btn ghost">Onboarding pipeline</a>
         <a routerLink="/hr/master/payroll" class="ess-btn ghost">Payroll Control</a>
@@ -62,42 +62,3 @@
   </div>
 }
 
-@if (hireOpen()) {
-  <div class="backdrop">
-    <div class="modal">
-      <h2>Add new hire (onboarding draft)</h2>
-      <form class="ess-form" [formGroup]="hireForm" (ngSubmit)="submitHire()">
-        <label>
-          <span>Full name</span>
-          <input formControlName="fullName" />
-        </label>
-        <label>
-          <span>Role</span>
-          <input formControlName="role" />
-        </label>
-        <label>
-          <span>Department</span>
-          <input formControlName="department" />
-        </label>
-        <label>
-          <span>Pass type</span>
-          <select formControlName="employmentType">
-            <option value="Local">Local</option>
-            <option value="PR">PR</option>
-            <option value="WP">WP</option>
-            <option value="S Pass">S Pass</option>
-            <option value="EP">EP</option>
-          </select>
-        </label>
-        <label class="full">
-          <span>Start date</span>
-          <input type="date" formControlName="startDate" />
-        </label>
-        <div class="ess-actions full">
-          <button type="button" class="ess-btn ghost" (click)="hireOpen.set(false)">Cancel</button>
-          <button type="submit" class="ess-btn primary">Create draft</button>
-        </div>
-      </form>
-    </div>
-  </div>
-}

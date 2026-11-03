@@ -6,7 +6,7 @@ export const environment = {
    * When false: existing localStorage demo auth/attendance remains.
    */
   useBackendApi: true,
-  apiBaseUrl: '/api/v1',
+  apiBaseUrl: 'http://localhost:8080/api/v1',
   gps: {
     enableHighAccuracy: true,
     timeoutMs: 15000,

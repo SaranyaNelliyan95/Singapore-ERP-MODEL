@@ -137,8 +137,47 @@
       </div>
     </section>
 
+    @if (useBackend) {
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Company leave configuration (PostgreSQL)</h2>
+          <button
+            type="button"
+            class="ess-btn primary"
+            [disabled]="savingLeaveConfig()"
+            (click)="saveLeaveConfigs()"
+          >
+            {{ savingLeaveConfig() ? 'Saving…' : 'Save leave defaults' }}
+          </button>
+        </div>
+        <p class="hint">
+          Initial defaults: Annual 7, Sick 7, Hospitalisation 60. Sick leave default is flagged for
+          Singapore statutory review before production. Changes do not rewrite historical leave.
+        </p>
+        @for (row of leaveConfigDraft(); track row.code; let i = $index) {
+          <div class="row">
+            <strong>{{ row.name }}</strong>
+            <span class="meta">{{ row.code }}</span>
+            <label>
+              Days / year
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                [ngModel]="row.annualDays"
+                (ngModelChange)="updateLeaveConfigRow(i, +$event)"
+              />
+            </label>
+            @if (row.statutoryReviewFlag) {
+              <span class="meta">⚠ Statutory review</span>
+            }
+          </div>
+        }
+      </section>
+    }
+
     <section class="ess-panel">
-      <div class="ess-panel-head"><h2>Leave type policies</h2>
+      <div class="ess-panel-head"><h2>Leave type policies {{ useBackend ? '(demo UI catalog)' : '' }}</h2>
         <button type="button" class="ess-btn primary" (click)="saveLeave()">Save leave</button>
       </div>
       @for (row of leaveDraft(); track row.type; let i = $index) {

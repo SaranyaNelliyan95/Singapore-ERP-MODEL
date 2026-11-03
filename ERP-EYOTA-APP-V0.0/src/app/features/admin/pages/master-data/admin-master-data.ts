@@ -1,7 +1,13 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { AdminMockService } from '../../../../core/services/admin-mock.service';
+import {
+  LeaveConfigApiService,
+  LeaveConfigDto,
+} from '../../../../core/services/leave-config-api.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { environment } from '../../../../../environments/environment';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal';
 import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner';
 import { ClaimLimitPolicy, LeavePolicy, MasterCatalogs } from '../../../../core/models/admin.model';
@@ -16,12 +22,16 @@ import { createDefaultSystemPolicies } from '../../../../core/services/system-po
 })
 export class AdminMasterDataPage implements OnInit {
   readonly admin = inject(AdminMockService);
+  private readonly leaveConfigApi = inject(LeaveConfigApiService);
   readonly toast = inject(ToastService);
+  readonly useBackend = environment.useBackendApi;
   readonly loading = signal(true);
+  readonly savingLeaveConfig = signal(false);
   readonly restoreOpen = signal(false);
   readonly fullResetOpen = signal(false);
   readonly policies = this.admin.policies;
 
+  readonly leaveConfigDraft = signal<LeaveConfigDto[]>([]);
   readonly leaveDraft = signal<LeavePolicy[]>([]);
   readonly claimDraft = signal<ClaimLimitPolicy[]>([]);
   readonly holidaysText = signal('');
@@ -36,8 +46,53 @@ export class AdminMasterDataPage implements OnInit {
   ngOnInit(): void {
     this.admin.bootstrap().subscribe(() => {
       this.reloadDrafts();
-      this.loading.set(false);
+      if (this.useBackend) {
+        void this.loadLeaveConfigs();
+      } else {
+        this.loading.set(false);
+      }
     });
+  }
+
+  private async loadLeaveConfigs(): Promise<void> {
+    try {
+      const rows = await firstValueFrom(this.leaveConfigApi.list());
+      this.leaveConfigDraft.set(rows.map((r) => ({ ...r })));
+    } catch (err) {
+      this.toast.danger(
+        'Leave configuration',
+        err instanceof Error ? err.message : 'Failed to load company leave defaults',
+      );
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  updateLeaveConfigRow(index: number, annualDays: number): void {
+    this.leaveConfigDraft.update((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, annualDays } : row)),
+    );
+  }
+
+  async saveLeaveConfigs(): Promise<void> {
+    this.savingLeaveConfig.set(true);
+    try {
+      const payload = this.leaveConfigDraft().map((r) => ({
+        code: r.code,
+        annualDays: r.annualDays,
+        notes: r.notes,
+      }));
+      const saved = await firstValueFrom(this.leaveConfigApi.update(payload));
+      this.leaveConfigDraft.set(saved.map((r) => ({ ...r })));
+      this.toast.success(
+        'Leave defaults saved',
+        'Company annual entitlements stored in PostgreSQL. Historical leave transactions are unchanged.',
+      );
+    } catch (err) {
+      this.toast.danger('Save failed', err instanceof Error ? err.message : 'Update failed');
+    } finally {
+      this.savingLeaveConfig.set(false);
+    }
   }
 
   saveLeave(): void {

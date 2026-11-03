@@ -37,6 +37,11 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/auth/activate/**").permitAll()
+                        .requestMatchers("/api/v1/auth/employee-activation/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/resend-otp").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/complete-registration").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/forgot-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/auth/**").authenticated()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -5,36 +5,64 @@
     <header class="ess-head">
       <div>
         <p class="ess-eyebrow">My Profile</p>
-        <h1>{{ ws().profile.fullName }}</h1>
+        <h1>{{ displayName() }}</h1>
         <p class="ess-sub">
-          Contact and bank changes are submitted as HR approval requests — nothing updates until
-          HR decides.
+          @if (useBackend) {
+            Edit permitted personal details. Employee ID, role, salary, and employment status are
+            read-only.
+          } @else {
+            Contact and bank changes are submitted as HR approval requests — nothing updates until
+            HR decides.
+          }
         </p>
       </div>
-      <app-status-badge [label]="ws().profile.employmentType" tone="info" />
+      @if (useBackend) {
+        <app-status-badge [label]="apiProfile()?.employmentStatus ?? '—'" tone="info" />
+      } @else {
+        <app-status-badge [label]="ws().profile.employmentType" tone="info" />
+      }
     </header>
 
-    <app-demo-notice message="NRIC/FIN remains masked. Full identifiers are never shown in Employee Self-Service." />
+    <app-demo-notice
+      [message]="
+        useBackend
+          ? 'Profile updates persist to PostgreSQL. Salary and bank details remain HR-managed.'
+          : 'NRIC/FIN remains masked. Full identifiers are never shown in Employee Self-Service.'
+      "
+    />
 
     <section class="ess-panel">
       <div class="ess-panel-head">
         <h2>Employment identity (read-only)</h2>
       </div>
-      <div class="ess-readonly-grid">
-        <div><label>Employee ID</label><p>{{ ws().profile.employeeId }}</p></div>
-        <div><label>Designation</label><p>{{ ws().profile.designation }}</p></div>
-        <div><label>NRIC / FIN</label><p>{{ ws().profile.nricOrFin | maskNric }}</p></div>
-        <div><label>Pass type</label><p>{{ ws().profile.employmentType }}</p></div>
-        <div><label>Department</label><p>{{ ws().profile.department }}</p></div>
-        <div><label>Reporting manager</label><p>{{ ws().profile.reportingManager }}</p></div>
-        <div><label>Date of joining</label><p>{{ ws().profile.dateOfJoining | sgDate }}</p></div>
-        <div><label>Probation</label><p>{{ ws().profile.probationStatus }}</p></div>
-      </div>
+      @if (useBackend) {
+        <div class="ess-readonly-grid">
+          <div><label>Employee ID</label><p>{{ apiProfile()?.employeeCode }}</p></div>
+          <div><label>Designation</label><p>{{ apiProfile()?.designation ?? '—' }}</p></div>
+          <div><label>FIN</label><p>{{ (apiProfile()?.finNumber ?? '—') | maskNric }}</p></div>
+          <div><label>Employment type</label><p>{{ apiProfile()?.employmentType }}</p></div>
+          <div><label>Department</label><p>{{ apiProfile()?.department ?? '—' }}</p></div>
+          <div><label>Email (login)</label><p>{{ apiProfile()?.personalEmail ?? '—' }}</p></div>
+          <div><label>Date of joining</label><p>{{ apiProfile()?.dateOfJoining | sgDate }}</p></div>
+          <div><label>Status</label><p>{{ apiProfile()?.employmentStatus }}</p></div>
+        </div>
+      } @else {
+        <div class="ess-readonly-grid">
+          <div><label>Employee ID</label><p>{{ ws().profile.employeeId }}</p></div>
+          <div><label>Designation</label><p>{{ ws().profile.designation }}</p></div>
+          <div><label>NRIC / FIN</label><p>{{ ws().profile.nricOrFin | maskNric }}</p></div>
+          <div><label>Pass type</label><p>{{ ws().profile.employmentType }}</p></div>
+          <div><label>Department</label><p>{{ ws().profile.department }}</p></div>
+          <div><label>Reporting manager</label><p>{{ ws().profile.reportingManager }}</p></div>
+          <div><label>Date of joining</label><p>{{ ws().profile.dateOfJoining | sgDate }}</p></div>
+          <div><label>Probation</label><p>{{ ws().profile.probationStatus }}</p></div>
+        </div>
+      }
     </section>
 
     <section class="ess-panel">
       <div class="ess-panel-head">
-        <h2>Contact details</h2>
+        <h2>Personal &amp; contact details</h2>
         @if (!editing()) {
           <button type="button" class="ess-btn ghost" (click)="startEdit()">Edit</button>
         }
@@ -42,13 +70,12 @@
 
       @if (editing()) {
         <form class="ess-form" [formGroup]="contactForm" (ngSubmit)="saveContact()">
-          <label>
-            <span>Personal email</span>
-            <input type="email" formControlName="personalEmail" />
-            @if (invalidContact('personalEmail')) {
-              <small class="error">Valid email required.</small>
-            }
-          </label>
+          @if (!useBackend) {
+            <label>
+              <span>Personal email</span>
+              <input type="email" formControlName="personalEmail" />
+            </label>
+          }
           <label>
             <span>Mobile (+65, 8 digits starting 8/9)</span>
             <input formControlName="mobile" inputmode="numeric" maxlength="8" />
@@ -60,26 +87,64 @@
             <span>Residential address</span>
             <input formControlName="residentialAddress" />
             @if (invalidContact('residentialAddress')) {
-              <small class="error">Include a complete Singapore address.</small>
+              <small class="error">Include a complete address.</small>
             }
           </label>
-          <label>
-            <span>Emergency contact</span>
-            <input formControlName="emergencyContactName" />
-          </label>
-          <label>
-            <span>Emergency phone</span>
-            <input formControlName="emergencyContactPhone" inputmode="numeric" maxlength="8" />
-          </label>
-          <label>
-            <span>Relationship</span>
-            <input formControlName="emergencyContactRelation" />
-          </label>
+          @if (useBackend) {
+            <label>
+              <span>Date of birth</span>
+              <input type="date" formControlName="dateOfBirth" />
+            </label>
+            <label>
+              <span>Gender</span>
+              <input formControlName="gender" />
+            </label>
+            <label>
+              <span>Nationality</span>
+              <input formControlName="nationality" />
+            </label>
+            <label>
+              <span>Alternative contact</span>
+              <input formControlName="alternativeContact" />
+            </label>
+            <label>
+              <span>Passport number</span>
+              <input formControlName="passportNumber" />
+            </label>
+            <label>
+              <span>Passport expiry</span>
+              <input type="date" formControlName="passportExpiry" />
+            </label>
+          } @else {
+            <label>
+              <span>Emergency contact</span>
+              <input formControlName="emergencyContactName" />
+            </label>
+            <label>
+              <span>Emergency phone</span>
+              <input formControlName="emergencyContactPhone" inputmode="numeric" maxlength="8" />
+            </label>
+            <label>
+              <span>Relationship</span>
+              <input formControlName="emergencyContactRelation" />
+            </label>
+          }
           <div class="ess-actions full">
             <button type="button" class="ess-btn ghost" (click)="cancelEdit()">Cancel</button>
             <button type="submit" class="ess-btn primary">Save changes</button>
           </div>
         </form>
+      } @else if (useBackend) {
+        <div class="ess-readonly-grid">
+          <div><label>Email</label><p>{{ apiProfile()?.personalEmail }}</p></div>
+          <div><label>Phone</label><p>{{ (apiProfile()?.mobile ?? '') | phoneSg }}</p></div>
+          <div class="full"><label>Address</label><p>{{ apiProfile()?.residentialAddress ?? '—' }}</p></div>
+          <div><label>Date of birth</label><p>{{ apiProfile()?.dateOfBirth | sgDate }}</p></div>
+          <div><label>Gender</label><p>{{ apiProfile()?.gender ?? '—' }}</p></div>
+          <div><label>Nationality</label><p>{{ apiProfile()?.nationality ?? '—' }}</p></div>
+          <div><label>Alt. contact</label><p>{{ apiProfile()?.alternativeContact ?? '—' }}</p></div>
+          <div><label>Passport</label><p>{{ apiProfile()?.passportNumber ?? '—' }}</p></div>
+        </div>
       } @else {
         <div class="ess-readonly-grid">
           <div><label>Email</label><p>{{ ws().profile.personalEmail }}</p></div>
@@ -99,36 +164,45 @@
 
     <section class="ess-panel">
       <div class="ess-panel-head">
-        <h2>Bank details</h2>
-        <button type="button" class="ess-btn ghost" (click)="openBankRequest()">
-          Request bank update
-        </button>
+        <h2>Bank / payment (read-only)</h2>
+        @if (!useBackend) {
+          <button type="button" class="ess-btn ghost" (click)="openBankRequest()">
+            Request bank update
+          </button>
+        }
       </div>
-      <div class="ess-readonly-grid">
-        <div><label>Bank</label><p>{{ ws().profile.bankName }}</p></div>
-        <div><label>Account</label><p>{{ maskedBank(ws().profile.bankAccountNumber) }}</p></div>
-      </div>
-
-      @if (ws().bankRequests.length) {
-        <div class="bank-requests">
-          <h3>Pending / recent HR authorizations</h3>
-          @for (req of ws().bankRequests; track req.id) {
-            <div class="bank-row">
-              <div>
-                <strong>{{ req.id }}</strong>
-                <p>{{ req.bankName }} · •••• {{ req.bankAccountNumber.slice(-4) }}</p>
-              </div>
-              <app-status-badge
-                [label]="req.status"
-                [tone]="req.status === 'Pending HR' ? 'warning' : req.status === 'Approved' ? 'success' : 'danger'"
-              />
-            </div>
-          }
+      @if (useBackend) {
+        <div class="ess-readonly-grid">
+          <div><label>Payment mode</label><p>{{ apiProfile()?.paymentMode ?? '—' }}</p></div>
+          <div><label>Bank</label><p>{{ apiProfile()?.bankName ?? '—' }}</p></div>
+          <div><label>Account</label><p>{{ apiProfile()?.bankAccountMasked ?? '—' }}</p></div>
         </div>
+      } @else {
+        <div class="ess-readonly-grid">
+          <div><label>Bank</label><p>{{ ws().profile.bankName }}</p></div>
+          <div><label>Account</label><p>{{ maskedBank(ws().profile.bankAccountNumber) }}</p></div>
+        </div>
+        @if (ws().bankRequests.length) {
+          <div class="bank-requests">
+            <h3>Pending / recent HR authorizations</h3>
+            @for (req of ws().bankRequests; track req.id) {
+              <div class="bank-row">
+                <div>
+                  <strong>{{ req.id }}</strong>
+                  <p>{{ req.bankName }} · •••• {{ req.bankAccountNumber.slice(-4) }}</p>
+                </div>
+                <app-status-badge
+                  [label]="req.status"
+                  [tone]="req.status === 'Pending HR' ? 'warning' : req.status === 'Approved' ? 'success' : 'danger'"
+                />
+              </div>
+            }
+          </div>
+        }
       }
     </section>
 
-    @if (ws().profileRequests.length) {
+    @if (!useBackend && ws().profileRequests.length) {
       <section class="ess-panel">
         <div class="ess-panel-head">
           <h2>Contact update requests</h2>

@@ -7,7 +7,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/eyota_hr}
     username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres2204}
+    password: ${DB_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -22,6 +22,22 @@ spring:
   jackson:
     time-zone: Asia/Singapore
     use-jackson2-defaults: true
+  # Loaded from backend/.env via DotEnvEnvironmentPostProcessor (or OS env / start-dev.ps1)
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 15000
+          timeout: 15000
+          writetimeout: 15000
 
 server:
   port: ${SERVER_PORT:8080}
@@ -47,10 +63,19 @@ eyota:
     location-timeout-ms: 15000
     default-geofence-radius-metres: 150
   enrollment:
-    otp-ttl-minutes: ${ENROLLMENT_OTP_TTL_MINUTES:30}
-    # true for local/dev so HR/Postman can see OTP without real SMTP
-    expose-otp-in-api: ${ENROLLMENT_EXPOSE_OTP:true}
-    activate-base-url: ${ACTIVATE_BASE_URL:http://localhost:4200/activate}
+    otp-ttl-minutes: ${ENROLLMENT_OTP_TTL_MINUTES:2}
+    # Authoritative OTP window (defaults to 2 minutes)
+    otp-ttl-seconds: ${ENROLLMENT_OTP_TTL_SECONDS:120}
+    invitation-ttl-hours: ${ENROLLMENT_INVITATION_TTL_HOURS:72}
+    otp-resend-cooldown-seconds: ${ENROLLMENT_OTP_RESEND_COOLDOWN_SECONDS:30}
+    otp-max-attempts: ${ENROLLMENT_OTP_MAX_ATTEMPTS:5}
+    # Never expose OTP in API responses in production
+    expose-otp-in-api: ${ENROLLMENT_EXPOSE_OTP:false}
+    activate-base-url: ${ACTIVATE_BASE_URL:http://localhost:4200/activate-account}
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:noreply@eyota.sg}
+    from-name: ${MAIL_FROM_NAME:Eyota Workright HR}
 
 logging:
   level:

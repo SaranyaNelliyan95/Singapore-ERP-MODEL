@@ -54,7 +54,8 @@ class AttendanceServiceTest {
                 "Asia/Singapore",
                 new EyotaProperties.Cors("http://localhost:4200"),
                 new EyotaProperties.Security("test_jwt_secret_key_at_least_32_chars_long", 60, "", ""),
-                new EyotaProperties.Attendance(true, 50, 15000, 150)
+                new EyotaProperties.Attendance(true, 50, 15000, 150),
+                new EyotaProperties.Enrollment(2, 120, 72, 30, 5, false, "http://localhost:4200/activate-account")
         );
         service = new AttendanceService(
                 sessionRepository, rejectAuditRepository, workplaceRepository, employeeRepository, props, fixedClock);
