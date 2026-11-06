@@ -5,6 +5,118 @@
   color: var(--text-muted);
 }
 
+.compliance-command {
+  align-items: start;
+}
+
+.checklist-note {
+  margin: 0 0 0.75rem;
+}
+
+.workright-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.workright-checklist li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--secondary-bg);
+}
+
+.workright-checklist p {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.checklist-pct {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.checklist-pct.ok {
+  color: var(--success);
+}
+
+.checklist-pct.warn {
+  color: var(--warning);
+}
+
+.checklist-pct.bad {
+  color: var(--danger);
+}
+
+.inspection-vault {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: #2f4a5c;
+  color: #f4f7fa;
+}
+
+.inspection-vault p {
+  margin: 0.35rem 0 0.75rem;
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.inspection-vault .ess-btn {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+.bca-matrix {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.bca-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.bca-row p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.bca-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.bca-counts .bad,
+.text-danger {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .bca-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 .remind-list {
   display: grid;
   gap: 0.65rem;
@@ -25,6 +137,29 @@
   margin: 0.2rem 0 0;
   color: var(--text-secondary);
   font-size: 0.8rem;
+}
+
+.comment-field {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.comment-field span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.comment-field input {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 @media (max-width: 720px) {

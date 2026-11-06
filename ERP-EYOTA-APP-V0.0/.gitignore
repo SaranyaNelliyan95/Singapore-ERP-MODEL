@@ -2,6 +2,7 @@
 
 # Compiled output
 /dist
+.netlify
 /tmp
 /out-tsc
 /bazel-out

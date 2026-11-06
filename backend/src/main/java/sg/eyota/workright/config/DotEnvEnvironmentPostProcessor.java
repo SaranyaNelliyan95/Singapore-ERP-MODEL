@@ -1,0 +1,134 @@
+package sg.eyota.workright.config;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+
+import org.springframework.boot.EnvironmentPostProcessor;
+import org.springframework.boot.SpringApplication;
+import org.springframework.core.Ordered;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.MapPropertySource;
+
+/**
+ * Loads {@code backend/.env} into the Spring Environment so MAIL_/SMTP_ settings
+ * work for {@code start-dev.ps1}, Maven, and IntelliJ Run.
+ *
+ * <p>.env values are added with highest precedence so a stale IntelliJ/OS
+ * {@code MAIL_ENABLED=false} cannot silently disable SMTP while {@code .env} says true.
+ */
+public class DotEnvEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
+
+    @Override
+    public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
+        Path envFile = resolveEnvFile();
+        if (envFile == null || !Files.isRegularFile(envFile)) {
+            System.err.println(
+                    "[dotenv] backend/.env not found (cwd="
+                            + Path.of("").toAbsolutePath()
+                            + "). Set MAIL_ENABLED/SMTP_* or place .env under backend/.");
+            return;
+        }
+        try {
+            Map<String, Object> values = new LinkedHashMap<>();
+            for (String raw : Files.readAllLines(envFile)) {
+                String line = raw.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                int eq = line.indexOf('=');
+                if (eq <= 0) {
+                    continue;
+                }
+                String key = line.substring(0, eq).trim();
+                String value = line.substring(eq + 1).trim();
+                if ("SMTP_PASSWORD".equals(key)) {
+                    value = value.replace(" ", "");
+                }
+                values.put(key, value);
+            }
+            if (!values.isEmpty()) {
+                // Highest precedence: overrides OS/IDE env for Spring property resolution
+                environment.getPropertySources().addFirst(new MapPropertySource("dotenv", values));
+                System.out.println(
+                        "[dotenv] Loaded "
+                                + envFile.toAbsolutePath()
+                                + " (MAIL_ENABLED="
+                                + values.getOrDefault("MAIL_ENABLED", "(unset)")
+                                + ", SERVER_PORT="
+                                + values.getOrDefault("SERVER_PORT", "(unset)")
+                                + ")");
+            }
+        } catch (IOException ex) {
+            System.err.println("[dotenv] Failed to read " + envFile + ": " + ex.getMessage());
+        }
+    }
+
+    private static Path resolveEnvFile() {
+        Set<Path> candidates = new LinkedHashSet<>();
+
+        Path cwd = Path.of("").toAbsolutePath().normalize();
+        collectFromWalk(cwd, candidates);
+        collectFromCodeSource(candidates);
+
+        for (Path candidate : candidates) {
+            if (Files.isRegularFile(candidate) && looksLikeBackendEnv(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static void collectFromWalk(Path start, Set<Path> candidates) {
+        Path dir = start;
+        for (int i = 0; i < 10 && dir != null; i++) {
+            candidates.add(dir.resolve(".env"));
+            candidates.add(dir.resolve("backend").resolve(".env"));
+            dir = dir.getParent();
+        }
+    }
+
+    /**
+     * IntelliJ often uses {@code backend/target/classes} as the code location —
+     * walk up from there to {@code backend/.env} even if cwd is elsewhere.
+     */
+    private static void collectFromCodeSource(Set<Path> candidates) {
+        try {
+            URL loc = DotEnvEnvironmentPostProcessor.class.getProtectionDomain().getCodeSource().getLocation();
+            if (loc == null) {
+                return;
+            }
+            Path codePath = Path.of(loc.toURI()).toAbsolutePath().normalize();
+            if (Files.isRegularFile(codePath)) {
+                codePath = codePath.getParent();
+            }
+            collectFromWalk(codePath, candidates);
+        } catch (URISyntaxException | RuntimeException ignored) {
+            // Fall back to cwd walk only
+        }
+    }
+
+    private static boolean looksLikeBackendEnv(Path envFile) {
+        try {
+            Path parent = envFile.getParent();
+            if (parent != null && "backend".equalsIgnoreCase(parent.getFileName().toString())) {
+                return true;
+            }
+            String text = Files.readString(envFile);
+            return text.contains("MAIL_ENABLED") || text.contains("SMTP_HOST") || text.contains("DB_URL");
+        } catch (IOException ex) {
+            return false;
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE + 10;
+    }
+}

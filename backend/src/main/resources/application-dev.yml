@@ -1,0 +1,19 @@
+# Local development — activate with SPRING_PROFILES_ACTIVE=dev
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+eyota:
+  enrollment:
+    # Local only: allow HR UI to show OTP when SMTP is off
+    expose-otp-in-api: ${ENROLLMENT_EXPOSE_OTP:true}
+  # Dev default ON so IntelliJ/Maven still email when .env loads SMTP_*.
+  # Override with MAIL_ENABLED=false in backend/.env if you want log-only mode.
+  mail:
+    enabled: ${MAIL_ENABLED:true}
+
+logging:
+  level:
+    sg.eyota.workright: DEBUG
+    org.springframework.security: INFO

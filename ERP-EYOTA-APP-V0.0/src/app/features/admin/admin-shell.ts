@@ -48,6 +48,10 @@ export class AdminShellComponent {
     { label: 'Archive policy', route: '/admin/master/archive', icon: '▤' },
     { label: 'Backup & DR', route: '/admin/master/backup', icon: '◷' },
     { label: 'HR access', route: '/admin/master/hr-access', icon: '◎', section: 'Oversight' },
+    { label: 'Employee Mgmt', route: '/hr/master/directory', icon: '▤' },
+    { label: 'Project manpower', route: '/hr/master/projects', icon: '▣' },
+    { label: 'MOM / ICA', route: '/hr/master/compliance', icon: '◉' },
+    { label: 'Payroll Control', route: '/hr/master/payroll', icon: '◈' },
     { label: 'System health', route: '/admin/master/health', icon: '◍' },
   ];
 

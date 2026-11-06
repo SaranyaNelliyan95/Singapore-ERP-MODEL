@@ -13,7 +13,13 @@
       </div>
     </header>
 
-    <app-demo-notice message="Leave entitlements and balances are simulated sample figures — not statutory entitlements." />
+    <app-demo-notice
+      [message]="
+        useBackend
+          ? 'API mode: leave requests persist to PostgreSQL. Balance cards still show demo figures until balance UI is wired to /leave/balances/me.'
+          : 'Leave entitlements and balances are simulated sample figures — not statutory entitlements.'
+      "
+    />
 
     <section class="balance-grid">
       @for (bal of ws().leaveBalances; track bal.type) {
@@ -102,7 +108,7 @@
       </div>
       <app-data-table
         [columns]="columns"
-        [rows]="ws().leaveRequests"
+        [rows]="displayRequests()"
         trackByKey="id"
         searchPlaceholder="Search leave requests…"
         [emptyState]="{ title: 'No leave history', description: 'Applications will appear here.' }"

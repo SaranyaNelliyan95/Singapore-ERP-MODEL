@@ -1,0 +1,15 @@
+# Angular app lives in a subfolder. Netlify must build it and publish
+# dist/<project>/browser — the repo root has no index.html.
+[build]
+  base = "ERP-EYOTA-APP-V0.0"
+  command = "npm run build"
+  publish = "dist/ERP-EYOTA-APP-V0.0/browser"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Client-side routes such as /login and /employee/* are not real files.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
