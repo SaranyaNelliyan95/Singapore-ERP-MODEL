@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import sg.eyota.workright.attendance.dto.AttendanceGpsPolicyDto;
 import sg.eyota.workright.attendance.dto.AttendanceSessionDto;
 import sg.eyota.workright.attendance.dto.ClockRequest;
 import sg.eyota.workright.security.SecurityUtils;
@@ -19,9 +20,20 @@ import sg.eyota.workright.security.WorkrightUserDetails;
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
+    private final AttendancePolicyService policyService;
 
-    public AttendanceController(AttendanceService attendanceService) {
+    public AttendanceController(
+            AttendanceService attendanceService,
+            AttendancePolicyService policyService
+    ) {
         this.attendanceService = attendanceService;
+        this.policyService = policyService;
+    }
+
+    /** Employees/HR read whether GPS is required before clocking. */
+    @GetMapping("/gps-policy")
+    public AttendanceGpsPolicyDto gpsPolicy() {
+        return policyService.getPolicy();
     }
 
     @PostMapping("/clock-in")

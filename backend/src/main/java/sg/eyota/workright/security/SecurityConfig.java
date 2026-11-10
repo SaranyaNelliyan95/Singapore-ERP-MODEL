@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/employee-activation/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/resend-otp").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/complete-registration").permitAll()
+                        // combined OTP+password activation (also under employee-activation/**)
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/forgot-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/auth/**").authenticated()

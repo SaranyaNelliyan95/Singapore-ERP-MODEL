@@ -1,0 +1,17 @@
+package sg.eyota.workright.onboarding.entity;
+
+public enum PipelineStatus {
+    DRAFT,
+    DOCUMENTS_PENDING,
+    APPLICATION_SUBMITTED,
+    IPA_APPROVED,
+    PRE_ARRIVAL_PENDING,
+    READY_FOR_TRAVEL,
+    ARRIVED_IN_SINGAPORE,
+    POST_ARRIVAL_PENDING,
+    WORK_PERMIT_ISSUED,
+    ONBOARDING_IN_PROGRESS,
+    READY_TO_WORK,
+    CANCELLED,
+    ON_HOLD
+}

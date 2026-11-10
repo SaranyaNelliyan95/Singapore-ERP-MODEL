@@ -25,6 +25,7 @@ public class EmployeeEntity extends AuditedEntity {
     public enum WorkLocationMode { OFFICE, HYBRID, REMOTE, SITE }
     public enum PaymentMode { BANKING, IN_HAND }
     public enum SalaryPeriod { HOURLY, DAILY, WEEKLY, FORTNIGHTLY, MONTHLY }
+    public enum OnboardingStage { OFFER, MOM_FORMS, MEDICAL, ORIENTATION, COMPLETED }
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -143,6 +144,29 @@ public class EmployeeEntity extends AuditedEntity {
     @Column(name = "invitation_email_status")
     private String invitationEmailStatus = "NOT_SENT";
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "onboarding_stage", columnDefinition = "onboarding_stage")
+    private OnboardingStage onboardingStage = OnboardingStage.OFFER;
+
+    @Column(name = "onboarding_progress", nullable = false)
+    private int onboardingProgress = 10;
+
+    /** MOM-aligned foreign / work-pass pipeline (synced with candidate_onboarding). */
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "pipeline_status", columnDefinition = "work_pass_pipeline_status")
+    private sg.eyota.workright.onboarding.entity.PipelineStatus pipelineStatus =
+            sg.eyota.workright.onboarding.entity.PipelineStatus.DRAFT;
+
+    @Column(name = "worker_category")
+    private String workerCategory;
+
+    @Column(name = "nationality_code")
+    private String nationalityCode;
+
+    private String sector;
+
     @Column(nullable = false)
     private boolean active = true;
 
@@ -224,6 +248,20 @@ public class EmployeeEntity extends AuditedEntity {
     public void setCreatedByUserId(UUID createdByUserId) { this.createdByUserId = createdByUserId; }
     public String getInvitationEmailStatus() { return invitationEmailStatus; }
     public void setInvitationEmailStatus(String invitationEmailStatus) { this.invitationEmailStatus = invitationEmailStatus; }
+    public OnboardingStage getOnboardingStage() { return onboardingStage; }
+    public void setOnboardingStage(OnboardingStage onboardingStage) { this.onboardingStage = onboardingStage; }
+    public int getOnboardingProgress() { return onboardingProgress; }
+    public void setOnboardingProgress(int onboardingProgress) { this.onboardingProgress = onboardingProgress; }
+    public sg.eyota.workright.onboarding.entity.PipelineStatus getPipelineStatus() { return pipelineStatus; }
+    public void setPipelineStatus(sg.eyota.workright.onboarding.entity.PipelineStatus pipelineStatus) {
+        this.pipelineStatus = pipelineStatus;
+    }
+    public String getWorkerCategory() { return workerCategory; }
+    public void setWorkerCategory(String workerCategory) { this.workerCategory = workerCategory; }
+    public String getNationalityCode() { return nationalityCode; }
+    public void setNationalityCode(String nationalityCode) { this.nationalityCode = nationalityCode; }
+    public String getSector() { return sector; }
+    public void setSector(String sector) { this.sector = sector; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
 }

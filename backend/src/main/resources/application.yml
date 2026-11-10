@@ -59,9 +59,12 @@ eyota:
     bootstrap-admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
   attendance:
     gps-mandatory-default: true
-    max-accuracy-metres: ${GPS_MAX_ACCURACY_METRES:50}
-    location-timeout-ms: 15000
+    # Browser GPS indoors is often 80-150 m; 50 m blocked legitimate office clock-ins.
+    max-accuracy-metres: ${GPS_MAX_ACCURACY_METRES:150}
+    location-timeout-ms: 20000
     default-geofence-radius-metres: 150
+  onboarding:
+    storage-dir: ${ONBOARDING_STORAGE_DIR:./data/onboarding-docs}
   enrollment:
     otp-ttl-minutes: ${ENROLLMENT_OTP_TTL_MINUTES:2}
     # Authoritative OTP window (defaults to 2 minutes)

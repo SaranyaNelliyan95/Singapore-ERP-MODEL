@@ -11,10 +11,12 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sg.eyota.workright.onboarding.OnboardingPipelineService;
 import sg.eyota.workright.auth.dto.AuthUserDto;
 import sg.eyota.workright.auth.dto.LoginResponse;
 import sg.eyota.workright.auth.entity.AppUserEntity;
@@ -62,6 +64,7 @@ public class EnrollmentService {
     private final EyotaProperties properties;
     private final MailProperties mailProperties;
     private final Clock clock;
+    private final OnboardingPipelineService onboardingPipelineService;
 
     public EnrollmentService(
             EmployeeRepository employeeRepository,
@@ -74,7 +77,8 @@ public class EnrollmentService {
             JwtService jwtService,
             EyotaProperties properties,
             MailProperties mailProperties,
-            Clock clock
+            Clock clock,
+            @Lazy OnboardingPipelineService onboardingPipelineService
     ) {
         this.employeeRepository = employeeRepository;
         this.appUserRepository = appUserRepository;
@@ -87,6 +91,7 @@ public class EnrollmentService {
         this.properties = properties;
         this.mailProperties = mailProperties;
         this.clock = clock;
+        this.onboardingPipelineService = onboardingPipelineService;
     }
 
     @Transactional
@@ -165,6 +170,8 @@ public class EnrollmentService {
         employee.setManagerEmployeeId(request.managerEmployeeId());
         employee.setCreatedByUserId(hrUserId);
         employee.setActive(true);
+        employee.setOnboardingStage(EmployeeEntity.OnboardingStage.OFFER);
+        employee.setOnboardingProgress(10);
         employee.setInvitationEmailStatus("SENDING");
         employee = employeeRepository.save(employee);
 
@@ -216,6 +223,52 @@ public class EnrollmentService {
         if (user.isActive()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request", "Account is already activated");
         }
+        return issueFreshInvitation(employee, user, hrUserId);
+    }
+
+    /**
+     * Ensures an inactive ESS login exists for the employee, then sends / resends the invitation email.
+     * Used by HR Onboarding activate / send-invite when the draft was created without a login yet.
+     */
+    @Transactional
+    public EnrollmentResponse provisionInvitation(UUID employeeId, String preferredEmail, UUID hrUserId) {
+        EmployeeEntity employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Employee not found"));
+        String email = preferredEmail != null && !preferredEmail.isBlank()
+                ? preferredEmail.trim().toLowerCase()
+                : employee.getPersonalEmail();
+        if (email == null || email.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request",
+                    "Work email is required to create an ESS login invitation");
+        }
+        email = EmployeeHireRules.normalizeEmail(email);
+
+        AppUserEntity user = appUserRepository.findByEmployeeId(employeeId).orElse(null);
+        if (user != null && user.isActive()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request", "Account is already activated");
+        }
+        if (user == null) {
+            if (appUserRepository.findByEmailIgnoreCase(email).isPresent()) {
+                throw new ApiException(HttpStatus.CONFLICT, "Conflict", "A login already exists for this email");
+            }
+            user = new AppUserEntity();
+            user.setEmail(email);
+            user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+            user.setRole(UserRole.EMPLOYEE);
+            user.setActive(false);
+            user.setEmployeeId(employee.getId());
+            user = appUserRepository.save(user);
+        } else if (!email.equalsIgnoreCase(user.getEmail())) {
+            AppUserEntity other = appUserRepository.findByEmailIgnoreCase(email).orElse(null);
+            if (other != null && !other.getId().equals(user.getId())) {
+                throw new ApiException(HttpStatus.CONFLICT, "Conflict", "A login already exists for this email");
+            }
+            user.setEmail(email);
+            appUserRepository.save(user);
+        }
+
+        employee.setPersonalEmail(email);
+        employeeRepository.save(employee);
         return issueFreshInvitation(employee, user, hrUserId);
     }
 
@@ -345,6 +398,11 @@ public class EnrollmentService {
         if (emp != null) {
             emp.setInvitationEmailStatus("ACCEPTED");
             employeeRepository.save(emp);
+            try {
+                onboardingPipelineService.markAccountActivated(emp.getId());
+            } catch (Exception ex) {
+                log.warn("Onboarding account-activated hook failed for {}: {}", emp.getId(), ex.getMessage());
+            }
         }
 
         String tokenJwt = jwtService.generateToken(user);
@@ -355,6 +413,15 @@ public class EnrollmentService {
                 emp != null ? emp.getEmployeeCode() : null,
                 emp != null ? emp.getFullName() : user.getEmail());
         return new LoginResponse(tokenJwt, "Bearer", jwtService.expirationMinutes(), dto);
+    }
+
+    /**
+     * Combined OTP verify + password set in one request (keeps separate endpoints intact).
+     */
+    @Transactional
+    public LoginResponse verifyOtpAndActivate(String invitationToken, String otp, String newPassword, String confirmPassword) {
+        VerifyOtpResponse verified = verifyOtpWithInvitationToken(invitationToken, otp);
+        return activate(new ActivateAccountRequest(verified.activationToken(), newPassword, confirmPassword));
     }
 
     /** Public resend-otp by email — re-sends invitation email (not OTP). */

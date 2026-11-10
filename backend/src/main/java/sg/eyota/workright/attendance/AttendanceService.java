@@ -5,7 +5,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,7 @@ public class AttendanceService {
     private final AttendanceRejectAuditRepository rejectAuditRepository;
     private final WorkplaceRepository workplaceRepository;
     private final EmployeeRepository employeeRepository;
+    private final AttendancePolicyService policyService;
     private final EyotaProperties properties;
     private final Clock clock;
     private final ZoneId businessZone;
@@ -40,6 +44,7 @@ public class AttendanceService {
             AttendanceRejectAuditRepository rejectAuditRepository,
             WorkplaceRepository workplaceRepository,
             EmployeeRepository employeeRepository,
+            AttendancePolicyService policyService,
             EyotaProperties properties,
             Clock clock
     ) {
@@ -47,6 +52,7 @@ public class AttendanceService {
         this.rejectAuditRepository = rejectAuditRepository;
         this.workplaceRepository = workplaceRepository;
         this.employeeRepository = employeeRepository;
+        this.policyService = policyService;
         this.properties = properties;
         this.clock = clock;
         this.businessZone = ZoneId.of(properties.timezone() != null ? properties.timezone() : "Asia/Singapore");
@@ -55,106 +61,141 @@ public class AttendanceService {
     @Transactional
     public AttendanceSessionDto clockIn(UUID employeeId, ClockRequest request) {
         EmployeeEntity employee = requireEmployee(employeeId);
-        validateCoordinates(request);
-        validateAccuracy(request.accuracyMetres());
+        boolean gpsMandatory = policyService.isGpsMandatory();
+        requireLocationWhenMandatory(request, gpsMandatory);
 
         LocalDate today = LocalDate.now(clock.withZone(businessZone));
         sessionRepository.findByEmployeeIdAndAttendanceDate(employeeId, today).ifPresent(existing -> {
-            if (existing.getStatus() == AttendanceSessionEntity.SessionStatus.OPEN) {
+            if (existing.getClockInAt() != null) {
                 throw new ApiException(HttpStatus.CONFLICT, "Conflict",
-                        "Already clocked in — clock out before starting a new session");
+                        "Already clocked in for today — only one clock-in is allowed per day");
             }
         });
 
-        WorkplaceEntity workplace = resolveWorkplace(employee, request.workplaceId());
+        WorkplaceEntity workplace = resolveWorkplace(employee, request.workplaceId(), gpsMandatory);
         AttendanceSessionEntity.WorkMode workMode = request.workMode() != null
                 ? request.workMode()
                 : AttendanceSessionEntity.WorkMode.OFFICE;
 
-        AttendanceGeofenceEvaluator.GeofenceEvaluation geo = AttendanceGeofenceEvaluator.evaluate(
-                workplace, request.latitude(), request.longitude(), workMode);
-        if (geo.rejected()) {
-            recordReject(employeeId, request, workplace.getId(), "GEOFENCE_OUTSIDE",
-                    "Clock-in outside geofence for mandatory GPS workplace");
-            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Unprocessable Entity",
-                    "Clock-in rejected: outside workplace geofence");
+        AttendanceGeofenceEvaluator.GeofenceEvaluation geo;
+        if (!gpsMandatory || request.latitude() == null || request.longitude() == null || workplace == null) {
+            geo = new AttendanceGeofenceEvaluator.GeofenceEvaluation(
+                    AttendanceSessionEntity.GeofenceResult.SKIPPED, 0, false);
+        } else {
+            validateAccuracy(request.accuracyMetres());
+            geo = AttendanceGeofenceEvaluator.evaluate(
+                    workplace, request.latitude(), request.longitude(), workMode);
+            if (geo.rejected()) {
+                recordReject(employeeId, request, workplace.getId(), "GEOFENCE_OUTSIDE",
+                        "Clock-in outside geofence for mandatory GPS workplace");
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Unprocessable Entity",
+                        "Clock-in rejected: outside workplace geofence");
+            }
         }
 
         Instant serverNow = Instant.now(clock);
         AttendanceSessionEntity session = sessionRepository.findByEmployeeIdAndAttendanceDate(employeeId, today)
                 .orElseGet(AttendanceSessionEntity::new);
         session.setEmployeeId(employeeId);
-        session.setWorkplaceId(workplace.getId());
+        session.setWorkplaceId(workplace != null ? workplace.getId() : null);
         session.setAttendanceDate(today);
         session.setClockInAt(serverNow);
-        session.setClockInLat(request.latitude());
-        session.setClockInLng(request.longitude());
-        session.setClockInAccuracy(request.accuracyMetres());
+        if (gpsMandatory && request.latitude() != null) {
+            session.setClockInLat(request.latitude());
+            session.setClockInLng(request.longitude());
+            session.setClockInAccuracy(request.accuracyMetres());
+        } else {
+            session.setClockInLat(null);
+            session.setClockInLng(null);
+            session.setClockInAccuracy(null);
+        }
         session.setGeofenceResult(geo.result());
-        session.setDistanceMetres(geo.distanceMetres());
+        session.setDistanceMetres(geo.distanceMetres() > 0 ? geo.distanceMetres() : null);
         session.setStatus(AttendanceSessionEntity.SessionStatus.OPEN);
         session.setWorkMode(workMode);
         if (request.clientCapturedAt() != null) {
             session.setClientCapturedInAt(request.clientCapturedAt().toInstant());
         }
-        return AttendanceSessionDto.from(sessionRepository.save(session));
+        return toDto(sessionRepository.save(session), employee);
     }
 
     @Transactional
     public AttendanceSessionDto clockOut(UUID employeeId, ClockRequest request) {
-        requireEmployee(employeeId);
-        validateCoordinates(request);
-        validateAccuracy(request.accuracyMetres());
+        EmployeeEntity employee = requireEmployee(employeeId);
+        boolean gpsMandatory = policyService.isGpsMandatory();
+        requireLocationWhenMandatory(request, gpsMandatory);
 
         LocalDate today = LocalDate.now(clock.withZone(businessZone));
         AttendanceSessionEntity session = sessionRepository.findByEmployeeIdAndAttendanceDate(employeeId, today)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Bad Request",
-                        "No open attendance session for today"));
+                        "No clock-in found for today — clock in first"));
+        if (session.getStatus() == AttendanceSessionEntity.SessionStatus.CLOSED
+                || session.getClockOutAt() != null) {
+            throw new ApiException(HttpStatus.CONFLICT, "Conflict",
+                    "Already clocked out for today — only one clock-out is allowed per day");
+        }
         if (session.getStatus() != AttendanceSessionEntity.SessionStatus.OPEN) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request", "No open session to clock out");
         }
 
-        WorkplaceEntity workplace = workplaceRepository.findById(session.getWorkplaceId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Workplace not found"));
+        WorkplaceEntity workplace = null;
+        if (session.getWorkplaceId() != null) {
+            workplace = workplaceRepository.findById(session.getWorkplaceId()).orElse(null);
+        }
         AttendanceSessionEntity.WorkMode workMode = session.getWorkMode() != null
                 ? session.getWorkMode()
                 : AttendanceSessionEntity.WorkMode.OFFICE;
 
-        AttendanceGeofenceEvaluator.GeofenceEvaluation geo = AttendanceGeofenceEvaluator.evaluate(
-                workplace, request.latitude(), request.longitude(), workMode);
-        if (geo.rejected()) {
-            recordReject(employeeId, request, workplace.getId(), "GEOFENCE_OUTSIDE",
-                    "Clock-out outside geofence for mandatory GPS workplace");
-            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Unprocessable Entity",
-                    "Clock-out rejected: outside workplace geofence");
+        AttendanceGeofenceEvaluator.GeofenceEvaluation geo;
+        if (!gpsMandatory || request.latitude() == null || request.longitude() == null || workplace == null) {
+            geo = new AttendanceGeofenceEvaluator.GeofenceEvaluation(
+                    AttendanceSessionEntity.GeofenceResult.SKIPPED, 0, false);
+        } else {
+            validateAccuracy(request.accuracyMetres());
+            geo = AttendanceGeofenceEvaluator.evaluate(
+                    workplace, request.latitude(), request.longitude(), workMode);
+            if (geo.rejected()) {
+                recordReject(employeeId, request, workplace.getId(), "GEOFENCE_OUTSIDE",
+                        "Clock-out outside geofence for mandatory GPS workplace");
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Unprocessable Entity",
+                        "Clock-out rejected: outside workplace geofence");
+            }
         }
 
         Instant serverNow = Instant.now(clock);
         session.setClockOutAt(serverNow);
-        session.setClockOutLat(request.latitude());
-        session.setClockOutLng(request.longitude());
-        session.setClockOutAccuracy(request.accuracyMetres());
+        if (gpsMandatory && request.latitude() != null) {
+            session.setClockOutLat(request.latitude());
+            session.setClockOutLng(request.longitude());
+            session.setClockOutAccuracy(request.accuracyMetres());
+        } else {
+            session.setClockOutLat(null);
+            session.setClockOutLng(null);
+            session.setClockOutAccuracy(null);
+        }
         session.setGeofenceResult(geo.result());
-        session.setDistanceMetres(geo.distanceMetres());
+        session.setDistanceMetres(geo.distanceMetres() > 0 ? geo.distanceMetres() : null);
         session.setStatus(AttendanceSessionEntity.SessionStatus.CLOSED);
         if (request.clientCapturedAt() != null) {
             session.setClientCapturedOutAt(request.clientCapturedAt().toInstant());
         }
-        return AttendanceSessionDto.from(sessionRepository.save(session));
+        return toDto(sessionRepository.save(session), employee);
     }
 
     @Transactional(readOnly = true)
     public List<AttendanceSessionDto> myHistory(UUID employeeId) {
+        EmployeeEntity employee = requireEmployee(employeeId);
         return sessionRepository.findByEmployeeIdOrderByAttendanceDateDesc(employeeId).stream()
-                .map(AttendanceSessionDto::from)
+                .map(s -> toDto(s, employee))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public AttendanceSessionDto myToday(UUID employeeId) {
         LocalDate today = LocalDate.now(clock.withZone(businessZone));
+        EmployeeEntity employee = requireEmployee(employeeId);
         return sessionRepository.findByEmployeeIdAndAttendanceDate(employeeId, today)
-                .map(AttendanceSessionDto::from)
+                .map(s -> toDto(s, employee))
                 .orElse(null);
     }
 
@@ -162,8 +203,14 @@ public class AttendanceService {
     public List<AttendanceSessionDto> hrList(LocalDate from, LocalDate to) {
         LocalDate start = from != null ? from : LocalDate.now(businessZone).minusDays(30);
         LocalDate end = to != null ? to : LocalDate.now(businessZone);
-        return sessionRepository.findByAttendanceDateBetweenOrderByAttendanceDateDesc(start, end).stream()
-                .map(AttendanceSessionDto::from)
+        List<AttendanceSessionEntity> sessions =
+                sessionRepository.findByAttendanceDateBetweenOrderByAttendanceDateDesc(start, end);
+        Map<UUID, EmployeeEntity> employees = employeeRepository.findAllById(
+                        sessions.stream().map(AttendanceSessionEntity::getEmployeeId).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(EmployeeEntity::getId, Function.identity()));
+        return sessions.stream()
+                .map(s -> toDto(s, employees.get(s.getEmployeeId())))
                 .toList();
     }
 
@@ -184,36 +231,71 @@ public class AttendanceService {
         } else if (session.getClockInAt() != null) {
             session.setStatus(AttendanceSessionEntity.SessionStatus.OPEN);
         }
-        return AttendanceSessionDto.from(sessionRepository.save(session));
+        EmployeeEntity employee = employeeRepository.findById(session.getEmployeeId()).orElse(null);
+        return toDto(sessionRepository.save(session), employee);
     }
 
-    private WorkplaceEntity resolveWorkplace(EmployeeEntity employee, UUID requestedWorkplaceId) {
+    private AttendanceSessionDto toDto(AttendanceSessionEntity session, EmployeeEntity employee) {
+        String name = employee != null ? employee.getFullName() : null;
+        String code = employee != null ? employee.getEmployeeCode() : null;
+        return AttendanceSessionDto.from(session, name, code);
+    }
+
+    /**
+     * Resolves workplace for geofencing. When GPS is Off, workplace is optional so employees
+     * without an assigned site can still clock in.
+     */
+    private WorkplaceEntity resolveWorkplace(
+            EmployeeEntity employee,
+            UUID requestedWorkplaceId,
+            boolean gpsMandatory
+    ) {
         UUID workplaceId = requestedWorkplaceId != null ? requestedWorkplaceId : employee.getWorkplaceId();
-        if (workplaceId == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request", "Workplace could not be resolved");
+        if (workplaceId != null) {
+            WorkplaceEntity workplace = workplaceRepository.findById(workplaceId)
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Workplace not found"));
+            if (!workplace.isActive()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request", "Workplace is inactive");
+            }
+            return workplace;
         }
-        WorkplaceEntity workplace = workplaceRepository.findById(workplaceId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Not Found", "Workplace not found"));
-        if (!workplace.isActive()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request", "Workplace is inactive");
+
+        // Prefer any active HQ/default workplace so GPS-on clocking still works after enrollment
+        List<WorkplaceEntity> active = workplaceRepository.findByActiveTrue();
+        if (!active.isEmpty()) {
+            return active.getFirst();
         }
-        return workplace;
+
+        if (!gpsMandatory) {
+            // GPS Off: allow punch with no workplace row
+            return null;
+        }
+        throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request",
+                "Workplace could not be resolved — assign a workplace to the employee or create an active workplace");
     }
 
-    private void validateCoordinates(ClockRequest request) {
+    private void requireLocationWhenMandatory(ClockRequest request, boolean gpsMandatory) {
+        if (!gpsMandatory) {
+            return;
+        }
+        if (request.latitude() == null || request.longitude() == null || request.accuracyMetres() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request",
+                    "GPS location is required — Admin has GPS attendance turned On");
+        }
         if (request.latitude() < -90 || request.latitude() > 90
                 || request.longitude() < -180 || request.longitude() > 180) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request", "Invalid GPS coordinates");
         }
     }
 
-    private void validateAccuracy(double accuracyMetres) {
-        if (accuracyMetres <= 0) {
+    private void validateAccuracy(Double accuracyMetres) {
+        if (accuracyMetres == null || accuracyMetres <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Bad Request", "GPS accuracy must be positive");
         }
         if (accuracyMetres > properties.attendance().maxAccuracyMetres()) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Unprocessable Entity",
-                    "GPS accuracy too low (max " + properties.attendance().maxAccuracyMetres() + "m)");
+                    "GPS accuracy too low (max " + properties.attendance().maxAccuracyMetres() + "m). "
+                            + "Move outdoors or wait for a better fix, then retry.");
         }
     }
 

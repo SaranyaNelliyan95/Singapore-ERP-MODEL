@@ -142,6 +142,17 @@ public class EmployeeCascadeDeleteService {
         deleteByEmployeeId("payslips", employeeId);
         deleteByEmployeeId("documents", employeeId);
         deleteByEmployeeId("employee_salary_history", employeeId);
+        // Foreign / work-pass onboarding (candidate_onboarding cascades children via FK)
+        deleteByEmployeeId("onboarding_audit_logs", employeeId);
+        deleteByEmployeeId("employee_acknowledgements", employeeId);
+        deleteByEmployeeId("ppe_issuance", employeeId);
+        deleteByEmployeeId("work_pass_records", employeeId);
+        deleteByEmployeeId("onboarding_appointments", employeeId);
+        deleteByEmployeeId("arrival_records", employeeId);
+        deleteByEmployeeId("onboarding_tasks", employeeId);
+        deleteByEmployeeId("onboarding_documents", employeeId);
+        deleteByEmployeeId("work_pass_applications", employeeId);
+        deleteByEmployeeId("candidate_onboarding", employeeId);
 
         if (linkedUser != null) {
             appUserRepository.delete(linkedUser);

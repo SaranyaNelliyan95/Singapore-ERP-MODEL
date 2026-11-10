@@ -23,8 +23,8 @@ eyota:
     bootstrap-admin-password:
   attendance:
     gps-mandatory-default: true
-    max-accuracy-metres: 50
-    location-timeout-ms: 15000
+    max-accuracy-metres: 150
+    location-timeout-ms: 20000
     default-geofence-radius-metres: 150
   enrollment:
     otp-ttl-minutes: 10

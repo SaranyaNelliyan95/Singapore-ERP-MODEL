@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sg.eyota.workright.auth.dto.LoginResponse;
 import sg.eyota.workright.enrollment.dto.ActivateAccountRequest;
+import sg.eyota.workright.enrollment.dto.CompleteActivationRequest;
 import sg.eyota.workright.enrollment.dto.EnrollmentResponse;
 import sg.eyota.workright.enrollment.dto.ResendOtpRequest;
 import sg.eyota.workright.enrollment.dto.SendActivationOtpRequest;
@@ -45,6 +46,13 @@ public class ActivationController {
     @PostMapping({"/employee-activation/create-password", "/activate/complete", "/complete-registration"})
     public LoginResponse createPassword(@Valid @RequestBody ActivateAccountRequest request) {
         return enrollmentService.activate(request);
+    }
+
+    /** Combined OTP + password in one call (step-by-step endpoints remain available). */
+    @PostMapping("/employee-activation/complete")
+    public LoginResponse completeCombined(@Valid @RequestBody CompleteActivationRequest request) {
+        return enrollmentService.verifyOtpAndActivate(
+                request.token(), request.otp(), request.newPassword(), request.confirmPassword());
     }
 
     /** Legacy: email + OTP (prefer token-based employee-activation APIs). */
