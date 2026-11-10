@@ -39,6 +39,12 @@ const MASTER_CHILDREN: Routes = [
     data: { title: 'My Documents' },
   },
   {
+    path: 'onboarding',
+    loadComponent: () =>
+      import('./pages/onboarding/employee-onboarding').then((m) => m.EmployeeOnboardingPage),
+    data: { title: 'My Onboarding' },
+  },
+  {
     path: 'claims',
     loadComponent: () =>
       import('./pages/claims/employee-claims').then((m) => m.EmployeeClaimsPage),

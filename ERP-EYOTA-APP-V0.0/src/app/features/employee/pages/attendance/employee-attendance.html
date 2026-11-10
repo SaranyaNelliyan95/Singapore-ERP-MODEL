@@ -8,8 +8,12 @@
         <h1>Your time log</h1>
         <p class="ess-sub">
           @if (useBackend) {
-            GPS-verified clock-in/out against your assigned workplace. Location is requested only
-            when you clock; the app cannot enable device GPS remotely. Use HTTPS or localhost.
+            One clock-in and one clock-out per day.
+            @if (gpsMandatory()) {
+              GPS is <strong>On</strong> (Admin) — location is required when you punch.
+            } @else {
+              GPS is <strong>Off</strong> (Admin) — location is not captured.
+            }
           } @else {
             Demo mock clocking. Set <code>environment.useBackendApi = true</code> and start the
             Spring Boot API for real GPS + PostgreSQL persistence.
@@ -25,7 +29,7 @@
     <app-demo-notice
       [message]="
         useBackend
-          ? 'GPS attendance writes to PostgreSQL via /api/v1/attendance. Browser location is not tamper-proof.'
+          ? 'Attendance writes to PostgreSQL via /api/v1/attendance. Browser GPS is not tamper-proof.'
           : 'Attendance punches are simulated local mock data until backend API mode is enabled.'
       "
     />
@@ -47,26 +51,29 @@
           <button type="button" class="ess-btn ghost" (click)="toggleGps()" [disabled]="locating()">
             GPS {{ ws().clock.gpsEnabled ? 'On' : 'Off' }} (simulated)
           </button>
+        } @else {
+          <span class="gps-pill" [class.on]="gpsMandatory()" [class.off]="!gpsMandatory()">
+            GPS {{ gpsMandatory() ? 'On' : 'Off' }}
+          </span>
         }
         <button
           type="button"
           class="ess-btn primary"
           (click)="clockIn()"
-          [disabled]="locating()"
+          [disabled]="locating() || (useBackend && !canClockIn())"
         >
-          {{ locating() ? 'Getting GPS…' : 'Clock in' }}
+          {{ locating() && gpsMandatory() ? 'Getting GPS…' : locating() ? 'Saving…' : 'Clock in' }}
         </button>
-        <button type="button" class="ess-btn ghost" (click)="clockOut()" [disabled]="locating()">
+        <button
+          type="button"
+          class="ess-btn ghost"
+          (click)="clockOut()"
+          [disabled]="locating() || (useBackend && !canClockOut())"
+        >
           Clock out
         </button>
       </div>
       <p class="session">Session: {{ displaySession() }}</p>
-      @if (useBackend) {
-        <p class="session hint">
-          Enable location permission when prompted. WFH only works if your workplace policy allows
-          it — it is not an automatic GPS bypass.
-        </p>
-      }
     </section>
 
     <section class="ess-panel">

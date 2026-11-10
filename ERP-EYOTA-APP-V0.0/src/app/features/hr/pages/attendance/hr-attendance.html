@@ -7,38 +7,47 @@
         <p class="hr-eyebrow">Time &amp; Attendance Monitoring</p>
         <h1>Company-wide clock log</h1>
         <p class="ess-sub">
-          Includes punches created by employees in Self-Service. Approve overtime hours with one
-          click.
+          @if (useBackend) {
+            Live punches from PostgreSQL with GPS coordinates when Admin GPS policy is On.
+          } @else {
+            Includes punches created by employees in Self-Service (demo mock).
+          }
         </p>
       </div>
     </header>
 
     <app-demo-notice
-      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Overtime approvals are simulated only."
+      [message]="
+        useBackend
+          ? 'HR attendance list is read from /api/v1/hr/attendance.'
+          : 'DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Overtime approvals are simulated only.'
+      "
     />
 
-    <section class="ess-panel">
-      <div class="ess-panel-head">
-        <h2>Approve overtime</h2>
-      </div>
-      @if (otPending().length === 0) {
-        <p class="empty">No pending overtime rows.</p>
-      } @else {
-        <div class="ot-list">
-          @for (row of otPending(); track row.id) {
-            <div class="ot-row">
-              <div>
-                <strong>{{ row.employeeName }}</strong>
-                <p>{{ row.date }} · {{ row.otHours }}h · {{ row.location }}</p>
-              </div>
-              <button type="button" class="ess-btn primary" (click)="approveOt(row)">
-                Approve overtime hours
-              </button>
-            </div>
-          }
+    @if (!useBackend) {
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Approve overtime</h2>
         </div>
-      }
-    </section>
+        @if (otPending().length === 0) {
+          <p class="empty">No pending overtime rows.</p>
+        } @else {
+          <div class="ot-list">
+            @for (row of otPending(); track row.id) {
+              <div class="ot-row">
+                <div>
+                  <strong>{{ row.employeeName }}</strong>
+                  <p>{{ row.date }} · {{ row.otHours }}h · {{ row.location }}</p>
+                </div>
+                <button type="button" class="ess-btn primary" (click)="approveOt(row)">
+                  Approve overtime hours
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
 
     <section class="ess-panel">
       <div class="ess-panel-head">

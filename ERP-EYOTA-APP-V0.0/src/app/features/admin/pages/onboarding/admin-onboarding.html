@@ -1,0 +1,87 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading onboarding oversight…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">Admin oversight</p>
+        <h1>Onboarding pipeline mirror</h1>
+        <p class="ess-sub">
+          Read-only reflection of the HR foreign-employee / work-pass onboarding process. Mutations
+          stay in HR Operations.
+        </p>
+      </div>
+      <a routerLink="/hr/master/onboarding" class="ess-btn primary">Open HR onboarding</a>
+    </header>
+
+    @if (!useBackend) {
+      <p class="empty">Enable backend API to view live onboarding status.</p>
+    } @else {
+      @if (summary(); as s) {
+        <section class="stat-row">
+          <article class="stat-card"><span>In pipeline</span><strong>{{ s.totalActive }}</strong></article>
+          <article class="stat-card"><span>Docs / draft</span><strong>{{ s.offerCount }}</strong></article>
+          <article class="stat-card"><span>Application / IPA</span><strong>{{ s.momFormsCount }}</strong></article>
+          <article class="stat-card"><span>Travel / arrival</span><strong>{{ s.medicalCount }}</strong></article>
+          <article class="stat-card"><span>WP / onboard</span><strong>{{ s.orientationCount }}</strong></article>
+        </section>
+      }
+
+      <div class="layout">
+        <section class="ess-panel">
+          <div class="ess-panel-head"><h2>Candidates</h2></div>
+          @if (candidates().length === 0) {
+            <p class="empty">No active onboarding candidates.</p>
+          } @else {
+            <div class="queue">
+              @for (row of candidates(); track row.id) {
+                <button type="button" class="row" (click)="select(row)">
+                  <strong>{{ row.employeeCode }} · {{ row.candidateName }}</strong>
+                  <span>{{ row.workPassType }} · {{ formatDate(row.startDate) }}</span>
+                  <app-status-badge [label]="row.stage" [tone]="tone(row.pipelineStatus || row.stage)" />
+                </button>
+              }
+            </div>
+          }
+        </section>
+
+        @if (detail(); as d) {
+          <section class="ess-panel">
+            <div class="ess-panel-head">
+              <h2>{{ d.candidateName }}</h2>
+              <app-status-badge [label]="d.pipelineStatus" [tone]="tone(d.pipelineStatus)" />
+            </div>
+            <p>{{ d.employeeCode }} · {{ d.personalEmail }} · Account {{ d.accountStatus }}</p>
+            <p>Progress {{ d.checklistProgress }}% · Invite {{ d.invitationEmailStatus }}</p>
+            <h3>Tasks</h3>
+            <ul>
+              @for (t of d.tasks; track t.id) {
+                <li>{{ t.title }} — {{ t.status }}</li>
+              }
+            </ul>
+            <h3>Documents ({{ d.documents.length }})</h3>
+            <ul>
+              @for (doc of d.documents; track doc.id) {
+                <li>{{ doc.docType }} · {{ doc.fileName }}</li>
+              }
+            </ul>
+            @if (d.readinessGates.length) {
+              <h3>Blockers</h3>
+              <ul>
+                @for (g of d.readinessGates; track g) {
+                  <li>{{ g }}</li>
+                }
+              </ul>
+            }
+            <h3>Recent audit</h3>
+            <ul>
+              @for (a of d.auditLogs.slice(0, 10); track a.createdAt + a.action) {
+                <li>{{ a.action }}: {{ a.fromStatus }} → {{ a.toStatus }}</li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+    }
+  </div>
+}

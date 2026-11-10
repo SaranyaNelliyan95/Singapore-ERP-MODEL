@@ -166,25 +166,73 @@ input:focus {
   font-size: 0.84rem;
 }
 
-button[type='submit'] {
-  margin-top: 0.25rem;
-  border: 0;
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.action-row .ess-btn {
+  flex: 1 1 140px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.ess-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-md);
-  background: var(--primary);
-  color: #fff;
+  padding: 0.8rem 1rem;
+  font: inherit;
   font-weight: 650;
-  padding: 0.85rem 1rem;
+  font-size: 0.92rem;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-button[type='submit']:hover:not(:disabled) {
+.ess-btn.primary {
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: #fff;
+}
+
+.ess-btn.primary:hover:not(:disabled) {
   background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  box-shadow: var(--shadow-card);
 }
 
-button[type='submit']:disabled {
-  opacity: 0.65;
-  cursor: wait;
+.ess-btn.ghost {
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.ess-btn.ghost:hover:not(:disabled) {
+  background: var(--surface-blue);
+  border-color: var(--brand-blue);
+  color: var(--primary);
+}
+
+.ess-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.activate-link {
+  margin-top: 1rem;
+}
+
+.activate-link a {
+  color: var(--primary);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.activate-link a:hover {
+  text-decoration: underline;
 }
 
 .demo {

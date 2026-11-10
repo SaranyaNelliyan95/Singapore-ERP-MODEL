@@ -18,15 +18,17 @@
         @if (formError()) {
           <div class="banner" role="alert">{{ formError() }}</div>
         }
-        <a routerLink="/login" class="ess-btn primary">Go to Login</a>
+        <div class="action-row">
+          <a routerLink="/login" class="ess-btn primary">Go to Login</a>
+        </div>
       }
 
       @if (step() === 'landing') {
         <p class="welcome">Employee account activation</p>
         <h2>Welcome to Eyota Pvt. Ltd.</h2>
         <p class="hint">
-          Congratulations on your enrollment. Send a one-time password (OTP) to your registered email
-          to continue, or cancel to return to sign in.
+          We could not send the OTP automatically. Click below to send a verification code to your
+          registered email.
         </p>
         @if (employeeName()) {
           <p class="hint"><strong>{{ employeeName() }}</strong></p>
@@ -38,21 +40,26 @@
         @if (info()) {
           <div class="banner ok" role="status">{{ info() }}</div>
         }
-        <button type="button" class="ess-btn primary" [disabled]="submitting()" (click)="sendOtp()">
-          {{ submitting() ? 'Sending…' : 'Send OTP' }}
-        </button>
-        <button type="button" class="ess-btn ghost" [disabled]="submitting()" (click)="cancel()">
-          Cancel
-        </button>
+        <div class="action-row">
+          <button type="button" class="ess-btn primary" [disabled]="submitting()" (click)="sendOtp()">
+            {{ submitting() ? 'Sending…' : 'Send OTP' }}
+          </button>
+          <button type="button" class="ess-btn ghost" [disabled]="submitting()" (click)="cancel()">
+            Cancel
+          </button>
+        </div>
       }
 
       @if (step() === 'otp') {
-        <p class="welcome">Step 2 of 3</p>
+        <p class="welcome">Step 1 of 2</p>
         <h2>Verify Your Email</h2>
         <p class="hint">
           We sent a 6-digit OTP to {{ maskedEmail() }}. Copy it from your email and paste it below
           (valid for 2 minutes).
         </p>
+        @if (employeeName()) {
+          <p class="hint"><strong>{{ employeeName() }}</strong></p>
+        }
         <p class="hint">
           @if (secondsLeft() > 0) {
             Code expires in {{ secondsLeft() }}s
@@ -77,25 +84,27 @@
           @if (info()) {
             <div class="banner ok" role="status">{{ info() }}</div>
           }
-          <button type="submit" class="ess-btn primary" [disabled]="submitting() || secondsLeft() === 0">
-            {{ submitting() ? 'Verifying…' : 'Verify OTP' }}
-          </button>
-          <button
-            type="button"
-            class="ess-btn ghost"
-            [disabled]="submitting() || cooldownLeft() > 0"
-            (click)="sendOtp()"
-          >
-            {{ cooldownLeft() > 0 ? 'Resend in ' + cooldownLeft() + 's' : 'Resend OTP' }}
-          </button>
-          <button type="button" class="ess-btn ghost" (click)="cancel()">Cancel</button>
+          <div class="action-row">
+            <button type="submit" class="ess-btn primary" [disabled]="submitting() || secondsLeft() === 0">
+              {{ submitting() ? 'Verifying…' : 'Verify OTP' }}
+            </button>
+            <button
+              type="button"
+              class="ess-btn ghost"
+              [disabled]="submitting() || cooldownLeft() > 0"
+              (click)="sendOtp()"
+            >
+              {{ cooldownLeft() > 0 ? 'Resend in ' + cooldownLeft() + 's' : 'Resend OTP' }}
+            </button>
+            <button type="button" class="ess-btn ghost" (click)="cancel()">Cancel</button>
+          </div>
         </form>
       }
 
       @if (step() === 'password') {
-        <p class="welcome">Step 3 of 3</p>
+        <p class="welcome">Step 2 of 2</p>
         <h2>Create Your Employee Account Password</h2>
-        <p class="hint">Choose a password, confirm it, then continue to login.</p>
+        <p class="hint">Choose a password, confirm it, then continue to employee login.</p>
         <form [formGroup]="passwordForm" (ngSubmit)="complete()" novalidate>
           <label>
             <div class="label-row">
@@ -121,18 +130,15 @@
           @if (formError()) {
             <div class="banner" role="alert">{{ formError() }}</div>
           }
-          <button type="submit" class="ess-btn primary" [disabled]="submitting()">
-            {{ submitting() ? 'Creating…' : 'Create password' }}
-          </button>
+          <div class="action-row">
+            <button type="submit" class="ess-btn primary" [disabled]="submitting()">
+              {{ submitting() ? 'Creating…' : 'Create password' }}
+            </button>
+            <button type="button" class="ess-btn ghost" [disabled]="submitting()" (click)="cancel()">
+              Cancel
+            </button>
+          </div>
         </form>
-      }
-
-      @if (step() === 'success') {
-        <h2>Account activated</h2>
-        <p class="hint">
-          Your employee account has been activated successfully. Use Login to sign in to Eyota HR ERP.
-        </p>
-        <button type="button" class="ess-btn primary" (click)="goToLogin()">Login</button>
       }
     </div>
   </section>

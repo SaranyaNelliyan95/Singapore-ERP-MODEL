@@ -48,7 +48,57 @@ export class GeolocationService {
     }
   }
 
-  getCurrentPosition(): Promise<GeoPosition> {
+  /**
+   * Reads GPS with a few retries so indoor/Wi‑Fi fixes can improve before we reject accuracy.
+   */
+  async getCurrentPosition(options?: { maxAccuracyMetres?: number }): Promise<GeoPosition> {
+    const maxAccuracy = options?.maxAccuracyMetres ?? environment.gps.maxAccuracyMetres;
+    const attempts = Math.max(1, environment.gps.retryAttempts ?? 1);
+    const delayMs = environment.gps.retryDelayMs ?? 1000;
+
+    let lastError: GeoLocationError | null = null;
+    let best: GeoPosition | null = null;
+
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const position = await this.readOnce();
+        if (!best || position.accuracyMetres < best.accuracyMetres) {
+          best = position;
+        }
+        if (position.accuracyMetres <= maxAccuracy) {
+          return position;
+        }
+        lastError = new GeoLocationError(
+          'INACCURATE',
+          `Location accuracy is ±${Math.round(position.accuracyMetres)} m (max ${maxAccuracy} m). Move outdoors or wait for a better GPS fix, then retry.`,
+        );
+      } catch (err) {
+        if (err instanceof GeoLocationError && err.code !== 'INACCURATE') {
+          throw err;
+        }
+        lastError =
+          err instanceof GeoLocationError
+            ? err
+            : new GeoLocationError('UNKNOWN', 'Unable to read location.');
+      }
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+    }
+
+    if (best && best.accuracyMetres <= maxAccuracy) {
+      return best;
+    }
+    throw (
+      lastError ??
+      new GeoLocationError(
+        'INACCURATE',
+        `Location accuracy is too low (max ${maxAccuracy} m). Move outdoors or wait for a better GPS fix, then retry.`,
+      )
+    );
+  }
+
+  private readOnce(): Promise<GeoPosition> {
     return new Promise((resolve, reject) => {
       if (!this.isSupported()) {
         reject(
@@ -62,23 +112,10 @@ export class GeolocationService {
 
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const accuracy = pos.coords.accuracy;
-          if (
-            accuracy != null &&
-            accuracy > environment.gps.maxAccuracyMetres
-          ) {
-            reject(
-              new GeoLocationError(
-                'INACCURATE',
-                `Location accuracy is ±${Math.round(accuracy)} m (max ${environment.gps.maxAccuracyMetres} m). Move outdoors or wait for a better GPS fix, then retry.`,
-              ),
-            );
-            return;
-          }
           resolve({
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
-            accuracyMetres: accuracy ?? 999,
+            accuracyMetres: pos.coords.accuracy ?? 999,
             capturedAt: new Date(pos.timestamp).toISOString(),
           });
         },

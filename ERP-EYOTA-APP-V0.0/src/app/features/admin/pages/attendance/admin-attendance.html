@@ -1,0 +1,73 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading attendance controls…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="ess-eyebrow">Attendance policy</p>
+        <h1>Attendance &amp; GPS</h1>
+        <p class="ess-sub">
+          Company-wide GPS requirement for employee clock-in and clock-out, plus the live attendance
+          register.
+        </p>
+      </div>
+    </header>
+
+    @if (!useBackend) {
+      <p class="banner">Enable <code>useBackendApi</code> and start Spring Boot to manage GPS policy.</p>
+    } @else {
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>GPS location requirement</h2>
+        </div>
+        <div class="policy-row">
+          <div>
+            <p class="policy-status">
+              Current:
+              <strong [class.on]="gpsMandatory()" [class.off]="!gpsMandatory()">
+                {{ gpsMandatory() ? 'On — GPS required' : 'Off — GPS not required' }}
+              </strong>
+            </p>
+            <p class="policy-help">
+              <strong>On:</strong> employees must share location when clocking; coordinates are saved.
+              <br />
+              <strong>Off:</strong> employees clock without GPS; location is not captured.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="ess-btn primary"
+            [disabled]="saving()"
+            (click)="requestToggle()"
+          >
+            {{ gpsMandatory() ? 'Turn GPS Off' : 'Turn GPS On' }}
+          </button>
+        </div>
+      </section>
+
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Attendance register</h2>
+        </div>
+        <app-data-table
+          [columns]="columns"
+          [rows]="rows()"
+          trackByKey="id"
+          [pageSize]="10"
+          searchPlaceholder="Search employee, code, status…"
+          [emptyState]="{ title: 'No attendance logs', description: 'Employee clock events will appear here.' }"
+        />
+      </section>
+    }
+  </div>
+}
+
+<app-confirm-modal
+  [open]="confirmOpen()"
+  [title]="pendingGps() ? 'Turn GPS On?' : 'Turn GPS Off?'"
+  [message]="confirmMessage()"
+  [confirmLabel]="pendingGps() ? 'Turn On' : 'Turn Off'"
+  cancelLabel="Cancel"
+  (confirmed)="confirmToggle()"
+  (cancelled)="cancelToggle()"
+/>

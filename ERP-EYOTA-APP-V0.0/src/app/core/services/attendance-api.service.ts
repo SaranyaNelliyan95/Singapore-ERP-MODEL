@@ -8,10 +8,10 @@ import { environment } from '../../../environments/environment';
 export type WorkModeApi = 'OFFICE' | 'SITE' | 'WFH';
 
 export interface ClockRequestPayload {
-  latitude: number;
-  longitude: number;
-  accuracyMetres: number;
-  clientCapturedAt: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracyMetres?: number | null;
+  clientCapturedAt?: string | null;
   workplaceId?: string | null;
   workMode: WorkModeApi;
 }
@@ -19,14 +19,27 @@ export interface ClockRequestPayload {
 export interface AttendanceSessionDto {
   id: string;
   employeeId: string;
+  employeeName?: string | null;
+  employeeCode?: string | null;
   workplaceId: string;
   attendanceDate: string;
   clockInAt: string | null;
   clockOutAt: string | null;
+  clockInLat?: number | null;
+  clockInLng?: number | null;
+  clockInAccuracy?: number | null;
+  clockOutLat?: number | null;
+  clockOutLng?: number | null;
+  clockOutAccuracy?: number | null;
   geofenceResult: string;
   distanceMetres: number | null;
   status: string;
   workMode: WorkModeApi;
+}
+
+export interface AttendanceGpsPolicyDto {
+  gpsMandatory: boolean;
+  updatedAt: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -34,11 +47,23 @@ export class AttendanceApiService {
   private readonly http = inject(BackendHttpService);
   private readonly raw = inject(HttpClient);
 
-  clockIn(position: GeoPosition, workMode: WorkModeApi): Observable<AttendanceSessionDto> {
+  getGpsPolicy(): Observable<AttendanceGpsPolicyDto> {
+    return this.http.get<AttendanceGpsPolicyDto>('/attendance/gps-policy');
+  }
+
+  getAdminGpsPolicy(): Observable<AttendanceGpsPolicyDto> {
+    return this.http.get<AttendanceGpsPolicyDto>('/admin/attendance/gps-policy');
+  }
+
+  setAdminGpsPolicy(gpsMandatory: boolean): Observable<AttendanceGpsPolicyDto> {
+    return this.http.put<AttendanceGpsPolicyDto>('/admin/attendance/gps-policy', { gpsMandatory });
+  }
+
+  clockIn(position: GeoPosition | null, workMode: WorkModeApi): Observable<AttendanceSessionDto> {
     return this.http.post<AttendanceSessionDto>('/attendance/clock-in', this.toPayload(position, workMode));
   }
 
-  clockOut(position: GeoPosition, workMode: WorkModeApi): Observable<AttendanceSessionDto> {
+  clockOut(position: GeoPosition | null, workMode: WorkModeApi): Observable<AttendanceSessionDto> {
     return this.http.post<AttendanceSessionDto>('/attendance/clock-out', this.toPayload(position, workMode));
   }
 
@@ -73,7 +98,30 @@ export class AttendanceApiService {
     return this.http.get<AttendanceSessionDto[]>('/attendance/me/history');
   }
 
-  private toPayload(position: GeoPosition, workMode: WorkModeApi): ClockRequestPayload {
+  hrList(from?: string, to?: string): Observable<AttendanceSessionDto[]> {
+    return this.http.get<AttendanceSessionDto[]>(this.withRange('/hr/attendance', from, to));
+  }
+
+  adminList(from?: string, to?: string): Observable<AttendanceSessionDto[]> {
+    return this.http.get<AttendanceSessionDto[]>(this.withRange('/admin/attendance', from, to));
+  }
+
+  private withRange(path: string, from?: string, to?: string): string {
+    const qs = new URLSearchParams();
+    if (from) {
+      qs.set('from', from);
+    }
+    if (to) {
+      qs.set('to', to);
+    }
+    const q = qs.toString();
+    return q ? `${path}?${q}` : path;
+  }
+
+  private toPayload(position: GeoPosition | null, workMode: WorkModeApi): ClockRequestPayload {
+    if (!position) {
+      return { workMode, latitude: null, longitude: null, accuracyMetres: null, clientCapturedAt: null };
+    }
     return {
       latitude: position.latitude,
       longitude: position.longitude,

@@ -162,4 +162,14 @@ export class EnrollmentApiService {
   }): Observable<LoginResponse> {
     return this.http.post<LoginResponse>('/auth/employee-activation/create-password', body);
   }
+
+  /** Combined OTP verify + password set (keeps step-by-step APIs available). */
+  completeCombined(body: {
+    token: string;
+    otp: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>('/auth/employee-activation/complete', body);
+  }
 }

@@ -45,14 +45,33 @@ export class BackendHttpService {
       .pipe(catchError((err) => this.mapError(err)));
   }
 
+  postFormData<T>(path: string, form: FormData): Observable<T> {
+    let headers = new HttpHeaders();
+    const token = this.accessToken;
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    return this.http
+      .post<T>(this.url(path), form, { headers })
+      .pipe(catchError((err) => this.mapError(err)));
+  }
+
+  getBlob(path: string): Observable<Blob> {
+    return this.http
+      .get(this.url(path), { headers: this.authHeaders(false), responseType: 'blob' })
+      .pipe(catchError((err) => this.mapError(err)));
+  }
+
   private url(path: string): string {
     const base = environment.apiBaseUrl.replace(/\/$/, '');
     const p = path.startsWith('/') ? path : `/${path}`;
     return `${base}${p}`;
   }
 
-  private authHeaders(): HttpHeaders {
-    let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+  private authHeaders(json = true): HttpHeaders {
+    let headers = json
+      ? new HttpHeaders({ 'Content-Type': 'application/json' })
+      : new HttpHeaders();
     const token = this.accessToken;
     if (token) {
       headers = headers.set('Authorization', `Bearer ${token}`);

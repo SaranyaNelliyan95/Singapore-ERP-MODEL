@@ -5,6 +5,7 @@ const MASTER_CHILDREN: Routes = [
   { path: 'dashboard', loadComponent: () => import('./pages/dashboard/admin-dashboard').then((m) => m.AdminDashboardPage) },
   { path: 'company', loadComponent: () => import('./pages/company/admin-company').then((m) => m.AdminCompanyPage) },
   { path: 'users', loadComponent: () => import('./pages/users/admin-users').then((m) => m.AdminUsersPage) },
+  { path: 'attendance', loadComponent: () => import('./pages/attendance/admin-attendance').then((m) => m.AdminAttendancePage) },
   { path: 'master-data', loadComponent: () => import('./pages/master-data/admin-master-data').then((m) => m.AdminMasterDataPage) },
   { path: 'workflows', loadComponent: () => import('./pages/workflows/admin-workflows').then((m) => m.AdminWorkflowsPage) },
   { path: 'integrations', loadComponent: () => import('./pages/integrations/admin-integrations').then((m) => m.AdminIntegrationsPage) },
@@ -13,6 +14,7 @@ const MASTER_CHILDREN: Routes = [
   { path: 'archive', loadComponent: () => import('./pages/archive/admin-archive').then((m) => m.AdminArchivePage) },
   { path: 'backup', loadComponent: () => import('./pages/backup/admin-backup').then((m) => m.AdminBackupPage) },
   { path: 'hr-access', loadComponent: () => import('./pages/hr-access/admin-hr-access').then((m) => m.AdminHrAccessPage) },
+  { path: 'onboarding', loadComponent: () => import('./pages/onboarding/admin-onboarding').then((m) => m.AdminOnboardingPage) },
   { path: 'health', loadComponent: () => import('./pages/health/admin-health').then((m) => m.AdminHealthPage) },
 ];
 

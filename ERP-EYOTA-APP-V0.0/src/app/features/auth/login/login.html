@@ -58,9 +58,11 @@
           <div class="banner" role="alert">{{ formError() }}</div>
         }
 
-        <button type="submit" [disabled]="submitting()">
-          {{ submitting() ? 'Signing in…' : 'Sign in' }}
-        </button>
+        <div class="action-row">
+          <button type="submit" class="ess-btn primary" [disabled]="submitting()">
+            {{ submitting() ? 'Signing in…' : 'Sign in' }}
+          </button>
+        </div>
       </form>
 
       <p class="hint activate-link">

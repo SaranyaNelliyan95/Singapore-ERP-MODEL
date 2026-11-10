@@ -40,3 +40,24 @@
 code {
   font-size: 0.85em;
 }
+
+.gps-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+}
+
+.gps-pill.on {
+  background: var(--success-bg, #e8f6ee);
+  color: var(--success, #1f7a4d);
+  border-color: var(--success-border, #b7e0c8);
+}
+
+.gps-pill.off {
+  background: var(--surface-blue);
+  color: var(--text-secondary);
+}

@@ -17,7 +17,7 @@ const TITLE_BY_SEGMENT: Record<string, string> = {
   payroll: 'Singapore Payroll Operations',
   documents: 'Document & Bank Audit',
   claims: 'Claims Settlement',
-  onboarding: 'Onboarding Pipeline',
+  onboarding: 'Foreign Employee Onboarding',
   assets: 'Health, Safety & Training',
   reports: 'Reports / Workright',
 };

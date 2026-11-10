@@ -123,7 +123,7 @@
                       [title]="'Move to ' + nextStageLabel(row)"
                       (click)="advance(row)"
                     >
-                      Next: {{ nextStageLabel(row) }}
+                       {{ nextStageLabel(row) }}
                     </button>
                   }
                   @if (useBackend && $any(row).accountStatus !== 'ACTIVE') {

@@ -43,10 +43,13 @@ export class EmployeeAttendancePage implements OnInit {
   readonly loading = signal(true);
   readonly locating = signal(false);
   readonly useBackend = environment.useBackendApi;
+  readonly gpsMandatory = signal(true);
   readonly ws = this.employeeService.workspace;
   readonly backendStatus = signal<'Checked out' | 'Checked in'>('Checked out');
   readonly backendSessionLabel = signal('No active backend session');
   readonly historyRows = signal<AttendanceRecord[]>([]);
+  readonly canClockIn = signal(true);
+  readonly canClockOut = signal(false);
   selectedLocation: WorkLocation = 'Office';
 
   readonly columns: DataTableColumn<AttendanceRecord>[] = [
@@ -62,7 +65,7 @@ export class EmployeeAttendancePage implements OnInit {
     {
       key: 'gpsTracked',
       label: 'GPS',
-      format: (row) => (row.gpsTracked ? 'Verified' : 'Off'),
+      format: (row) => (row.gpsTracked ? 'Captured' : 'Off'),
     },
     {
       key: 'otHours',
@@ -121,8 +124,8 @@ export class EmployeeAttendancePage implements OnInit {
   toggleGps(): void {
     if (this.useBackend) {
       this.toast.warning(
-        'GPS required',
-        'Backend mode uses real browser geolocation on every clock action. There is no simulated GPS toggle.',
+        'Admin controlled',
+        'GPS On/Off is managed by Admin under Attendance. Employees cannot change it here.',
       );
       return;
     }
@@ -167,26 +170,37 @@ export class EmployeeAttendancePage implements OnInit {
   }
 
   private async clockWithBackend(action: 'in' | 'out'): Promise<void> {
-    if (!this.geo.isSupported()) {
-      this.toast.danger(
-        'GPS unsupported',
-        'This browser cannot provide location. Use HTTPS or localhost with a modern browser.',
-      );
+    if (action === 'in' && !this.canClockIn()) {
+      this.toast.warning('Already recorded', 'Only one clock-in is allowed per day.');
+      return;
+    }
+    if (action === 'out' && !this.canClockOut()) {
+      this.toast.warning('Cannot clock out', 'Clock in first, or you already clocked out today.');
       return;
     }
 
     this.locating.set(true);
     try {
-      const permission = await this.geo.queryPermission();
-      if (permission === 'denied') {
-        this.toast.danger(
-          'Location permission denied',
-          'Allow location access for this site, enable device location services, then retry. The application cannot turn on GPS remotely.',
-        );
-        return;
+      let position = null;
+      if (this.gpsMandatory()) {
+        if (!this.geo.isSupported()) {
+          this.toast.danger(
+            'GPS unsupported',
+            'This browser cannot provide location. Use HTTPS or localhost with a modern browser.',
+          );
+          return;
+        }
+        const permission = await this.geo.queryPermission();
+        if (permission === 'denied') {
+          this.toast.danger(
+            'Location permission denied',
+            'Allow location access for this site, enable device location services, then retry.',
+          );
+          return;
+        }
+        position = await this.geo.getCurrentPosition();
       }
 
-      const position = await this.geo.getCurrentPosition();
       const workMode = this.toWorkMode(this.selectedLocation);
       const session =
         action === 'in'
@@ -194,11 +208,16 @@ export class EmployeeAttendancePage implements OnInit {
           : await firstValueFrom(this.attendanceApi.clockOut(position, workMode));
 
       await this.refreshBackend();
+      const gpsNote = this.gpsMandatory()
+        ? position
+          ? ` · GPS ±${Math.round(position.accuracyMetres)} m`
+          : ''
+        : ' · GPS off (not captured)';
       const distance =
         session.distanceMetres != null ? ` · ${Math.round(session.distanceMetres)} m from workplace` : '';
       this.toast.success(
         action === 'in' ? 'Clocked in' : 'Clocked out',
-        `Saved by server · geofence ${session.geofenceResult}${distance} · accuracy ±${Math.round(position.accuracyMetres)} m. Browser GPS is not tamper-proof.`,
+        `Saved · ${session.geofenceResult}${distance}${gpsNote}`,
       );
     } catch (err) {
       const message =
@@ -213,6 +232,8 @@ export class EmployeeAttendancePage implements OnInit {
 
   private async refreshBackend(): Promise<void> {
     try {
+      const policy = await firstValueFrom(this.attendanceApi.getGpsPolicy());
+      this.gpsMandatory.set(!!policy.gpsMandatory);
       const today = await firstValueFrom(this.attendanceApi.today());
       this.applyToday(today);
       const history = await firstValueFrom(this.attendanceApi.history());
@@ -226,19 +247,35 @@ export class EmployeeAttendancePage implements OnInit {
     if (today && today.status === 'OPEN') {
       this.backendStatus.set('Checked in');
       this.backendSessionLabel.set(
-        `In ${this.formatInstant(today.clockInAt)} · ${today.workMode} · ${today.geofenceResult}`,
+        `In ${this.formatInstant(today.clockInAt)} · ${today.workMode} · ${today.geofenceResult}` +
+          this.locationSuffix(today.clockInLat, today.clockInLng, today.clockInAccuracy),
       );
+      this.canClockIn.set(false);
+      this.canClockOut.set(true);
       return;
     }
     if (today && today.status === 'CLOSED') {
       this.backendStatus.set('Checked out');
       this.backendSessionLabel.set(
-        `Out ${this.formatInstant(today.clockOutAt)} · closed ${today.attendanceDate}`,
+        `Out ${this.formatInstant(today.clockOutAt)} · closed ${today.attendanceDate}` +
+          this.locationSuffix(today.clockOutLat, today.clockOutLng, today.clockOutAccuracy),
       );
+      this.canClockIn.set(false);
+      this.canClockOut.set(false);
       return;
     }
     this.backendStatus.set('Checked out');
     this.backendSessionLabel.set('No active backend session today');
+    this.canClockIn.set(true);
+    this.canClockOut.set(false);
+  }
+
+  private locationSuffix(lat?: number | null, lng?: number | null, acc?: number | null): string {
+    if (lat == null || lng == null) {
+      return '';
+    }
+    const accuracy = acc != null ? ` ±${Math.round(acc)}m` : '';
+    return ` · ${lat.toFixed(5)}, ${lng.toFixed(5)}${accuracy}`;
   }
 
   private toHistoryRow(s: AttendanceSessionDto): AttendanceRecord {
@@ -250,7 +287,7 @@ export class EmployeeAttendancePage implements OnInit {
       checkOut: this.formatInstant(s.clockOutAt),
       location: this.fromWorkMode(s.workMode),
       otHours: 0,
-      gpsTracked: s.geofenceResult !== 'SKIPPED',
+      gpsTracked: s.geofenceResult !== 'SKIPPED' && s.clockInLat != null,
       lateMinutes: 0,
       status: s.status === 'OPEN' ? 'In Progress' : s.status === 'CLOSED' ? 'Present' : 'Absent',
     };

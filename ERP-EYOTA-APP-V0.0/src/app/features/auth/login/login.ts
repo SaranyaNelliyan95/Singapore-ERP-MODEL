@@ -25,6 +25,13 @@ export class LoginComponent {
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
+  constructor() {
+    // Always start with a cleared form (no leftover credentials).
+    this.form.reset({ email: '', password: '' });
+    this.form.markAsUntouched();
+    this.form.markAsPristine();
+  }
+
   fillDemo(account: DemoAccount): void {
     this.form.setValue({ email: account.email, password: account.password });
     this.formError.set(null);

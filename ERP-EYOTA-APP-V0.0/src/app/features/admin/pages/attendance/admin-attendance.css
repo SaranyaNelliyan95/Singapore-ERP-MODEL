@@ -1,0 +1,38 @@
+@import '../../../employee/shared/employee-page.styles.css';
+
+.policy-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.policy-status {
+  margin: 0 0 0.45rem;
+  color: var(--text-primary);
+}
+
+.policy-status .on {
+  color: var(--success, #1f7a4d);
+}
+
+.policy-status .off {
+  color: var(--text-secondary);
+}
+
+.policy-help {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  max-width: 52rem;
+}
+
+.banner {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+}

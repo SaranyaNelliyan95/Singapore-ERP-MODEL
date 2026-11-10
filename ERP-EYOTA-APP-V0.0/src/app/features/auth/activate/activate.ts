@@ -3,11 +3,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { EnrollmentApiService } from '../../../core/services/enrollment-api.service';
-import { AuthService } from '../../../core/services/auth.service';
 import { BackendHttpService } from '../../../core/services/backend-http.service';
 import { environment } from '../../../../environments/environment';
 
-type Step = 'landing' | 'otp' | 'password' | 'success' | 'error';
+type Step = 'landing' | 'otp' | 'password' | 'error';
 
 @Component({
   selector: 'app-activate',
@@ -19,7 +18,6 @@ type Step = 'landing' | 'otp' | 'password' | 'success' | 'error';
 export class ActivateComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly enrollmentApi = inject(EnrollmentApiService);
-  private readonly auth = inject(AuthService);
   private readonly http = inject(BackendHttpService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -74,7 +72,8 @@ export class ActivateComponent implements OnInit {
       this.maskedEmail.set(res.maskedEmail);
       this.employeeName.set(res.employeeName);
       this.info.set(res.message);
-      this.step.set('landing');
+      // Mail link opens on OTP verify: send OTP and show that page first
+      await this.sendOtp(true);
     } catch (err) {
       this.step.set('error');
       this.formError.set(err instanceof Error ? err.message : 'Invalid invitation link');
@@ -92,11 +91,13 @@ export class ActivateComponent implements OnInit {
     });
   }
 
-  async sendOtp(): Promise<void> {
+  async sendOtp(silent = false): Promise<void> {
     if (!this.invitationToken) {
       return;
     }
-    this.submitting.set(true);
+    if (!silent) {
+      this.submitting.set(true);
+    }
     this.formError.set(null);
     try {
       const res = await firstValueFrom(this.enrollmentApi.sendActivationOtp(this.invitationToken));
@@ -112,8 +113,13 @@ export class ActivateComponent implements OnInit {
       this.step.set('otp');
     } catch (err) {
       this.formError.set(err instanceof Error ? err.message : 'Could not send OTP');
+      if (silent) {
+        this.step.set('landing');
+      }
     } finally {
-      this.submitting.set(false);
+      if (!silent) {
+        this.submitting.set(false);
+      }
     }
   }
 
@@ -169,16 +175,14 @@ export class ActivateComponent implements OnInit {
       this.http.setAccessToken(null);
       this.activationToken = null;
       this.invitationToken = null;
-      this.step.set('success');
+      void this.router.navigateByUrl('/login', {
+        state: { message: 'Account activated successfully. Please sign in with your new password.' },
+      });
     } catch (err) {
       this.formError.set(err instanceof Error ? err.message : 'Activation failed');
     } finally {
       this.submitting.set(false);
     }
-  }
-
-  goToLogin(): void {
-    void this.router.navigateByUrl('/login');
   }
 
   private startTimers(): void {
