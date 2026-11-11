@@ -31,6 +31,7 @@
                 [style.width]="column.width || null"
                 [class.sortable]="column.sortable"
                 [class.active]="sortKey === column.key"
+                [class.actions-col]="!!column.actionsAsMenu"
                 (click)="toggleSort(column)"
               >
                 <span>{{ column.label }}</span>
@@ -47,32 +48,71 @@
           @for (row of pagedRows; track trackRow($index, row)) {
             <tr>
               @for (column of columns; track column.key) {
-                <td [style.text-align]="column.align || 'left'">
-                  <div class="cell-stack">
-                    @if (column.badge?.(row); as badge) {
-                      <app-status-badge [label]="badge.label" [tone]="badge.tone" />
-                    } @else {
-                      <span>{{ cellValue(row, column) }}</span>
-                    }
-                    @if (column.actions?.(row); as actions) {
-                      @if (actions.length) {
-                        <div class="cell-actions">
-                          @for (action of actions; track action.id) {
-                            <button
-                              type="button"
-                              class="cell-action"
-                              [class.primary]="action.tone === 'primary'"
-                              [class.danger]="action.tone === 'danger'"
-                              [disabled]="!!action.disabled"
-                              (click)="cellAction.emit({ actionId: action.id, row })"
-                            >
-                              {{ action.label }}
-                            </button>
+                <td
+                  [style.text-align]="column.align || 'left'"
+                  [class.actions-col]="!!column.actionsAsMenu"
+                >
+                  @if (column.actionsAsMenu) {
+                    @if (column.actions?.(row); as menuActions) {
+                      @if (menuActions.length) {
+                        <div class="action-menu" [class.open]="isMenuOpen(row)">
+                          <button
+                            type="button"
+                            class="action-menu-trigger"
+                            aria-haspopup="menu"
+                            [attr.aria-expanded]="isMenuOpen(row)"
+                            aria-label="Row actions"
+                            (click)="toggleMenu(row, $event)"
+                          >
+                            <span class="action-menu-icon" aria-hidden="true">▾</span>
+                          </button>
+                          @if (isMenuOpen(row)) {
+                            <div class="action-menu-panel" role="menu">
+                              @for (action of menuActions; track action.id) {
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  class="action-menu-item"
+                                  [class.primary]="action.tone === 'primary'"
+                                  [class.danger]="action.tone === 'danger'"
+                                  [disabled]="!!action.disabled"
+                                  (click)="onMenuAction(action, row, $event)"
+                                >
+                                  {{ action.label }}
+                                </button>
+                              }
+                            </div>
                           }
                         </div>
                       }
                     }
-                  </div>
+                  } @else {
+                    <div class="cell-stack">
+                      @if (column.badge?.(row); as badge) {
+                        <app-status-badge [label]="badge.label" [tone]="badge.tone" />
+                      } @else {
+                        <span>{{ cellValue(row, column) }}</span>
+                      }
+                      @if (column.actions?.(row); as actions) {
+                        @if (actions.length) {
+                          <div class="cell-actions">
+                            @for (action of actions; track action.id) {
+                              <button
+                                type="button"
+                                class="cell-action"
+                                [class.primary]="action.tone === 'primary'"
+                                [class.danger]="action.tone === 'danger'"
+                                [disabled]="!!action.disabled"
+                                (click)="cellAction.emit({ actionId: action.id, row })"
+                              >
+                                {{ action.label }}
+                              </button>
+                            }
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
                 </td>
               }
             </tr>

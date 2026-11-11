@@ -20,6 +20,9 @@ import org.springframework.core.env.MapPropertySource;
  * Loads {@code backend/.env} into the Spring Environment so MAIL_/SMTP_ settings
  * work for {@code start-dev.ps1}, Maven, and IntelliJ Run.
  *
+ * <p>Registered via {@code META-INF/spring.factories} under
+ * {@code org.springframework.boot.EnvironmentPostProcessor} (Spring Boot 4).
+ *
  * <p>.env values are added with highest precedence so a stale IntelliJ/OS
  * {@code MAIL_ENABLED=false} cannot silently disable SMTP while {@code .env} says true.
  */
@@ -47,27 +50,61 @@ public class DotEnvEnvironmentPostProcessor implements EnvironmentPostProcessor,
                     continue;
                 }
                 String key = line.substring(0, eq).trim();
-                String value = line.substring(eq + 1).trim();
+                String value = stripQuotes(line.substring(eq + 1).trim());
                 if ("SMTP_PASSWORD".equals(key)) {
                     value = value.replace(" ", "");
                 }
                 values.put(key, value);
             }
+
+            // Bridge SMTP_* → spring.mail.* so JavaMailSender auto-config always sees host/user/pass
+            // even if placeholder resolution for ${SMTP_HOST} is skipped in some profiles.
+            copyAlias(values, "SMTP_HOST", "spring.mail.host");
+            copyAlias(values, "SMTP_PORT", "spring.mail.port");
+            copyAlias(values, "SMTP_USERNAME", "spring.mail.username");
+            copyAlias(values, "SMTP_PASSWORD", "spring.mail.password");
+            copyAlias(values, "MAIL_FROM", "spring.mail.properties.mail.smtp.from");
+
             if (!values.isEmpty()) {
-                // Highest precedence: overrides OS/IDE env for Spring property resolution
                 environment.getPropertySources().addFirst(new MapPropertySource("dotenv", values));
                 System.out.println(
                         "[dotenv] Loaded "
                                 + envFile.toAbsolutePath()
                                 + " (MAIL_ENABLED="
                                 + values.getOrDefault("MAIL_ENABLED", "(unset)")
-                                + ", SERVER_PORT="
-                                + values.getOrDefault("SERVER_PORT", "(unset)")
+                                + ", SMTP_HOST="
+                                + values.getOrDefault("SMTP_HOST", "(unset)")
+                                + ", smtpUserSet="
+                                + hasText(values.get("SMTP_USERNAME"))
+                                + ", smtpPassSet="
+                                + hasText(values.get("SMTP_PASSWORD"))
                                 + ")");
             }
         } catch (IOException ex) {
             System.err.println("[dotenv] Failed to read " + envFile + ": " + ex.getMessage());
         }
+    }
+
+    private static void copyAlias(Map<String, Object> values, String fromKey, String toKey) {
+        Object v = values.get(fromKey);
+        if (v != null && hasText(v) && !values.containsKey(toKey)) {
+            values.put(toKey, v);
+        }
+    }
+
+    private static boolean hasText(Object v) {
+        return v != null && !String.valueOf(v).isBlank();
+    }
+
+    private static String stripQuotes(String value) {
+        if (value.length() >= 2) {
+            char a = value.charAt(0);
+            char b = value.charAt(value.length() - 1);
+            if ((a == '"' && b == '"') || (a == '\'' && b == '\'')) {
+                return value.substring(1, value.length() - 1);
+            }
+        }
+        return value;
     }
 
     private static Path resolveEnvFile() {
@@ -76,6 +113,12 @@ public class DotEnvEnvironmentPostProcessor implements EnvironmentPostProcessor,
         Path cwd = Path.of("").toAbsolutePath().normalize();
         collectFromWalk(cwd, candidates);
         collectFromCodeSource(candidates);
+
+        // Explicit OneDrive/workspace-relative fallback when cwd is a temp/IDE folder
+        String userDir = System.getProperty("user.dir");
+        if (userDir != null && !userDir.isBlank()) {
+            collectFromWalk(Path.of(userDir).toAbsolutePath().normalize(), candidates);
+        }
 
         for (Path candidate : candidates) {
             if (Files.isRegularFile(candidate) && looksLikeBackendEnv(candidate)) {
@@ -87,7 +130,7 @@ public class DotEnvEnvironmentPostProcessor implements EnvironmentPostProcessor,
 
     private static void collectFromWalk(Path start, Set<Path> candidates) {
         Path dir = start;
-        for (int i = 0; i < 10 && dir != null; i++) {
+        for (int i = 0; i < 12 && dir != null; i++) {
             candidates.add(dir.resolve(".env"));
             candidates.add(dir.resolve("backend").resolve(".env"));
             dir = dir.getParent();

@@ -1,0 +1,111 @@
+<div class="confirm-page" [class.ppe-layout]="isPpe()">
+  @if (!isPpe()) {
+    <header class="confirm-head">
+      <p class="eyebrow">Secure confirmation</p>
+      <h1>{{ actionTitle() }}</h1>
+      <p class="sub">Open from your email or WhatsApp link.</p>
+    </header>
+  }
+
+  @if (state() === 'loading') {
+    <p class="panel">Checking your link…</p>
+  }
+
+  @if (state() === 'error') {
+    <section class="panel error">
+      <h2>Unable to continue</h2>
+      <p>{{ error() }}</p>
+      <a routerLink="/login" class="ess-btn primary">Go to sign in</a>
+    </section>
+  }
+
+  @if (state() === 'ready' && isPpe()) {
+    <section class="ppe-card">
+      <div class="ppe-icon" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="40" height="40">
+          <circle cx="24" cy="24" r="22" fill="currentColor" opacity="0.12" />
+          <path
+            fill="currentColor"
+            d="M24 10c-4.4 0-8 3.1-8 7v2.2c-3.3.9-5.5 3.7-5.5 7.1V32c0 1.1.9 2 2 2h23c1.1 0 2-.9 2-2v-5.7c0-3.4-2.2-6.2-5.5-7.1V17c0-3.9-3.6-7-8-7zm0 2c3.1 0 6 2.2 6 5v2H18v-2c0-2.8 2.9-5 6-5zm-9.5 18.3V32h19v-5.7c0-2.5-1.9-4.6-4.4-4.9l-.6-.1H19.5l-.6.1c-2.5.3-4.4 2.4-4.4 4.9zM22 34.5h4v1.5a2 2 0 0 1-4 0v-1.5z"
+          />
+          <path fill="currentColor" d="M21.2 26.2 23 28l3.8-3.8 1.4 1.4L23 30.8l-3.2-3.2z" />
+        </svg>
+      </div>
+      <h1>{{ actionTitle() }}</h1>
+      <p class="ppe-lead">{{ actionHint() }}</p>
+
+      <label class="upload-zone">
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          (change)="onFileSelected($event)"
+        />
+        @if (previewUrl()) {
+          <img [src]="previewUrl()!" alt="PPE confirmation preview" class="preview" />
+          <span class="upload-caption">{{ selectedFileName() || 'Photo selected' }} — tap to change</span>
+        } @else {
+          <span class="upload-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="36" height="36">
+              <path
+                fill="currentColor"
+                d="M12 5a3 3 0 0 1 3 3h2a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3h2a3 3 0 0 1 3-3zm0 2a1 1 0 0 0-1 1h2a1 1 0 0 0-1-1zm0 4.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"
+              />
+            </svg>
+          </span>
+          <span class="upload-title">Upload a photo</span>
+          <span class="upload-caption">Click to take a photo or choose one from your device.</span>
+        }
+      </label>
+
+      <p class="info-banner">
+        Please ensure the photo clearly shows you with the PPE (for example helmet, shoes, or high-vis vest).
+      </p>
+
+      @if (error()) {
+        <p class="field-error">{{ error() }}</p>
+      }
+
+      <div class="ppe-actions">
+        <a routerLink="/employee/master/onboarding" class="ess-btn ghost">Back</a>
+        <button
+          type="button"
+          class="ess-btn accent"
+          [disabled]="submitting()"
+          (click)="confirm()"
+        >
+          {{ submitting() ? 'Saving…' : 'Confirm with photo' }}
+        </button>
+      </div>
+    </section>
+  }
+
+  @if (state() === 'ready' && !isPpe()) {
+    <section class="panel">
+      @if (employeeCode()) {
+        <p class="meta">Ref: {{ employeeCode() }}</p>
+      }
+      <p>{{ actionHint() }}</p>
+      @if (message()) {
+        <p class="ok">{{ message() }}</p>
+      }
+      <button
+        type="button"
+        class="ess-btn primary"
+        [disabled]="submitting()"
+        (click)="confirm()"
+      >
+        {{ submitting() ? 'Saving…' : 'Confirm this step' }}
+      </button>
+    </section>
+  }
+
+  @if (state() === 'done') {
+    <section class="panel success">
+      <h2>Confirmation recorded</h2>
+      <p>{{ message() || 'Thank you. Your confirmation has been saved.' }}</p>
+      <p class="hint">You can continue the rest of your onboarding from the employee portal.</p>
+      <a routerLink="/employee/master/onboarding" class="ess-btn primary">Open my onboarding</a>
+    </section>
+  }
+</div>

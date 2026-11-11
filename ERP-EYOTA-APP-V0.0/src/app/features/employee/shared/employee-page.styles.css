@@ -1,6 +1,6 @@
 .ess-page {
   display: grid;
-  gap: 1.15rem;
+  gap: 1.2rem;
 }
 
 .ess-head {
@@ -21,28 +21,32 @@
 }
 
 .ess-head h1 {
-  margin: 0.25rem 0;
+  margin: 0.28rem 0;
   color: var(--text-primary);
-  font-size: clamp(1.45rem, 2.4vw, 1.85rem);
-  letter-spacing: -0.02em;
-  font-weight: 700;
+  font-size: clamp(1.5rem, 2.5vw, 1.95rem);
+  letter-spacing: -0.025em;
+  font-weight: 750;
 }
 
 .ess-sub {
   margin: 0;
   color: var(--text-secondary);
   max-width: 640px;
-  line-height: 1.5;
+  line-height: 1.55;
   font-size: 0.92rem;
 }
 
 .ess-panel {
   background: var(--surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--border-color) 88%, #fff);
+  border-radius: var(--radius-xl);
+  padding: 1.15rem 1.2rem;
   box-shadow: var(--shadow-card);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.ess-panel:hover {
+  box-shadow: var(--shadow-hover);
 }
 
 .ess-panel-head {
@@ -50,15 +54,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.95rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
 }
 
 .ess-panel-head h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   color: var(--text-primary);
-  font-weight: 650;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .ess-grid-2 {
@@ -70,63 +75,127 @@
 .ess-grid-3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.85rem;
+  gap: 0.9rem;
 }
 
 .ess-grid-4 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.85rem;
+  gap: 0.9rem;
 }
 
 .ess-stat {
-  background: var(--surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1.05rem 1.1rem;
+  --kpi-tint: var(--surface-blue);
+  --kpi-ink: var(--primary);
+  --kpi-glyph: '◆';
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--kpi-tint) 72%, #fff), #fff 58%);
+  border: 1px solid color-mix(in srgb, var(--kpi-ink) 12%, var(--border-color));
+  border-radius: var(--radius-xl);
+  padding: 1.05rem 1.1rem 1rem;
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
-  transition: box-shadow 0.2s ease;
+  min-height: 7.4rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .ess-stat::before {
-  content: '';
+  content: var(--kpi-glyph);
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(180deg, var(--brand-blue), var(--primary));
-  border-radius: 4px 0 0 4px;
+  top: 0.95rem;
+  right: 0.95rem;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--kpi-tint) 88%, #fff);
+  color: var(--kpi-ink);
+  font-size: 0.92rem;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kpi-ink) 14%, transparent);
 }
 
-.ess-stat:nth-child(even)::before {
-  background: linear-gradient(180deg, var(--brand-mauve), var(--accent-mauve));
+.ess-stat::after {
+  content: '';
+  position: absolute;
+  inset: auto -20% -45% 35%;
+  height: 5.5rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--kpi-ink) 7%, transparent);
+  pointer-events: none;
+}
+
+.ess-stat:nth-child(8n + 1) {
+  --kpi-tint: var(--surface-blue);
+  --kpi-ink: #2f5f9a;
+  --kpi-glyph: '▣';
+}
+.ess-stat:nth-child(8n + 2) {
+  --kpi-tint: var(--surface-sand);
+  --kpi-ink: #a66b1f;
+  --kpi-glyph: '◷';
+}
+.ess-stat:nth-child(8n + 3) {
+  --kpi-tint: var(--surface-mint);
+  --kpi-ink: #1f7a4d;
+  --kpi-glyph: '◎';
+}
+.ess-stat:nth-child(8n + 4) {
+  --kpi-tint: var(--surface-peach);
+  --kpi-ink: #c45b4a;
+  --kpi-glyph: '⚠';
+}
+.ess-stat:nth-child(8n + 5) {
+  --kpi-tint: #eef0fb;
+  --kpi-ink: #5b5fad;
+  --kpi-glyph: '◉';
+}
+.ess-stat:nth-child(8n + 6) {
+  --kpi-tint: var(--surface-mauve);
+  --kpi-ink: #8b7196;
+  --kpi-glyph: '▤';
+}
+.ess-stat:nth-child(8n + 7) {
+  --kpi-tint: #e8f4fb;
+  --kpi-ink: #3d7ea6;
+  --kpi-glyph: '◫';
+}
+.ess-stat:nth-child(8n + 8) {
+  --kpi-tint: #f8ecec;
+  --kpi-ink: #a34545;
+  --kpi-glyph: '◈';
 }
 
 .ess-stat:hover {
   box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
 }
 
 .ess-stat p {
   margin: 0;
   color: var(--text-muted);
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  padding-right: 2.6rem;
 }
 
 .ess-stat strong {
   display: block;
-  margin: 0.4rem 0 0.2rem;
-  font-size: 1.5rem;
-  color: var(--primary);
-  letter-spacing: -0.02em;
+  margin: 0.55rem 0 0.3rem;
+  font-size: 1.7rem;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
 .ess-stat span {
   color: var(--text-secondary);
   font-size: 0.78rem;
+  line-height: 1.35;
+  display: block;
+  max-width: 92%;
 }
 
 .ess-form {
@@ -144,6 +213,34 @@
   grid-column: 1 / -1;
 }
 
+/* Checkbox rows: control sits before label text on one line (overrides grid above). */
+.ess-form label.check {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.55rem;
+  grid-column: 1 / -1;
+}
+
+.ess-form label.check > input[type='checkbox'] {
+  flex: 0 0 auto;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.ess-form label.check > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.35;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
 .ess-form span {
   font-size: 0.78rem;
   font-weight: 600;
@@ -155,7 +252,7 @@
 .ess-form textarea {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: 0.6rem 0.75rem;
+  padding: 0.62rem 0.8rem;
   font: inherit;
   background: var(--input-bg);
   color: var(--text-primary);
@@ -188,18 +285,19 @@
 }
 
 .ess-btn {
-  border-radius: var(--radius-sm);
-  padding: 0.58rem 1rem;
+  border-radius: 999px;
+  padding: 0.62rem 1.1rem;
   font-weight: 650;
   font-size: 0.86rem;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .ess-btn.primary {
-  background: var(--primary);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 92%, #fff), var(--primary));
   border: 1px solid var(--primary);
   color: #fff;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 28%, transparent);
 }
 
 .ess-btn.primary:hover:not(:disabled) {
@@ -215,7 +313,7 @@
 
 .ess-btn.ghost:hover:not(:disabled) {
   background: var(--surface-blue);
-  border-color: var(--brand-blue);
+  border-color: color-mix(in srgb, var(--brand-blue) 45%, var(--border-color));
   color: var(--primary);
 }
 
@@ -232,6 +330,7 @@
 .ess-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .ess-readonly-grid {
@@ -259,6 +358,12 @@
   grid-column: 1 / -1;
 }
 
+@media (max-width: 1100px) {
+  .ess-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 960px) {
   .ess-grid-2,
   .ess-grid-3,
@@ -274,5 +379,9 @@
   .ess-stat,
   .ess-btn {
     transition: none;
+  }
+
+  .ess-stat:hover {
+    transform: none;
   }
 }

@@ -53,6 +53,8 @@ export interface StaffDirectoryRow {
   loginActive?: boolean;
   /** Employment type label from API (Full-time etc.) when not using pass types. */
   employmentTypeLabel?: string;
+  /** Placeholder cell for directory Details / PDF export column. */
+  detailsExport?: string;
 }
 
 export type ComplianceAgency = 'MOM' | 'ICA' | 'Internal';

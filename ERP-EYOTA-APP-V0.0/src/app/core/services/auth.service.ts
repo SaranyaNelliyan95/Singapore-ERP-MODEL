@@ -180,7 +180,7 @@ export class AuthService {
     };
     this.persist(sessionUser);
     this.currentUserSignal.set(sessionUser);
-    void this.router.navigateByUrl(this.landingRouteFor(sessionUser.role));
+    void this.router.navigateByUrl(this.resolvePostLoginUrl(sessionUser.role));
   }
 
   private loginDemo(credentials: LoginCredentials): { ok: boolean; error?: string } {
@@ -207,8 +207,17 @@ export class AuthService {
     const { password: _password, ...sessionUser } = match;
     this.persist(sessionUser);
     this.currentUserSignal.set(sessionUser);
-    void this.router.navigateByUrl(this.landingRouteFor(sessionUser.role));
+    void this.router.navigateByUrl(this.resolvePostLoginUrl(sessionUser.role));
     return { ok: true };
+  }
+
+  /** Honours ?returnUrl= from authGuard (e.g. PPE confirm link) when it is an in-app path. */
+  private resolvePostLoginUrl(role: UserRole): string {
+    const raw = this.router.parseUrl(this.router.url).queryParams['returnUrl'];
+    if (typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//')) {
+      return raw;
+    }
+    return this.landingRouteFor(role);
   }
 
   private mapBackendRole(role: 'ADMIN' | 'HR' | 'EMPLOYEE'): UserRole {

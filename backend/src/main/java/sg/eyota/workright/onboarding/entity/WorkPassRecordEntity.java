@@ -49,6 +49,22 @@ public class WorkPassRecordEntity extends AuditedEntity {
     @Column(name = "card_collected", nullable = false)
     private boolean cardCollected;
 
+    /** SG-flow v2 optional Temporary Permit + IPA extension fields. */
+    @Column(name = "ipa_extension_requested")
+    private Boolean ipaExtensionRequested;
+
+    @Column(name = "tp_number")
+    private String tpNumber;
+
+    @Column(name = "tp_issue_date")
+    private LocalDate tpIssueDate;
+
+    @Column(name = "tp_expiry_date")
+    private LocalDate tpExpiryDate;
+
+    @Column(name = "tp_valid", nullable = false)
+    private boolean tpValid;
+
     private String notes;
 
     public UUID getId() { return id; }
@@ -73,6 +89,18 @@ public class WorkPassRecordEntity extends AuditedEntity {
     public void setFinNumber(String finNumber) { this.finNumber = finNumber; }
     public boolean isCardCollected() { return cardCollected; }
     public void setCardCollected(boolean cardCollected) { this.cardCollected = cardCollected; }
+    public Boolean getIpaExtensionRequested() { return ipaExtensionRequested; }
+    public void setIpaExtensionRequested(Boolean ipaExtensionRequested) {
+        this.ipaExtensionRequested = ipaExtensionRequested;
+    }
+    public String getTpNumber() { return tpNumber; }
+    public void setTpNumber(String tpNumber) { this.tpNumber = tpNumber; }
+    public LocalDate getTpIssueDate() { return tpIssueDate; }
+    public void setTpIssueDate(LocalDate tpIssueDate) { this.tpIssueDate = tpIssueDate; }
+    public LocalDate getTpExpiryDate() { return tpExpiryDate; }
+    public void setTpExpiryDate(LocalDate tpExpiryDate) { this.tpExpiryDate = tpExpiryDate; }
+    public boolean isTpValid() { return tpValid; }
+    public void setTpValid(boolean tpValid) { this.tpValid = tpValid; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
 }

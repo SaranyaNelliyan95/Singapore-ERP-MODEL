@@ -38,4 +38,26 @@ class EmployeeHireRulesTest {
         assertThrows(ApiException.class, () -> EmployeeHireRules.requireFin(""));
         assertThrows(ApiException.class, () -> EmployeeHireRules.requireFin("123"));
     }
+
+    @Test
+    void acceptsSingaporeAndIndianMobiles() {
+        assertDoesNotThrow(() -> EmployeeHireRules.requireMobile("91234567"));
+        assertDoesNotThrow(() -> EmployeeHireRules.requireMobile("81234567"));
+        assertDoesNotThrow(() -> EmployeeHireRules.requireMobile("+6591234567"));
+        assertDoesNotThrow(() -> EmployeeHireRules.requireMobile("65 9123 4567"));
+        assertDoesNotThrow(() -> EmployeeHireRules.requireMobile("9876543210"));
+        assertDoesNotThrow(() -> EmployeeHireRules.requireMobile("+91 98765 43210"));
+        assertDoesNotThrow(() -> EmployeeHireRules.requireMobile("919876543210"));
+        assertThrows(ApiException.class, () -> EmployeeHireRules.requireMobile("71234567"));
+        assertThrows(ApiException.class, () -> EmployeeHireRules.requireMobile("12345"));
+        assertThrows(ApiException.class, () -> EmployeeHireRules.requireMobile("5123456789"));
+    }
+
+    @Test
+    void normalizesMobileToE164() {
+        assertEquals("+6591234567", EmployeeHireRules.normalizeMobileE164("91234567"));
+        assertEquals("+6591234567", EmployeeHireRules.normalizeMobileE164("+65 9123 4567"));
+        assertEquals("+919876543210", EmployeeHireRules.normalizeMobileE164("9876543210"));
+        assertEquals("+919876543210", EmployeeHireRules.normalizeMobileE164("91 98765 43210"));
+    }
 }

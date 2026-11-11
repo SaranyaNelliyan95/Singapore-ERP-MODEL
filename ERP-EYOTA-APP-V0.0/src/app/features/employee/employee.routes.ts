@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { employeeReadyGuard } from '../../core/guards/employee-ready.guard';
 import { roleGuard } from '../../core/guards/role.guard';
 
 const MASTER_CHILDREN: Routes = [
@@ -16,18 +17,21 @@ const MASTER_CHILDREN: Routes = [
   },
   {
     path: 'attendance',
+    canActivate: [employeeReadyGuard],
     loadComponent: () =>
       import('./pages/attendance/employee-attendance').then((m) => m.EmployeeAttendancePage),
     data: { title: 'Attendance & Clocking' },
   },
   {
     path: 'leave',
+    canActivate: [employeeReadyGuard],
     loadComponent: () =>
       import('./pages/leave/employee-leave').then((m) => m.EmployeeLeavePage),
     data: { title: 'Leave Management' },
   },
   {
     path: 'payslips',
+    canActivate: [employeeReadyGuard],
     loadComponent: () =>
       import('./pages/payslips/employee-payslips').then((m) => m.EmployeePayslipsPage),
     data: { title: 'Payslips & Tax' },
@@ -46,6 +50,7 @@ const MASTER_CHILDREN: Routes = [
   },
   {
     path: 'claims',
+    canActivate: [employeeReadyGuard],
     loadComponent: () =>
       import('./pages/claims/employee-claims').then((m) => m.EmployeeClaimsPage),
     data: { title: 'Claims Log' },

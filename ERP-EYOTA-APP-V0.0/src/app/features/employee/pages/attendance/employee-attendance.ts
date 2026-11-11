@@ -13,6 +13,7 @@ import {
   GeoLocationError,
   GeolocationService,
 } from '../../../../core/services/geolocation.service';
+import { OnboardingApiService } from '../../../../core/services/onboarding-api.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { formatSgDate } from '../../../../core/utils/singapore.utils';
 import { environment } from '../../../../../environments/environment';
@@ -38,6 +39,7 @@ export class EmployeeAttendancePage implements OnInit {
   private readonly employeeService = inject(EmployeeMockService);
   private readonly geo = inject(GeolocationService);
   private readonly attendanceApi = inject(AttendanceApiService);
+  private readonly onboardingApi = inject(OnboardingApiService);
   readonly toast = inject(ToastService);
 
   readonly loading = signal(true);
@@ -50,6 +52,8 @@ export class EmployeeAttendancePage implements OnInit {
   readonly historyRows = signal<AttendanceRecord[]>([]);
   readonly canClockIn = signal(true);
   readonly canClockOut = signal(false);
+  /** False until HR marks Complete Ready to Work (when onboarding exists). */
+  readonly readyForAttendance = signal(true);
   selectedLocation: WorkLocation = 'Office';
 
   readonly columns: DataTableColumn<AttendanceRecord>[] = [
@@ -170,6 +174,13 @@ export class EmployeeAttendancePage implements OnInit {
   }
 
   private async clockWithBackend(action: 'in' | 'out'): Promise<void> {
+    if (action === 'in' && !this.readyForAttendance()) {
+      this.toast.warning(
+        'Not ready to work',
+        'Attendance unlocks after HR clicks Complete Ready to Work on your onboarding.',
+      );
+      return;
+    }
     if (action === 'in' && !this.canClockIn()) {
       this.toast.warning('Already recorded', 'Only one clock-in is allowed per day.');
       return;
@@ -232,6 +243,7 @@ export class EmployeeAttendancePage implements OnInit {
 
   private async refreshBackend(): Promise<void> {
     try {
+      await this.refreshReadyForAttendance();
       const policy = await firstValueFrom(this.attendanceApi.getGpsPolicy());
       this.gpsMandatory.set(!!policy.gpsMandatory);
       const today = await firstValueFrom(this.attendanceApi.today());
@@ -240,6 +252,17 @@ export class EmployeeAttendancePage implements OnInit {
       this.historyRows.set(history.map((s) => this.toHistoryRow(s)));
     } catch {
       this.backendSessionLabel.set('Unable to load attendance from API — is the backend running?');
+    }
+  }
+
+  private async refreshReadyForAttendance(): Promise<void> {
+    try {
+      const onboarding = await firstValueFrom(this.onboardingApi.myOnboarding());
+      const ready = (onboarding.pipelineStatus || '').toUpperCase() === 'READY_TO_WORK';
+      this.readyForAttendance.set(ready);
+    } catch {
+      // No onboarding record — legacy employees may still clock in
+      this.readyForAttendance.set(true);
     }
   }
 
@@ -265,8 +288,12 @@ export class EmployeeAttendancePage implements OnInit {
       return;
     }
     this.backendStatus.set('Checked out');
-    this.backendSessionLabel.set('No active backend session today');
-    this.canClockIn.set(true);
+    this.backendSessionLabel.set(
+      this.readyForAttendance()
+        ? 'No active backend session today'
+        : 'Clock-in locked until HR completes Ready to Work',
+    );
+    this.canClockIn.set(this.readyForAttendance());
     this.canClockOut.set(false);
   }
 

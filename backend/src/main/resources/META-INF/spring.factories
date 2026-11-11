@@ -1,0 +1,4 @@
+# Spring Boot 4 registers EnvironmentPostProcessors from spring.factories
+# (wrong key / wrong file = silent skip → SMTP never loads → invitations FAIL).
+org.springframework.boot.EnvironmentPostProcessor=\
+sg.eyota.workright.config.DotEnvEnvironmentPostProcessor

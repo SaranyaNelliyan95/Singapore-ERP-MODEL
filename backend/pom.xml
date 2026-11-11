@@ -75,6 +75,18 @@
 			<version>${jjwt.version}</version>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- Employee Master Dossier PDF (tables/layout) -->
+		<dependency>
+			<groupId>com.github.librepdf</groupId>
+			<artifactId>openpdf</artifactId>
+			<version>1.3.39</version>
+		</dependency>
+		<!-- Merge uploaded PDF attachments into dossier -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>3.0.3</version>
+		</dependency>
 
 		<!-- Tests: H2 in PostgreSQL compatibility mode (no Docker required) -->
 		<dependency>

@@ -1,4 +1,4 @@
-@if (loading()) {
+@if (loading() || readiness.loading()) {
   <app-loading-spinner label="Loading your dashboard…" />
 } @else {
   <div class="ess-page">
@@ -7,149 +7,283 @@
         <p class="ess-eyebrow">Dashboard Overview</p>
         <h1>Hello, {{ ws().profile.fullName.split(' ')[0] }}</h1>
         <p class="ess-sub">
-          Leave, claims, payslips, documents, and project assignments — statuses update when HR
-          completes the matching approval workflow.
+          @if (readiness.onboardingInProgress()) {
+            Complete your onboarding checklist. Attendance, leave, payslips, and claims unlock when
+            HR marks Ready to Work.
+          } @else {
+            Leave, claims, payslips, documents, and project assignments — statuses update when HR
+            completes the matching approval workflow.
+          }
         </p>
       </div>
-      <div class="clock-pill">
-        <span>Today</span>
-        <strong>{{ ws().clock.status }}</strong>
-        <small>
-          @if (ws().clock.checkIn) {
-            In {{ ws().clock.checkIn }}
-          } @else {
-            Not clocked in
-          }
-        </small>
-      </div>
+      @if (readiness.readyToWork()) {
+        <div class="clock-pill">
+          <span>Today</span>
+          <strong>{{ ws().clock.status }}</strong>
+          <small>
+            @if (ws().clock.checkIn) {
+              In {{ ws().clock.checkIn }}
+            } @else {
+              Not clocked in
+            }
+          </small>
+        </div>
+      } @else {
+        <div class="clock-pill onboarding">
+          <span>Onboarding</span>
+          <strong>{{ readiness.progressPercent() }}%</strong>
+          <small>{{ readiness.pipelineLabel() }}</small>
+        </div>
+      }
     </header>
 
     <app-demo-notice />
 
-    <section class="ess-grid-4">
-      <article class="ess-stat">
-        <p>Annual leave (simulated)</p>
-        <strong>{{ annualLeave()?.balance ?? 0 }}</strong>
-        <span>{{ annualLeave()?.used ?? 0 }} used of {{ annualLeave()?.entitled ?? 0 }}</span>
-      </article>
-      <article class="ess-stat">
-        <p>Active assets</p>
-        <strong>{{ assetCount() }}</strong>
-        <span>Assigned corporate items</span>
-      </article>
-      <article class="ess-stat">
-        <p>Pending approvals</p>
-        <strong>{{ pendingLeave() + pendingClaims() }}</strong>
-        <span>{{ pendingLeave() }} leave · {{ pendingClaims() }} claims</span>
-      </article>
-      <article class="ess-stat">
-        <p>Unread alerts</p>
-        <strong>{{ unread() }}</strong>
-        <span>Notifications &amp; reminders</span>
-      </article>
+    <section class="latest-card">
+      <div class="latest-head">
+        <h2>Latest requests</h2>
+        <span class="count-pill">{{ latestRequests().length }}</span>
+      </div>
+
+      @if (!useBackend) {
+        <p class="latest-empty">Connect the backend API to see confirmation requests from HR.</p>
+      } @else if (latestRequests().length === 0) {
+        <p class="latest-empty">You're all caught up — no open confirmation requests.</p>
+      } @else {
+        <ul class="latest-list">
+          @for (req of visibleRequests(); track req.requestType + (req.createdAt || '')) {
+            <li class="latest-item">
+              <button type="button" class="latest-row" (click)="openRequest(req)">
+                <span class="latest-icon" aria-hidden="true">
+                  @if (req.requestType === 'PPE_CONFIRM') {
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                      <path
+                        fill="currentColor"
+                        d="M12 5a3 3 0 0 1 3 3h2a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3h2a3 3 0 0 1 3-3zm0 2a1 1 0 0 0-1 1h2a1 1 0 0 0-1-1zm0 4.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"
+                      />
+                    </svg>
+                  } @else if (req.requestType === 'ARRIVAL_CONFIRM') {
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                      <path
+                        fill="currentColor"
+                        d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"
+                      />
+                    </svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                      <path
+                        fill="currentColor"
+                        d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 1 0-14 0v5l-2 2v1h18v-1l-2-2z"
+                      />
+                    </svg>
+                  }
+                </span>
+                <span class="latest-copy">
+                  <strong>{{ req.title }}</strong>
+                  <span>{{ req.summary }}</span>
+                </span>
+              </button>
+              <div class="latest-actions">
+                <button
+                  type="button"
+                  class="ess-btn primary"
+                  [disabled]="acting()"
+                  (click)="openRequest(req)"
+                >
+                  {{
+                    acting() && req.requestType === 'ARRIVAL_CONFIRM'
+                      ? 'Confirming…'
+                      : req.actionLabel || 'Open'
+                  }}
+                </button>
+                <a routerLink="/employee/master/onboarding" class="ess-btn ghost">My onboarding</a>
+              </div>
+            </li>
+          }
+        </ul>
+
+        @if (hiddenCount() > 0 && !showAllRequests()) {
+          <button type="button" class="more-btn" (click)="showAllRequests.set(true)">
+            +{{ hiddenCount() }} requests
+          </button>
+        }
+        @if (showAllRequests() && latestRequests().length > 4) {
+          <button type="button" class="more-btn" (click)="showAllRequests.set(false)">
+            Show less
+          </button>
+        }
+      }
     </section>
 
-    <div class="ess-grid-2">
-      <section class="ess-panel">
+    @if (readiness.onboardingInProgress()) {
+      <section class="ess-panel onboard-hero">
         <div class="ess-panel-head">
-          <h2>Quick actions</h2>
+          <h2>Your onboarding progress</h2>
+          <app-status-badge [label]="readiness.pipelineLabel()" tone="info" />
         </div>
-        <div class="actions">
-          <a routerLink="/employee/master/leave" class="ess-btn primary">Apply leave</a>
-          <button type="button" class="ess-btn ghost" (click)="quickClock()">
-            {{ ws().clock.status === 'Checked in' ? 'Clock out' : 'Clock in' }}
-          </button>
-          <a routerLink="/employee/master/claims" class="ess-btn ghost">File claim</a>
-          <a routerLink="/employee/master/profile" class="ess-btn ghost">Update profile</a>
-          <a routerLink="/employee/master/documents" class="ess-btn ghost">Upload documents</a>
-          <a routerLink="/employee/master/attendance" class="ess-btn ghost">Attendance</a>
-          <a routerLink="/employee/master/payslips" class="ess-btn ghost">My payslips</a>
-          <a routerLink="/employee/master/more" class="ess-btn ghost">Notifications</a>
-        </div>
-        <p class="meta">Leave workflow status: {{ leaveStatusSummary() }}</p>
-      </section>
-
-      <section class="ess-panel">
-        <div class="ess-panel-head">
-          <h2>Latest payslip</h2>
-          <app-status-badge label="DEMO DOCUMENT" tone="warning" />
-        </div>
-        @if (latestPayslip(); as slip) {
-          <p class="period">{{ slip.payPeriod }}</p>
-          <p class="net">Net {{ slip.netPay | sgd }}</p>
-          <p class="meta">Credited {{ slip.bankCreditedDate | sgDate }} · CPF/SDL simulated</p>
-          <a routerLink="/employee/master/payslips" class="ess-btn primary">Open payslip detail</a>
-        } @else {
-          <p class="meta">No published payslips yet — available after HR finalizes payroll.</p>
-        }
-      </section>
-    </div>
-
-    <div class="ess-grid-2">
-      <section class="ess-panel">
-        <div class="ess-panel-head">
-          <h2>My project assignments</h2>
-        </div>
-        @for (a of myAllocations(); track a.id) {
-          <div class="alert">
-            <div>
-              <strong>{{ projectName(a.projectId) }}</strong>
-              <p>{{ a.role }} · {{ a.allocationPct }}% · from {{ a.startDate }}</p>
-            </div>
-            <app-status-badge [label]="a.status" tone="info" />
+        <div class="onboard-progress">
+          <div class="progress-track large" aria-hidden="true">
+            <span class="progress-fill" [style.width.%]="readiness.progressPercent()"></span>
           </div>
-        } @empty {
           <p class="meta">
-            @if (myDirectory()?.projectId; as pid) {
-              Linked project: {{ projectName(pid) }} (directory). Detailed allocations appear when HR
-              assigns you in Project Manpower.
-            } @else {
-              No active project allocation.
-            }
+            Checklist {{ readiness.progressPercent() }}% · Status {{ readiness.pipelineLabel() }}
           </p>
+        </div>
+        @if (readiness.readinessBlockers().length) {
+          <div class="blocker-box">
+            <strong>Still required</strong>
+            <ul>
+              @for (b of readiness.readinessBlockers(); track b) {
+                <li>{{ b }}</li>
+              }
+            </ul>
+          </div>
         }
-      </section>
-
-      <section class="ess-panel">
-        <div class="ess-panel-head">
-          <h2>Compliance tasks</h2>
+        @if (pendingTasks().length) {
+          <div class="pending-tasks">
+            <strong>Open checklist items</strong>
+            <ul>
+              @for (t of pendingTasks(); track t.title) {
+                <li>
+                  <span>{{ t.title }}</span>
+                  <app-status-badge [label]="t.status" tone="warning" />
+                </li>
+              }
+            </ul>
+          </div>
+        }
+        <div class="actions">
+          <a routerLink="/employee/master/onboarding" class="ess-btn primary">Open my onboarding</a>
+          <a routerLink="/employee/master/profile" class="ess-btn ghost">Update profile</a>
           <a routerLink="/employee/master/documents" class="ess-btn ghost">Documents</a>
         </div>
-        @for (c of myCompliance(); track c.id) {
-          <div class="alert">
-            <div>
-              <strong>{{ c.agency }} · {{ c.category }}</strong>
-              <p>{{ c.reference }} · {{ c.status }}</p>
-            </div>
-            <app-status-badge
-              [label]="c.status"
-              [tone]="c.status === 'Expired' ? 'danger' : 'warning'"
-            />
-          </div>
-        } @empty {
-          <p class="meta">No open MOM / ICA compliance tasks for your profile.</p>
-        }
       </section>
-    </div>
+    } @else {
+      <section class="ess-grid-4">
+        <article class="ess-stat">
+          <p>Annual leave (simulated)</p>
+          <strong>{{ annualLeave()?.balance ?? 0 }}</strong>
+          <span>{{ annualLeave()?.used ?? 0 }} used of {{ annualLeave()?.entitled ?? 0 }}</span>
+        </article>
+        <article class="ess-stat">
+          <p>Active assets</p>
+          <strong>{{ assetCount() }}</strong>
+          <span>Assigned corporate items</span>
+        </article>
+        <article class="ess-stat">
+          <p>Pending approvals</p>
+          <strong>{{ pendingLeave() + pendingClaims() }}</strong>
+          <span>{{ pendingLeave() }} leave · {{ pendingClaims() }} claims</span>
+        </article>
+        <article class="ess-stat">
+          <p>Unread alerts</p>
+          <strong>{{ unread() }}</strong>
+          <span>Notifications &amp; reminders</span>
+        </article>
+      </section>
 
-    <section class="ess-panel">
-      <div class="ess-panel-head">
-        <h2>Document &amp; pass alerts</h2>
-      </div>
-      <div class="alerts">
-        @for (alert of ws().passAlerts; track alert.label) {
-          <div class="alert">
-            <div>
-              <strong>{{ alert.label }}</strong>
-              <p>Expires {{ alert.expiryDate | sgDate }}</p>
-            </div>
-            <app-status-badge
-              [label]="alert.daysRemaining + ' days'"
-              [tone]="alert.severity === 'danger' ? 'danger' : alert.severity === 'warning' ? 'warning' : 'info'"
-            />
+      <div class="ess-grid-2">
+        <section class="ess-panel">
+          <div class="ess-panel-head">
+            <h2>Quick actions</h2>
           </div>
-        }
+          <div class="actions">
+            <a routerLink="/employee/master/leave" class="ess-btn primary">Apply leave</a>
+            <button type="button" class="ess-btn ghost" (click)="quickClock()">
+              {{ ws().clock.status === 'Checked in' ? 'Clock out' : 'Clock in' }}
+            </button>
+            <a routerLink="/employee/master/claims" class="ess-btn ghost">File claim</a>
+            <a routerLink="/employee/master/profile" class="ess-btn ghost">Update profile</a>
+            <a routerLink="/employee/master/documents" class="ess-btn ghost">Upload documents</a>
+            <a routerLink="/employee/master/attendance" class="ess-btn ghost">Attendance</a>
+            <a routerLink="/employee/master/payslips" class="ess-btn ghost">My payslips</a>
+            <a routerLink="/employee/master/more" class="ess-btn ghost">Notifications</a>
+          </div>
+          <p class="meta">Leave workflow status: {{ leaveStatusSummary() }}</p>
+        </section>
+
+        <section class="ess-panel">
+          <div class="ess-panel-head">
+            <h2>Latest payslip</h2>
+            <app-status-badge label="DEMO DOCUMENT" tone="warning" />
+          </div>
+          @if (latestPayslip(); as slip) {
+            <p class="period">{{ slip.payPeriod }}</p>
+            <p class="net">Net {{ slip.netPay | sgd }}</p>
+            <p class="meta">Credited {{ slip.bankCreditedDate | sgDate }} · CPF/SDL simulated</p>
+            <a routerLink="/employee/master/payslips" class="ess-btn primary">Open payslip detail</a>
+          } @else {
+            <p class="meta">No published payslips yet — available after HR finalizes payroll.</p>
+          }
+        </section>
       </div>
-    </section>
+
+      <div class="ess-grid-2">
+        <section class="ess-panel">
+          <div class="ess-panel-head">
+            <h2>My project assignments</h2>
+          </div>
+          @for (a of myAllocations(); track a.id) {
+            <div class="alert">
+              <div>
+                <strong>{{ projectName(a.projectId) }}</strong>
+                <p>{{ a.role }} · {{ a.allocationPct }}% · from {{ a.startDate }}</p>
+              </div>
+              <app-status-badge [label]="a.status" tone="info" />
+            </div>
+          } @empty {
+            <p class="meta">
+              @if (myDirectory()?.projectId; as pid) {
+                Linked project: {{ projectName(pid) }} (directory). Detailed allocations appear when HR
+                assigns you in Project Manpower.
+              } @else {
+                No active project allocation.
+              }
+            </p>
+          }
+        </section>
+
+        <section class="ess-panel">
+          <div class="ess-panel-head">
+            <h2>Compliance tasks</h2>
+            <a routerLink="/employee/master/documents" class="ess-btn ghost">Documents</a>
+          </div>
+          @for (c of myCompliance(); track c.id) {
+            <div class="alert">
+              <div>
+                <strong>{{ c.agency }} · {{ c.category }}</strong>
+                <p>{{ c.reference }} · {{ c.status }}</p>
+              </div>
+              <app-status-badge
+                [label]="c.status"
+                [tone]="c.status === 'Expired' ? 'danger' : 'warning'"
+              />
+            </div>
+          } @empty {
+            <p class="meta">No open MOM / ICA compliance tasks for your profile.</p>
+          }
+        </section>
+      </div>
+
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Document &amp; pass alerts</h2>
+        </div>
+        <div class="alerts">
+          @for (alert of ws().passAlerts; track alert.label) {
+            <div class="alert">
+              <div>
+                <strong>{{ alert.label }}</strong>
+                <p>Expires {{ alert.expiryDate | sgDate }}</p>
+              </div>
+              <app-status-badge
+                [label]="alert.daysRemaining + ' days'"
+                [tone]="alert.severity === 'danger' ? 'danger' : alert.severity === 'warning' ? 'warning' : 'info'"
+              />
+            </div>
+          }
+        </div>
+      </section>
+    }
   </div>
 }

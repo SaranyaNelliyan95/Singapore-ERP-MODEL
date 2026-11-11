@@ -32,10 +32,63 @@ public final class EmployeeHireRules {
     }
 
     public static void requireMobile(String mobile) {
-        if (mobile == null || !mobile.trim().matches("^[89]\\d{7}$")) {
+        if (mobile == null || !isAllowedMobile(mobile)) {
             throw new ApiException(
-                    HttpStatus.BAD_REQUEST, "Bad Request", "Mobile must be an 8-digit Singapore number starting with 8 or 9");
+                    HttpStatus.BAD_REQUEST,
+                    "Bad Request",
+                    "Mobile must be a Singapore number (8 digits, starts with 8/9, optional +65) "
+                            + "or an Indian number (10 digits starting 6–9, optional +91) for WhatsApp testing");
         }
+    }
+
+    /**
+     * Accepts SG local / +65… and IN local / +91… (spaces/dashes allowed).
+     * Used so HR can draft candidates with Indian mobiles to exercise WhatsApp confirm links.
+     */
+    public static boolean isAllowedMobile(String mobile) {
+        if (mobile == null || mobile.isBlank()) {
+            return false;
+        }
+        String digits = mobile.trim().replaceAll("[\\s\\-()]", "");
+        // Singapore: 8 digits starting 8/9, or +65 / 65 prefix
+        if (digits.matches("^[89]\\d{7}$")) {
+            return true;
+        }
+        if (digits.matches("^(\\+?65)[89]\\d{7}$")) {
+            return true;
+        }
+        // India: 10 digits starting 6–9, or +91 / 91 prefix
+        if (digits.matches("^[6-9]\\d{9}$")) {
+            return true;
+        }
+        if (digits.matches("^(\\+?91)[6-9]\\d{9}$")) {
+            return true;
+        }
+        return false;
+    }
+
+    /** Normalise to E.164-ish (+65… / +91…) for WhatsApp; keeps original if already prefixed. */
+    public static String normalizeMobileE164(String mobile) {
+        if (mobile == null || mobile.isBlank()) {
+            return mobile;
+        }
+        String digits = mobile.trim().replaceAll("[\\s\\-()]", "");
+        if (digits.startsWith("+")) {
+            return digits;
+        }
+        if (digits.matches("^65[89]\\d{7}$")) {
+            return "+" + digits;
+        }
+        if (digits.matches("^[89]\\d{7}$")) {
+            return "+65" + digits;
+        }
+        if (digits.matches("^91[6-9]\\d{9}$")) {
+            return "+" + digits;
+        }
+        if (digits.matches("^[6-9]\\d{9}$")) {
+            return "+91" + digits;
+        }
+        return digits.startsWith("+") ? digits : "+" + digits;
     }
 
     public static String requireFin(String fin) {

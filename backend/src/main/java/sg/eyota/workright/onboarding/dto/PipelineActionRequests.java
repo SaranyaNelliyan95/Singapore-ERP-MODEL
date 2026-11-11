@@ -29,7 +29,8 @@ public final class PipelineActionRequests {
             LocalDate ipaIssueDate,
             LocalDate ipaExpiryDate,
             @Size(max = 2000) String notes,
-            boolean markApproved
+            boolean markApproved,
+            Boolean ipaExtensionRequested
     ) {}
 
     public record PreArrivalRequest(
@@ -41,7 +42,13 @@ public final class PipelineActionRequests {
             boolean bondArranged,
             boolean insuranceArranged,
             boolean readyForTravel,
-            String notes
+            String notes,
+            String accommodationType,
+            Integer dormCapacity,
+            Boolean momAddressRegistered,
+            Boolean pcpRecorded,
+            Boolean medicalInsuranceRecorded,
+            Boolean securityBondPurchased
     ) {}
 
     public record ArrivalUpdateRequest(
@@ -51,7 +58,10 @@ public final class PipelineActionRequests {
             String accommodationAddress,
             boolean housingConfirmed,
             boolean employeeConfirmed,
-            String notes
+            String notes,
+            String accommodationType,
+            Integer dormCapacity,
+            Boolean momAddressRegistered
     ) {}
 
     public record AppointmentRequest(
@@ -66,7 +76,8 @@ public final class PipelineActionRequests {
             String medicalStatus,
             String sipStatus,
             String onboardProgrammeStatus,
-            String quarantineStatus
+            String quarantineStatus,
+            String constructionSafetyStatus
     ) {}
 
     public record WorkPermitIssueRequest(
@@ -75,6 +86,14 @@ public final class PipelineActionRequests {
             LocalDate wpExpiryDate,
             String finNumber,
             boolean cardCollected,
+            String notes
+    ) {}
+
+    public record TemporaryPermitRequest(
+            @Size(max = 128) String tpNumber,
+            LocalDate tpIssueDate,
+            LocalDate tpExpiryDate,
+            boolean tpValid,
             String notes
     ) {}
 

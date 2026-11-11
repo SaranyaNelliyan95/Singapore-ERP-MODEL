@@ -12,30 +12,38 @@
 .hr-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem;
-  margin-bottom: 0.9rem;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #f7fafc, #f3f7fb);
+  border: 1px solid color-mix(in srgb, var(--border-color) 90%, #fff);
 }
 
 .hr-filters label {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.28rem;
   min-width: 140px;
+  flex: 1 1 140px;
 }
 
 .hr-filters span {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .hr-filters select,
 .hr-filters input {
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.7rem;
-  background: var(--input-bg);
+  border-radius: 999px;
+  padding: 0.52rem 0.85rem;
+  background: #fff;
   color: var(--text-primary);
   font: inherit;
+  box-shadow: 0 1px 0 rgba(30, 53, 82, 0.02);
 }
 
 .hr-filters select:focus,
@@ -46,7 +54,7 @@
 }
 
 .hr-dense .ess-panel {
-  padding: 0.95rem;
+  padding: 1.05rem 1.15rem 1.15rem;
 }
 
 .hr-inline-actions {

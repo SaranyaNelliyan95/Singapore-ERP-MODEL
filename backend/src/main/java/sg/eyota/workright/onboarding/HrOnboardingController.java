@@ -26,8 +26,10 @@ import sg.eyota.workright.onboarding.dto.OnboardingActivateResponse;
 import sg.eyota.workright.onboarding.dto.OnboardingCandidateDto;
 import sg.eyota.workright.onboarding.dto.OnboardingDetailDto;
 import sg.eyota.workright.onboarding.dto.OnboardingDocumentDto;
+import sg.eyota.workright.onboarding.dto.OnboardingLatestRequestDto;
 import sg.eyota.workright.onboarding.dto.OnboardingSummaryDto;
 import sg.eyota.workright.onboarding.dto.PipelineActionRequests;
+import java.util.List;
 import sg.eyota.workright.onboarding.entity.OnboardingDocType;
 import sg.eyota.workright.security.SecurityUtils;
 
@@ -47,6 +49,12 @@ public class HrOnboardingController {
     @GetMapping
     public OnboardingSummaryDto summary() {
         return onboardingService.summary();
+    }
+
+    /** Notification-style latest requests (e.g. PPE photo verify) for HR dashboard. */
+    @GetMapping("/latest-requests")
+    public List<OnboardingLatestRequestDto> latestRequests() {
+        return pipelineService.latestRequests();
     }
 
     @GetMapping("/{employeeId}")
@@ -128,12 +136,40 @@ public class HrOnboardingController {
         return pipelineService.issueWorkPermit(employeeId, request, SecurityUtils.currentUser().getUserId());
     }
 
+    @PostMapping("/{employeeId}/temporary-permit")
+    public OnboardingDetailDto temporaryPermit(
+            @PathVariable UUID employeeId,
+            @Valid @RequestBody PipelineActionRequests.TemporaryPermitRequest request
+    ) {
+        return pipelineService.recordTemporaryPermit(employeeId, request, SecurityUtils.currentUser().getUserId());
+    }
+
+    @PostMapping("/{employeeId}/induction")
+    public OnboardingDetailDto markInduction(
+            @PathVariable UUID employeeId,
+            @RequestBody(required = false) java.util.Map<String, Object> body
+    ) {
+        String trainer = body != null && body.get("trainerName") != null
+                ? String.valueOf(body.get("trainerName")) : null;
+        LocalDate date = null;
+        if (body != null && body.get("inductionDate") != null && !String.valueOf(body.get("inductionDate")).isBlank()) {
+            date = LocalDate.parse(String.valueOf(body.get("inductionDate")));
+        }
+        return pipelineService.markInductionDone(
+                employeeId, trainer, date, SecurityUtils.currentUser().getUserId());
+    }
+
     @PostMapping("/{employeeId}/ppe")
     public OnboardingDetailDto ppe(
             @PathVariable UUID employeeId,
             @Valid @RequestBody PipelineActionRequests.PpeIssueRequest request
     ) {
         return pipelineService.issuePpe(employeeId, request, SecurityUtils.currentUser().getUserId());
+    }
+
+    @PostMapping("/{employeeId}/ppe-photo/verify")
+    public OnboardingDetailDto verifyPpePhoto(@PathVariable UUID employeeId) {
+        return pipelineService.hrVerifyPpePhoto(employeeId, SecurityUtils.currentUser().getUserId());
     }
 
     @PostMapping("/{employeeId}/complete-ready")

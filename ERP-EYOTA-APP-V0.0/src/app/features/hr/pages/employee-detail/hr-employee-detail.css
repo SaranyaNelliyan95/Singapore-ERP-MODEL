@@ -1,5 +1,12 @@
 @import '../../shared/hr-page.styles.css';
 
+.dossier-export {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
 .tabs {
   display: flex;
   flex-wrap: wrap;

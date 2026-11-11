@@ -3,6 +3,7 @@ package sg.eyota.workright.attendance;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import sg.eyota.workright.attendance.dto.ClockRequest;
 import sg.eyota.workright.attendance.entity.AttendanceSessionEntity;
 import sg.eyota.workright.attendance.entity.WorkplaceEntity;
@@ -28,6 +30,10 @@ import sg.eyota.workright.common.exception.ApiException;
 import sg.eyota.workright.config.EyotaProperties;
 import sg.eyota.workright.employee.entity.EmployeeEntity;
 import sg.eyota.workright.employee.repository.EmployeeRepository;
+import sg.eyota.workright.onboarding.entity.CandidateOnboardingEntity;
+import sg.eyota.workright.onboarding.entity.PipelineStatus;
+import sg.eyota.workright.onboarding.repository.CandidateOnboardingRepository;
+import sg.eyota.workright.onboarding.sg.OnboardingSgFlowService;
 
 @ExtendWith(MockitoExtension.class)
 class AttendanceServiceTest {
@@ -42,6 +48,10 @@ class AttendanceServiceTest {
     EmployeeRepository employeeRepository;
     @Mock
     AttendancePolicyService policyService;
+    @Mock
+    OnboardingSgFlowService sgFlowService;
+    @Mock
+    CandidateOnboardingRepository onboardingRepository;
 
     AttendanceService service;
     UUID employeeId;
@@ -66,10 +76,13 @@ class AttendanceServiceTest {
                 employeeRepository,
                 policyService,
                 props,
-                fixedClock);
+                fixedClock,
+                sgFlowService,
+                onboardingRepository);
         employeeId = UUID.randomUUID();
         workplaceId = UUID.randomUUID();
-        when(policyService.isGpsMandatory()).thenReturn(true);
+        lenient().when(policyService.isGpsMandatory()).thenReturn(true);
+        lenient().when(sgFlowService.enabled()).thenReturn(false);
     }
 
     @Test
@@ -97,6 +110,39 @@ class AttendanceServiceTest {
 
         ClockRequest req = new ClockRequest(1.2916, 103.7803, 200d, null, workplaceId, AttendanceSessionEntity.WorkMode.OFFICE);
         assertThrows(ApiException.class, () -> service.clockIn(employeeId, req));
+    }
+
+    @Test
+    void clockIn_blockedUntilReadyToWork() {
+        when(sgFlowService.enabled()).thenReturn(true);
+        EmployeeEntity employee = employee();
+        employee.setPipelineStatus(PipelineStatus.ONBOARDING_IN_PROGRESS);
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+        when(onboardingRepository.findByEmployeeId(employeeId))
+                .thenReturn(Optional.of(new CandidateOnboardingEntity()));
+
+        ClockRequest req = new ClockRequest(1.2916, 103.7803, 10d, null, null, AttendanceSessionEntity.WorkMode.OFFICE);
+        ApiException ex = assertThrows(ApiException.class, () -> service.clockIn(employeeId, req));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatus());
+    }
+
+    @Test
+    void clockIn_allowedWhenReadyToWork() {
+        when(sgFlowService.enabled()).thenReturn(true);
+        EmployeeEntity employee = employee();
+        employee.setPipelineStatus(PipelineStatus.READY_TO_WORK);
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+
+        WorkplaceEntity wp = workplace();
+        when(workplaceRepository.findById(workplaceId)).thenReturn(Optional.of(wp));
+        LocalDate businessDate = LocalDate.now(fixedClock.withZone(sg));
+        when(sessionRepository.findByEmployeeIdAndAttendanceDate(employeeId, businessDate))
+                .thenReturn(Optional.empty());
+        when(sessionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ClockRequest req = new ClockRequest(1.2916, 103.7803, 10d, null, null, AttendanceSessionEntity.WorkMode.OFFICE);
+        var result = service.clockIn(employeeId, req);
+        assertEquals(AttendanceSessionEntity.SessionStatus.OPEN, result.status());
     }
 
     @Test

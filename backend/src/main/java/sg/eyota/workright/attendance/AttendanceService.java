@@ -26,6 +26,9 @@ import sg.eyota.workright.common.exception.ApiException;
 import sg.eyota.workright.config.EyotaProperties;
 import sg.eyota.workright.employee.entity.EmployeeEntity;
 import sg.eyota.workright.employee.repository.EmployeeRepository;
+import sg.eyota.workright.onboarding.entity.PipelineStatus;
+import sg.eyota.workright.onboarding.repository.CandidateOnboardingRepository;
+import sg.eyota.workright.onboarding.sg.OnboardingSgFlowService;
 
 @Service
 public class AttendanceService {
@@ -38,6 +41,8 @@ public class AttendanceService {
     private final EyotaProperties properties;
     private final Clock clock;
     private final ZoneId businessZone;
+    private final OnboardingSgFlowService sgFlowService;
+    private final CandidateOnboardingRepository onboardingRepository;
 
     public AttendanceService(
             AttendanceSessionRepository sessionRepository,
@@ -46,7 +51,9 @@ public class AttendanceService {
             EmployeeRepository employeeRepository,
             AttendancePolicyService policyService,
             EyotaProperties properties,
-            Clock clock
+            Clock clock,
+            OnboardingSgFlowService sgFlowService,
+            CandidateOnboardingRepository onboardingRepository
     ) {
         this.sessionRepository = sessionRepository;
         this.rejectAuditRepository = rejectAuditRepository;
@@ -56,11 +63,14 @@ public class AttendanceService {
         this.properties = properties;
         this.clock = clock;
         this.businessZone = ZoneId.of(properties.timezone() != null ? properties.timezone() : "Asia/Singapore");
+        this.sgFlowService = sgFlowService;
+        this.onboardingRepository = onboardingRepository;
     }
 
     @Transactional
     public AttendanceSessionDto clockIn(UUID employeeId, ClockRequest request) {
         EmployeeEntity employee = requireEmployee(employeeId);
+        requireReadyToWorkForAttendance(employee);
         boolean gpsMandatory = policyService.isGpsMandatory();
         requireLocationWhenMandatory(request, gpsMandatory);
 
@@ -297,6 +307,24 @@ public class AttendanceService {
                     "GPS accuracy too low (max " + properties.attendance().maxAccuracyMetres() + "m). "
                             + "Move outdoors or wait for a better fix, then retry.");
         }
+    }
+
+    /**
+     * When SG onboarding flow is on and the employee has an onboarding record, clock-in is allowed
+     * only after HR completes Ready to Work. Legacy employees without onboarding are unaffected.
+     */
+    private void requireReadyToWorkForAttendance(EmployeeEntity employee) {
+        if (!sgFlowService.enabled()) {
+            return;
+        }
+        if (employee.getPipelineStatus() == PipelineStatus.READY_TO_WORK) {
+            return;
+        }
+        if (onboardingRepository.findByEmployeeId(employee.getId()).isEmpty()) {
+            return;
+        }
+        throw new ApiException(HttpStatus.FORBIDDEN, "Not Ready",
+                "Attendance is available only after HR marks Complete Ready to Work");
     }
 
     private EmployeeEntity requireEmployee(UUID employeeId) {

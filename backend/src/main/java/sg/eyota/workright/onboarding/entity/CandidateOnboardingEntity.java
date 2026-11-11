@@ -1,5 +1,6 @@
 package sg.eyota.workright.onboarding.entity;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -84,6 +85,29 @@ public class CandidateOnboardingEntity extends AuditedEntity {
     @Column(name = "created_by_user_id")
     private UUID createdByUserId;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "construction_safety_status", nullable = false, columnDefinition = "programme_outcome")
+    /** PENDING until HR saves the programmes form — must not default to N/A (N/A counts as done). */
+    private ProgrammeOutcome constructionSafetyStatus = ProgrammeOutcome.PENDING;
+
+    @Column(name = "sg_flow_v2_tasks_seeded", nullable = false)
+    private boolean sgFlowV2TasksSeeded;
+
+    /** Document id of employee PPE receipt photo (OnboardingDocType.PPE_RECEIPT_PHOTO). */
+    @Column(name = "ppe_photo_document_id")
+    private UUID ppePhotoDocumentId;
+
+    @Column(name = "ppe_hr_verified_at")
+    private Instant ppeHrVerifiedAt;
+
+    @Column(name = "ppe_hr_verified_by_user_id")
+    private UUID ppeHrVerifiedByUserId;
+
+    /** When pipeline first reached READY_TO_WORK — used to keep candidate visible for 7 days. */
+    @Column(name = "ready_to_work_at")
+    private Instant readyToWorkAt;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
     public UUID getEmployeeId() { return employeeId; }
@@ -124,4 +148,22 @@ public class CandidateOnboardingEntity extends AuditedEntity {
     public void setNotes(String notes) { this.notes = notes; }
     public UUID getCreatedByUserId() { return createdByUserId; }
     public void setCreatedByUserId(UUID createdByUserId) { this.createdByUserId = createdByUserId; }
+    public ProgrammeOutcome getConstructionSafetyStatus() { return constructionSafetyStatus; }
+    public void setConstructionSafetyStatus(ProgrammeOutcome constructionSafetyStatus) {
+        this.constructionSafetyStatus = constructionSafetyStatus;
+    }
+    public boolean isSgFlowV2TasksSeeded() { return sgFlowV2TasksSeeded; }
+    public void setSgFlowV2TasksSeeded(boolean sgFlowV2TasksSeeded) {
+        this.sgFlowV2TasksSeeded = sgFlowV2TasksSeeded;
+    }
+    public UUID getPpePhotoDocumentId() { return ppePhotoDocumentId; }
+    public void setPpePhotoDocumentId(UUID ppePhotoDocumentId) { this.ppePhotoDocumentId = ppePhotoDocumentId; }
+    public java.time.Instant getPpeHrVerifiedAt() { return ppeHrVerifiedAt; }
+    public void setPpeHrVerifiedAt(java.time.Instant ppeHrVerifiedAt) { this.ppeHrVerifiedAt = ppeHrVerifiedAt; }
+    public UUID getPpeHrVerifiedByUserId() { return ppeHrVerifiedByUserId; }
+    public void setPpeHrVerifiedByUserId(UUID ppeHrVerifiedByUserId) {
+        this.ppeHrVerifiedByUserId = ppeHrVerifiedByUserId;
+    }
+    public Instant getReadyToWorkAt() { return readyToWorkAt; }
+    public void setReadyToWorkAt(Instant readyToWorkAt) { this.readyToWorkAt = readyToWorkAt; }
 }

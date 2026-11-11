@@ -1,37 +1,42 @@
 @import '../../shared/hr-page.styles.css';
 
 .quick-edit {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
+  margin-top: 1.35rem;
+  padding: 1rem 1.05rem 1.05rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #f8fbfe, #f4f7fb);
+  border: 1px solid color-mix(in srgb, var(--border-color) 88%, #fff);
 }
 
 .quick-edit h3 {
   margin: 0 0 0.35rem;
   font-size: 0.95rem;
   color: var(--text-primary);
+  font-weight: 700;
 }
 
 .hint {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.85rem;
   color: var(--text-secondary);
   font-size: 0.84rem;
+  line-height: 1.45;
 }
 
 .quick-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.55rem;
 }
 
 .bank-backdrop {
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(38, 59, 73, 0.4);
+  background: rgba(20, 36, 60, 0.42);
   display: grid;
   place-items: center;
   padding: 1rem;
+  backdrop-filter: blur(2px);
 }
 
 .bank-modal {
@@ -39,10 +44,10 @@
   max-height: min(90vh, 720px);
   overflow: auto;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 20px;
   border: 1px solid var(--border-color);
-  padding: 1.25rem;
-  box-shadow: 0 20px 50px rgba(38, 59, 73, 0.12);
+  padding: 1.3rem;
+  box-shadow: 0 24px 60px rgba(20, 36, 60, 0.18);
 }
 
 .bank-modal.wide {
@@ -52,7 +57,8 @@
 .bank-modal h2 {
   margin: 0 0 1rem;
   color: var(--text-primary);
-  font-size: 1.1rem;
+  font-size: 1.12rem;
+  letter-spacing: -0.01em;
 }
 
 .full {
@@ -60,12 +66,12 @@
 }
 
 .em-kpis {
-  margin-bottom: 1rem;
+  margin-bottom: 0.15rem;
 }
 
 .em-filters {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
@@ -74,19 +80,67 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.35rem;
+  gap: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--border-color) 90%, #fff);
+  box-shadow: 0 2px 10px rgba(30, 53, 82, 0.03);
+}
+
+/* Keep Import / PDF control visible without hunting across wide tables */
+:host ::ng-deep .cell-action.primary {
+  min-width: 5.5rem;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.75rem;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+:host ::ng-deep th:first-child,
+:host ::ng-deep td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
+  box-shadow: 4px 0 10px rgba(30, 53, 82, 0.05);
+}
+
+:host ::ng-deep th:first-child {
+  background: #f7fafc;
+  z-index: 3;
+}
+
+:host ::ng-deep tbody tr:hover td:first-child {
+  background: color-mix(in srgb, var(--surface-blue) 70%, #fff);
+}
+
+/* Let the Actions hover menu paint above neighboring cells / sticky Import */
+:host ::ng-deep td.actions-col {
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+:host ::ng-deep tr:hover td.actions-col,
+:host ::ng-deep td.actions-col:focus-within {
+  z-index: 5;
 }
 
 .proj-chip {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  background: color-mix(in srgb, var(--brand-blue) 12%, white);
-  padding: 0.2rem 0.5rem;
+  font-size: 0.74rem;
+  font-weight: 650;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--brand-blue) 14%, white);
+  padding: 0.28rem 0.65rem;
   border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--brand-blue) 18%, white);
 }
 
 .meta {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 650;
   color: var(--text-secondary);
+  background: var(--surface-blue);
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
 }

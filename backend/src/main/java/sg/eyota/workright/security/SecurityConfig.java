@@ -43,6 +43,8 @@ public class SecurityConfig {
                         // combined OTP+password activation (also under employee-activation/**)
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/forgot-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/reset-password").permitAll()
+                        // Secure onboarding confirmation links (token in query; no JWT)
+                        .requestMatchers("/api/v1/onboarding/confirm/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").authenticated()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -42,6 +42,7 @@ export class HrDirectoryPage implements OnInit {
   readonly useBackend = environment.useBackendApi;
   readonly loading = signal(true);
   readonly saving = signal(false);
+  readonly pdfBusyId = signal<string | null>(null);
   readonly apiRows = signal<StaffDirectoryRow[]>([]);
   readonly lastOtpPreview = signal<string | null>(null);
   readonly statusTarget = signal<StaffDirectoryRow | null>(null);
@@ -125,6 +126,24 @@ export class HrDirectoryPage implements OnInit {
   ] as const;
 
   readonly columns: DataTableColumn<StaffDirectoryRow>[] = [
+    {
+      key: 'detailsExport',
+      label: 'Import',
+      width: '88px',
+      align: 'center',
+      format: () => '',
+      actions: (row) => [
+        {
+          id: 'download-pdf',
+          label: '⬇ Dossier',
+          tone: 'primary',
+          disabled:
+            this.saving() ||
+            this.pdfBusyId() === (row.apiId ?? row.employeeId) ||
+            (this.useBackend && !row.apiId),
+        },
+      ],
+    },
     { key: 'employeeId', label: 'Employee ID', sortable: true },
     { key: 'fullName', label: 'Full name', sortable: true },
     { key: 'designation', label: 'Designation', sortable: true },
@@ -168,34 +187,6 @@ export class HrDirectoryPage implements OnInit {
       }),
     },
     {
-      key: 'loginActive',
-      label: 'Status',
-      badge: (row) => ({
-        label: row.loginActive ? 'Active' : 'Inactive',
-        tone: row.loginActive ? 'success' : 'neutral',
-      }),
-      actions: (row) => {
-        if (!this.useBackend || !row.apiId) {
-          return null;
-        }
-        const actions = [
-          {
-            id: 'toggle-status',
-            label: row.loginActive ? 'Set Inactive' : 'Set Active',
-            tone: (row.loginActive ? 'danger' : 'primary') as 'danger' | 'primary',
-            disabled: this.saving(),
-          },
-          {
-            id: 'delete-employee',
-            label: 'Delete',
-            tone: 'danger' as const,
-            disabled: this.saving(),
-          },
-        ];
-        return actions;
-      },
-    },
-    {
       key: 'invitationEmailStatus',
       label: 'Invitation',
       format: (row) => this.invitationLabel(row),
@@ -209,30 +200,20 @@ export class HrDirectoryPage implements OnInit {
               : 'warning';
         return { label, tone };
       },
-      actions: (row) => {
-        if (!this.canResendInvitation(row)) {
-          return null;
-        }
-        const status = (row.invitationEmailStatus ?? 'NOT_SENT').toUpperCase();
-        const firstSend =
-          !row.invitationEmailStatus ||
-          status === 'NOT_SENT' ||
-          status === 'PENDING' ||
-          status === 'FAILED';
-        return [
-          {
-            id: 'resend-invitation',
-            label: firstSend ? 'Send invitation' : 'Resend invitation',
-            tone: 'primary' as const,
-            disabled: this.saving(),
-          },
-        ];
-      },
     },
     {
       key: 'accountStatus',
       label: 'Account',
       format: (row) => this.accountLabel(row),
+    },
+    {
+      key: 'loginActive',
+      label: 'Actions',
+      width: '88px',
+      align: 'center',
+      format: () => '',
+      actionsAsMenu: true,
+      actions: (row) => this.rowMenuActions(row),
     },
   ];
 
@@ -324,6 +305,7 @@ export class HrDirectoryPage implements OnInit {
       invitationEmailStatus: e.invitationEmailStatus,
       accountStatus: e.accountStatus,
       loginActive: e.active,
+      detailsExport: 'PDF',
     };
   }
 
@@ -370,13 +352,91 @@ export class HrDirectoryPage implements OnInit {
     );
   }
 
+  rowMenuActions(row: StaffDirectoryRow) {
+    const actions: Array<{
+      id: string;
+      label: string;
+      tone?: 'primary' | 'ghost' | 'danger';
+      disabled?: boolean;
+    }> = [
+      { id: 'view-detail', label: `View ${row.employeeId}` },
+      { id: 'edit-employee', label: 'Edit' },
+      {
+        id: 'download-pdf',
+        label: 'Export Dossier',
+        tone: 'primary',
+        disabled:
+          this.saving() ||
+          this.pdfBusyId() === (row.apiId ?? row.employeeId) ||
+          (this.useBackend && !row.apiId),
+      },
+    ];
+
+    if (this.canResendInvitation(row)) {
+      actions.push({
+        id: 'resend-invitation',
+        label: this.invitationActionLabel(row),
+        tone: 'primary',
+        disabled: this.saving(),
+      });
+    }
+
+    if (this.useBackend && row.apiId) {
+      actions.push(
+        {
+          id: 'toggle-status',
+          label: row.loginActive ? 'Set Inactive' : 'Set Active',
+          tone: row.loginActive ? 'danger' : 'primary',
+          disabled: this.saving(),
+        },
+        {
+          id: 'delete-employee',
+          label: 'Delete',
+          tone: 'danger',
+          disabled: this.saving(),
+        },
+      );
+    }
+
+    return actions;
+  }
+
   onDirectoryCellAction(event: { actionId: string; row: StaffDirectoryRow }): void {
-    if (event.actionId === 'resend-invitation') {
+    if (event.actionId === 'view-detail') {
+      this.openDetail(event.row);
+    } else if (event.actionId === 'edit-employee') {
+      this.openEdit(event.row);
+    } else if (event.actionId === 'resend-invitation') {
       void this.resendInvitation(event.row);
     } else if (event.actionId === 'toggle-status') {
       this.statusTarget.set(event.row);
     } else if (event.actionId === 'delete-employee') {
       this.deleteTarget.set(event.row);
+    } else if (event.actionId === 'download-pdf') {
+      void this.downloadProfilePdf(event.row);
+    }
+  }
+
+  async downloadProfilePdf(row: StaffDirectoryRow): Promise<void> {
+    const id = row.apiId;
+    if (!this.useBackend || !id) {
+      this.toast.warning('PDF export', 'Enable API mode and reload the directory to export profiles.');
+      return;
+    }
+    this.pdfBusyId.set(id);
+    try {
+      const blob = await firstValueFrom(this.employeeApi.exportDossier(id, 'COMPLETE'));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `EYOTA_${row.employeeId}_Master_Dossier_COMPLETE.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.toast.success('Dossier ready', `${row.employeeId} Employee Master Dossier downloaded.`);
+    } catch (err) {
+      this.toast.danger('Dossier export', err instanceof Error ? err.message : 'Failed to generate PDF');
+    } finally {
+      this.pdfBusyId.set(null);
     }
   }
 

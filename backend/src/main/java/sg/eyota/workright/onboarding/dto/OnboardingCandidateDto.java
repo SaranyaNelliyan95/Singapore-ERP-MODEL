@@ -1,5 +1,6 @@
 package sg.eyota.workright.onboarding.dto;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -24,12 +25,15 @@ public record OnboardingCandidateDto(
         String accountStatus,
         String pipelineStatus,
         boolean foreignWorker,
-        String workerCategory
+        String workerCategory,
+        Instant readyToWorkAt,
+        boolean onboardingCompleted
 ) {
     public static OnboardingCandidateDto from(EmployeeEntity e, String accountStatus) {
         PipelineStatus pipeline = e.getPipelineStatus() != null ? e.getPipelineStatus() : PipelineStatus.DRAFT;
         EmployeeEntity.OnboardingStage stage =
                 e.getOnboardingStage() != null ? e.getOnboardingStage() : EmployeeEntity.OnboardingStage.OFFER;
+        boolean completed = pipeline == PipelineStatus.READY_TO_WORK;
         return new OnboardingCandidateDto(
                 e.getId(),
                 e.getEmployeeCode(),
@@ -48,7 +52,9 @@ public record OnboardingCandidateDto(
                 accountStatus,
                 pipeline.name(),
                 isForeignPass(e.getWorkPassType()),
-                e.getWorkerCategory()
+                e.getWorkerCategory(),
+                null,
+                completed
         );
     }
 

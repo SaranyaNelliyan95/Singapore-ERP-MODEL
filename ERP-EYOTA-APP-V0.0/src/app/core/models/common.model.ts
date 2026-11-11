@@ -72,6 +72,8 @@ export interface DataTableColumn<T> {
   badge?: (row: T) => StatusBadgeConfig | null;
   /** Optional per-row actions rendered under the cell value (e.g. Resend invitation). */
   actions?: (row: T) => DataTableCellAction<T>[] | null;
+  /** When true, actions render as a hover/focus dropdown menu instead of inline buttons. */
+  actionsAsMenu?: boolean;
 }
 
 export interface EmptyStateConfig {

@@ -21,6 +21,10 @@ export interface OnboardingCandidateDto {
   pipelineStatus?: string | null;
   foreignWorker?: boolean;
   workerCategory?: string | null;
+  /** ISO timestamp when Ready to Work was first reached. */
+  readyToWorkAt?: string | null;
+  /** True when pipeline is READY_TO_WORK (shown in Active list for 7 days). */
+  onboardingCompleted?: boolean;
 }
 
 export interface OnboardingSummaryDto {
@@ -30,6 +34,20 @@ export interface OnboardingSummaryDto {
   medicalCount: number;
   orientationCount: number;
   candidates: OnboardingCandidateDto[];
+}
+
+export interface OnboardingLatestRequestDto {
+  requestType: string;
+  title: string;
+  summary: string;
+  employeeId: string;
+  employeeCode: string;
+  candidateName: string;
+  documentId: string | null;
+  fileName: string | null;
+  contentType: string | null;
+  createdAt: string | null;
+  actionLabel: string;
 }
 
 export interface CreateOnboardingDraftRequest {
@@ -81,6 +99,8 @@ export interface OnboardingTaskDto {
   completedAt: string | null;
   notes: string | null;
   sortOrder: number;
+  applies?: boolean;
+  warningText?: string | null;
 }
 
 export interface OnboardingDetailDto {
@@ -123,6 +143,12 @@ export interface OnboardingDetailDto {
     insuranceArranged: boolean;
     employeeConfirmed: boolean;
     notes: string | null;
+    accommodationType?: string | null;
+    dormCapacity?: number | null;
+    momAddressRegistered?: boolean | null;
+    pcpRecorded?: boolean | null;
+    medicalInsuranceRecorded?: boolean | null;
+    securityBondPurchased?: boolean | null;
   } | null;
   workPass: {
     ipaNumber: string | null;
@@ -134,6 +160,11 @@ export interface OnboardingDetailDto {
     finNumber: string | null;
     cardCollected: boolean;
     notes: string | null;
+    ipaExtensionRequested?: boolean | null;
+    tpNumber?: string | null;
+    tpIssueDate?: string | null;
+    tpExpiryDate?: string | null;
+    tpValid?: boolean;
   } | null;
   tasks: OnboardingTaskDto[];
   documents: OnboardingDocumentDto[];
@@ -146,6 +177,14 @@ export interface OnboardingDetailDto {
     employeeConfirmed: boolean;
     confirmedAt: string | null;
   }[];
+  ppePhoto?: {
+    documentId: string;
+    fileName: string;
+    contentType: string | null;
+    uploadedAt: string | null;
+    hrVerified: boolean;
+    hrVerifiedAt: string | null;
+  } | null;
   acknowledgements: { ackType: string; acknowledged: boolean; acknowledgedAt: string | null }[];
   appointments: {
     id: string;
@@ -163,6 +202,53 @@ export interface OnboardingDetailDto {
     details: string | null;
   }[];
   readinessGates: string[];
+  /** Present when API onboardingSgFlowV2 / sg-flow-v2 is enabled. */
+  sgFlow?: OnboardingSgFlowDto | null;
+}
+
+export interface OnboardingSgFlowDto {
+  enabled: boolean;
+  readyToWork: boolean;
+  readyGateLocked: boolean;
+  wpIssuanceBlocked: boolean;
+  medicalUnfitWarning: string | null;
+  wpIssuanceBlockers: string[];
+  readyToWorkBlockers: string[];
+  deadlineWarnings: string[];
+  applicableStepCodes: string[];
+  worker: {
+    nationality: string | null;
+    nationalityCode: string | null;
+    gender: string | null;
+    sector: string | null;
+    workerCategory: string | null;
+    accommodationType: string | null;
+    dormCapacity: number | null;
+    workPassApplicationDate: string | null;
+    arrivalDate: string | null;
+    malaysian: boolean;
+    cmpSector: boolean;
+    constructionSector: boolean;
+    manufacturingSector: boolean;
+    pcpRequired: boolean;
+  };
+  compliance: {
+    securityBondPurchased: boolean | null;
+    medicalInsuranceRecorded: boolean | null;
+    pcpRecorded: boolean | null;
+    momAddressRegistered: boolean | null;
+    ipaExtensionRequested: boolean | null;
+    constructionSafetyStatus: string | null;
+    tpNumber: string | null;
+    tpIssueDate: string | null;
+    tpExpiryDate: string | null;
+    tpValid: boolean;
+    finNumberMasked: string | null;
+    passportNumberMasked: string | null;
+  };
+  /** Shared with Still required — READY only when every applicable step is COMPLETED. */
+  gateLabel?: string;
+  gateProgressPercent?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -171,6 +257,10 @@ export class OnboardingApiService {
 
   summary(): Observable<OnboardingSummaryDto> {
     return this.http.get<OnboardingSummaryDto>('/hr/onboarding');
+  }
+
+  latestRequests(): Observable<OnboardingLatestRequestDto[]> {
+    return this.http.get<OnboardingLatestRequestDto[]>('/hr/onboarding/latest-requests');
   }
 
   adminSummary(): Observable<OnboardingSummaryDto> {
@@ -187,6 +277,11 @@ export class OnboardingApiService {
 
   myOnboarding(): Observable<OnboardingDetailDto> {
     return this.http.get<OnboardingDetailDto>('/employee/onboarding/me');
+  }
+
+  /** Confirmation emails also appear here (CONTRACT / PPE) — mail/WhatsApp unchanged. */
+  myLatestRequests(): Observable<OnboardingLatestRequestDto[]> {
+    return this.http.get<OnboardingLatestRequestDto[]>('/employee/onboarding/latest-requests');
   }
 
   createDraft(body: CreateOnboardingDraftRequest): Observable<OnboardingCandidateDto> {
@@ -236,8 +331,41 @@ export class OnboardingApiService {
     return this.http.post<OnboardingDetailDto>(`/hr/onboarding/${employeeId}/work-permit`, body);
   }
 
+  temporaryPermit(employeeId: string, body: Record<string, unknown>) {
+    return this.http.post<OnboardingDetailDto>(`/hr/onboarding/${employeeId}/temporary-permit`, body);
+  }
+
+  markInduction(employeeId: string, body: { trainerName: string; inductionDate?: string | null }) {
+    return this.http.post<OnboardingDetailDto>(`/hr/onboarding/${employeeId}/induction`, body);
+  }
+
+  notificationOutbox() {
+    return this.http.get<
+      {
+        id: string;
+        channel: string;
+        destinationMasked: string;
+        subject: string;
+        bodyPreview: string;
+        status: string;
+        createdAt: string;
+      }[]
+    >('/hr/onboarding/notification-outbox');
+  }
+
   issuePpe(employeeId: string, body: { items: { itemCode: string; itemName: string; quantity: number }[] }) {
     return this.http.post<OnboardingDetailDto>(`/hr/onboarding/${employeeId}/ppe`, body);
+  }
+
+  verifyPpePhoto(employeeId: string) {
+    return this.http.post<OnboardingDetailDto>(`/hr/onboarding/${employeeId}/ppe-photo/verify`, {});
+  }
+
+  confirmPpePhoto(file: File, token?: string | null) {
+    const form = new FormData();
+    form.append('file', file);
+    const qs = token ? `?t=${encodeURIComponent(token)}` : '';
+    return this.http.postFormData<OnboardingDetailDto>(`/employee/onboarding/confirm-ppe-photo${qs}`, form);
   }
 
   completeReady(
@@ -283,5 +411,23 @@ export class OnboardingApiService {
 
   confirmPpe(): Observable<OnboardingDetailDto> {
     return this.http.post<OnboardingDetailDto>('/employee/onboarding/confirm-ppe', {});
+  }
+
+  /** HR: email + WhatsApp secure confirmation links (ARRIVAL / CONTRACT / PPE). */
+  sendConfirmationLinks(employeeId: string) {
+    return this.http.post<{ actionType: string; path: string; emailQueued: boolean; whatsappQueued: boolean }[]>(
+      `/hr/onboarding/${employeeId}/send-confirmation-links`,
+      {},
+    );
+  }
+
+  /** HR: send one secure confirmation link (e.g. CONTRACT for employee acknowledgement). */
+  sendConfirmationLink(employeeId: string, actionType: 'ARRIVAL' | 'CONTRACT' | 'PPE') {
+    return this.http.post<{
+      actionType: string;
+      path: string;
+      emailQueued: boolean;
+      whatsappQueued: boolean;
+    }>(`/hr/onboarding/${employeeId}/send-confirmation-link/${actionType}`, {});
   }
 }

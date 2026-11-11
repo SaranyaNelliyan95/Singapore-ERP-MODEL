@@ -73,7 +73,8 @@ public class OnboardingService {
         employee.setEmployeeCode(codeGenerator.nextCode());
         employee.setFullName(fullName);
         employee.setPersonalEmail(email);
-        employee.setMobile(request.mobile().trim());
+        // Store E.164-friendly mobile so WhatsApp confirm links work for SG (+65) and IN (+91)
+        employee.setMobile(EmployeeHireRules.normalizeMobileE164(request.mobile()));
         employee.setDesignation(request.role().trim());
         employee.setDepartment(request.department().trim());
         employee.setDateOfJoining(request.startDate());

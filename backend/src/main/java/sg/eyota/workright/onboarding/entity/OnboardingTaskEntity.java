@@ -63,6 +63,13 @@ public class OnboardingTaskEntity extends AuditedEntity {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
+    /** When false, UI should hide the step (SG-flow v2 applicability). */
+    @Column(name = "applies", nullable = false)
+    private boolean applies = true;
+
+    @Column(name = "warning_text")
+    private String warningText;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
     public UUID getEmployeeId() { return employeeId; }
@@ -89,4 +96,8 @@ public class OnboardingTaskEntity extends AuditedEntity {
     public void setNotes(String notes) { this.notes = notes; }
     public int getSortOrder() { return sortOrder; }
     public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
+    public boolean isApplies() { return applies; }
+    public void setApplies(boolean applies) { this.applies = applies; }
+    public String getWarningText() { return warningText; }
+    public void setWarningText(String warningText) { this.warningText = warningText; }
 }

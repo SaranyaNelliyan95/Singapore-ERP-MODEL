@@ -15,6 +15,26 @@
       </div>
       <div class="ess-actions">
         <app-status-badge [label]="api.employmentStatus" tone="info" />
+        <div class="dossier-export">
+          <button
+            type="button"
+            class="ess-btn primary"
+            [disabled]="pdfBusy()"
+            title="Complete Employee Dossier (includes masked banking)"
+            (click)="exportDossier('COMPLETE')"
+          >
+            {{ pdfBusy() && pdfMode() === 'COMPLETE' ? 'Generating…' : 'Export Employee Dossier' }}
+          </button>
+          <button
+            type="button"
+            class="ess-btn ghost"
+            [disabled]="pdfBusy()"
+            title="Employee Record Copy — excludes bank account details"
+            (click)="exportDossier('EMPLOYEE_COPY')"
+          >
+            {{ pdfBusy() && pdfMode() === 'EMPLOYEE_COPY' ? 'Generating…' : 'Record Copy' }}
+          </button>
+        </div>
         <button type="button" class="ess-btn ghost" (click)="openEdit()">Edit</button>
         @if (
           api.accountStatus !== 'ACTIVE' &&

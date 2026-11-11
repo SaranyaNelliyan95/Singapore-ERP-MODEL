@@ -149,35 +149,6 @@
         [emptyState]="{ title: 'No staff match', description: 'Adjust filters to widen the directory view.' }"
         (cellAction)="onDirectoryCellAction($event)"
       />
-
-      <div class="quick-edit">
-        <h3>Row actions</h3>
-        <p class="hint">
-          Open the 360° profile or edit master fields. For Pending staff, use
-          <strong>Send / Resend invitation</strong> in the Invitation column if the email did not arrive.
-        </p>
-        <div class="quick-list">
-          @for (row of filtered().slice(0, 8); track row.employeeId) {
-            <div class="row-actions">
-              <button type="button" class="ess-btn ghost" (click)="openDetail(row)">
-                View {{ row.employeeId }}
-              </button>
-              <button type="button" class="ess-btn ghost" (click)="openEdit(row)">Edit</button>
-              @if (canResendInvitation(row)) {
-                <button
-                  type="button"
-                  class="ess-btn ghost"
-                  [disabled]="saving()"
-                  (click)="resendInvitation(row)"
-                >
-                  {{ invitationActionLabel(row) }}
-                </button>
-              }
-              <span class="proj-chip">{{ projectName(row.projectId) }}</span>
-            </div>
-          }
-        </div>
-      </div>
     </section>
   </div>
 }

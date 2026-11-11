@@ -1,96 +1,242 @@
 @if (loading()) {
   <app-loading-spinner label="Loading your onboarding progress…" />
 } @else {
-  <div class="ess-page">
+  <div class="ess-page onboarding-page">
     <header class="ess-head">
       <div>
         <p class="hr-eyebrow">My onboarding</p>
         <h1>Work readiness tracker</h1>
         <p class="ess-sub">
-          Track your progress, view shared documents, confirm arrival, acknowledge your contract, and
-          confirm PPE before Ready to Work.
+          Track your progress, confirm arrival, acknowledge your contract, and submit your PPE
+          photo before Ready to Work.
         </p>
       </div>
     </header>
 
     @if (!useBackend) {
-      <p class="empty">Backend API is required for live onboarding tracking.</p>
+      <section class="empty-card">
+        <h2>Backend required</h2>
+        <p>Live onboarding tracking needs the WorkRight API. Ask IT to enable backend mode.</p>
+      </section>
     } @else if (missing()) {
-      <p class="empty">No active onboarding pipeline is linked to your account yet. Contact HR.</p>
+      <section class="empty-card">
+        <h2>Onboarding not started yet</h2>
+        <p>
+          No active pipeline is linked to your account. Once HR issues your PPE kit and shares a
+          confirmation link, your actions and photo upload will appear here.
+        </p>
+        <a routerLink="/employee/master/dashboard" class="ess-btn primary">Back to dashboard</a>
+      </section>
     } @else if (detail(); as d) {
-      <section class="ess-panel hero-status">
-        <div>
-          <app-status-badge [label]="d.pipelineStatus" [tone]="'info'" />
+      <section class="hero-card">
+        <div class="hero-main">
+          <app-status-badge [label]="friendlyStatus(d.pipelineStatus)" [tone]="'info'" />
           <h2>{{ d.candidateName }}</h2>
-          <p>{{ d.employeeCode }} · {{ d.workPassType || 'Pass TBC' }} · {{ d.checklistProgress }}%</p>
+          <p class="hero-meta">
+            {{ d.employeeCode }} · {{ d.workPassType || 'Pass TBC' }} · Status
+            {{ friendlyStatus(d.pipelineStatus) }} ·
+            {{ d.sgFlow?.gateProgressPercent ?? d.checklistProgress }}% complete
+          </p>
         </div>
-        <div class="progress-track large" aria-hidden="true">
-          <span class="progress-fill" [style.width.%]="d.checklistProgress"></span>
+        <div class="hero-progress">
+          <div class="progress-track large" aria-hidden="true">
+            <span
+              class="progress-fill"
+              [style.width.%]="d.sgFlow?.gateProgressPercent ?? d.checklistProgress"
+            ></span>
+          </div>
+          <span class="progress-label">
+            {{ d.sgFlow?.gateLabel || (d.sgFlow?.readyToWork ? 'READY' : 'IN PROGRESS') }}
+          </span>
         </div>
       </section>
 
-      <section class="ess-panel">
-        <div class="ess-panel-head"><h2>Progress checklist</h2></div>
-        <ul class="tasks">
-          @for (t of d.tasks; track t.id) {
-            <li>
-              <span>{{ t.title }}</span>
-              <app-status-badge [label]="t.status" [tone]="t.status === 'COMPLETED' ? 'success' : 'warning'" />
-            </li>
-          }
-        </ul>
-      </section>
+      <div class="onboard-grid">
+        <section class="ess-panel action-card">
+          <div class="ess-panel-head"><h2>Your next actions</h2></div>
+          <div class="action-stack">
+            <button
+              type="button"
+              class="action-btn"
+              [disabled]="saving() || arrivalDone(d)"
+              (click)="confirmArrival()"
+            >
+              <span class="action-title">Confirm arrival in Singapore</span>
+              <span class="action-hint">
+                {{
+                  arrivalDone(d)
+                    ? 'Arrival already confirmed — thank you.'
+                    : 'Let HR know you have arrived and housing is correct.'
+                }}
+              </span>
+            </button>
+            <button
+              type="button"
+              class="action-btn"
+              [class.done]="contractAcked(d)"
+              [disabled]="saving() || contractAcked(d)"
+              (click)="ackContract()"
+            >
+              <span class="action-title">Acknowledge employment contract</span>
+              <span class="action-hint">
+                {{
+                  contractAcked(d)
+                    ? 'You have already acknowledged your employment contract.'
+                    : 'You must confirm you have read and accept your contract. Only you (the employee) can complete this step.'
+                }}
+              </span>
+            </button>
 
-      <section class="ess-panel">
-        <div class="ess-panel-head"><h2>Your actions</h2></div>
-        <div class="actions">
-          <button type="button" class="ess-btn primary" [disabled]="saving()" (click)="confirmArrival()">
-            Confirm arrival in Singapore
-          </button>
-          <button type="button" class="ess-btn primary" [disabled]="saving()" (click)="ackContract()">
-            Acknowledge employment contract
-          </button>
-          <button type="button" class="ess-btn primary" [disabled]="saving()" (click)="confirmPpe()">
-            Confirm PPE received
-          </button>
-        </div>
-        @if (d.ppeItems.length) {
-          <ul class="ppe">
-            @for (p of d.ppeItems; track p.id) {
-              <li>{{ p.itemName }} ×{{ p.quantity }} — {{ p.employeeConfirmed ? 'Confirmed' : 'Pending your confirmation' }}</li>
-            }
-          </ul>
-        }
-      </section>
+            <div class="ppe-card">
+              <div class="ppe-card-head">
+                <h3>PPE confirmation</h3>
+                <p>
+                  @if (d.ppePhoto?.hrVerified) {
+                    Your PPE photo was verified by HR.
+                  } @else {
+                    Take or upload a photo showing you with your issued PPE kit.
+                  }
+                </p>
+              </div>
 
-      <section class="ess-panel">
-        <div class="ess-panel-head"><h2>Shared documents</h2></div>
-        @if (d.documents.length === 0) {
-          <p class="empty">No employee-visible documents yet. Sensitive files stay with HR/Admin.</p>
-        } @else {
-          <ul class="docs">
-            @for (doc of d.documents; track doc.id) {
-              <li>
-                <span>{{ doc.docType }} · {{ doc.fileName }}</span>
-                <button type="button" class="ess-btn ghost" (click)="download(doc.id, doc.fileName)">
-                  Download
+              @if (d.ppeItems.length) {
+                <ul class="ppe">
+                  @for (p of d.ppeItems; track p.id) {
+                    <li>
+                      <span>{{ p.itemName }} ×{{ p.quantity }}</span>
+                      <app-status-badge
+                        [label]="p.employeeConfirmed ? 'Confirmed' : 'Pending'"
+                        [tone]="p.employeeConfirmed ? 'success' : 'warning'"
+                      />
+                    </li>
+                  }
+                </ul>
+              }
+
+              @if (!d.ppePhoto?.hrVerified) {
+                <label class="upload-zone">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    (change)="onPpePhotoSelected($event)"
+                  />
+                  @if (ppePreviewUrl()) {
+                    <img [src]="ppePreviewUrl()!" alt="PPE photo preview" class="preview" />
+                    <span class="upload-caption">Photo selected — tap to change</span>
+                  } @else {
+                    <span class="upload-title">Upload or take a photo</span>
+                    <span class="upload-caption">Camera or gallery · image required</span>
+                  }
+                </label>
+
+                <button
+                  type="button"
+                  class="ess-btn primary full"
+                  [disabled]="saving() || !ppeFile()"
+                  (click)="confirmPpeWithPhoto()"
+                >
+                  {{ saving() ? 'Saving…' : 'Submit PPE photo confirmation' }}
                 </button>
-              </li>
-            }
-          </ul>
-        }
-      </section>
+              }
 
-      @if (d.readinessGates.length) {
-        <section class="ess-panel">
-          <div class="ess-panel-head"><h2>Still required for Ready to Work</h2></div>
-          <ul>
-            @for (g of d.readinessGates; track g) {
-              <li>{{ g }}</li>
-            }
-          </ul>
+              @if (d.ppePhoto || ppeStoredUrl()) {
+                <div class="ppe-photo-view">
+                  <h4>{{ d.ppePhoto?.hrVerified ? 'Verified photo' : 'Submitted photo' }}</h4>
+                  @if (ppeStoredUrl()) {
+                    <img [src]="ppeStoredUrl()!" alt="PPE receipt photo" />
+                  }
+                  <p class="hint">
+                    @if (d.ppePhoto?.hrVerified) {
+                      Verified by HR
+                    } @else {
+                      Awaiting HR verification
+                    }
+                  </p>
+                </div>
+              }
+            </div>
+          </div>
         </section>
-      }
+
+        <div class="side-stack">
+          @if (d.sgFlow; as sg) {
+            <section class="ess-panel">
+              <div class="ess-panel-head">
+                <h2>Ready to Work</h2>
+                <app-status-badge
+                  [label]="sg.gateLabel || (sg.readyToWork ? 'READY' : 'IN PROGRESS')"
+                  [tone]="sg.readyToWork ? 'success' : 'warning'"
+                />
+              </div>
+              @if (sg.deadlineWarnings.length) {
+                <ul class="warn-list">
+                  @for (w of sg.deadlineWarnings; track w) {
+                    <li>{{ w }}</li>
+                  }
+                </ul>
+              } @else {
+                <p class="meta">Keep completing the checklist until the gate shows READY.</p>
+              }
+            </section>
+          }
+
+          <section class="ess-panel">
+            <div class="ess-panel-head"><h2>Progress checklist</h2></div>
+            <ul class="tasks">
+              @for (t of d.tasks; track t.id) {
+                @if (t.applies !== false && t.status !== 'NOT_APPLICABLE') {
+                  <li>
+                    <span>{{ t.title }}</span>
+                    <app-status-badge
+                      [label]="t.status"
+                      [tone]="t.status === 'COMPLETED' ? 'success' : 'warning'"
+                    />
+                  </li>
+                }
+              }
+            </ul>
+          </section>
+
+          <section class="ess-panel">
+            <div class="ess-panel-head"><h2>Shared documents</h2></div>
+            @if (d.documents.length === 0) {
+              <p class="empty">No employee-visible documents yet. Sensitive files stay with HR.</p>
+            } @else {
+              <ul class="docs">
+                @for (doc of d.documents; track doc.id) {
+                  <li>
+                    <span>{{ doc.docType }} · {{ doc.fileName }}</span>
+                    <button
+                      type="button"
+                      class="ess-btn ghost"
+                      (click)="download(doc.id, doc.fileName)"
+                    >
+                      Download
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          @if ((d.sgFlow?.readyToWorkBlockers?.length || d.readinessGates.length)) {
+            <section class="ess-panel">
+              <div class="ess-panel-head"><h2>Still required</h2></div>
+              <ul class="blockers">
+                @for (
+                  g of d.sgFlow?.readyToWorkBlockers?.length
+                    ? d.sgFlow!.readyToWorkBlockers
+                    : d.readinessGates;
+                  track g
+                ) {
+                  <li>{{ g }}</li>
+                }
+              </ul>
+            </section>
+          }
+        </div>
+      </div>
     }
   </div>
 }

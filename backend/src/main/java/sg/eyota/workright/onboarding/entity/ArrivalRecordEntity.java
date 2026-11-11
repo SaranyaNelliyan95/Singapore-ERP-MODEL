@@ -52,6 +52,25 @@ public class ArrivalRecordEntity extends AuditedEntity {
     @Column(name = "employee_confirmed", nullable = false)
     private boolean employeeConfirmed;
 
+    /** SG-flow v2 optional fields (nullable / backward compatible). */
+    @Column(name = "accommodation_type")
+    private String accommodationType;
+
+    @Column(name = "dorm_capacity")
+    private Integer dormCapacity;
+
+    @Column(name = "mom_address_registered")
+    private Boolean momAddressRegistered;
+
+    @Column(name = "pcp_recorded")
+    private Boolean pcpRecorded;
+
+    @Column(name = "medical_insurance_recorded")
+    private Boolean medicalInsuranceRecorded;
+
+    @Column(name = "security_bond_purchased")
+    private Boolean securityBondPurchased;
+
     private String notes;
 
     public UUID getId() { return id; }
@@ -80,6 +99,24 @@ public class ArrivalRecordEntity extends AuditedEntity {
     public void setInsuranceArranged(boolean insuranceArranged) { this.insuranceArranged = insuranceArranged; }
     public boolean isEmployeeConfirmed() { return employeeConfirmed; }
     public void setEmployeeConfirmed(boolean employeeConfirmed) { this.employeeConfirmed = employeeConfirmed; }
+    public String getAccommodationType() { return accommodationType; }
+    public void setAccommodationType(String accommodationType) { this.accommodationType = accommodationType; }
+    public Integer getDormCapacity() { return dormCapacity; }
+    public void setDormCapacity(Integer dormCapacity) { this.dormCapacity = dormCapacity; }
+    public Boolean getMomAddressRegistered() { return momAddressRegistered; }
+    public void setMomAddressRegistered(Boolean momAddressRegistered) {
+        this.momAddressRegistered = momAddressRegistered;
+    }
+    public Boolean getPcpRecorded() { return pcpRecorded; }
+    public void setPcpRecorded(Boolean pcpRecorded) { this.pcpRecorded = pcpRecorded; }
+    public Boolean getMedicalInsuranceRecorded() { return medicalInsuranceRecorded; }
+    public void setMedicalInsuranceRecorded(Boolean medicalInsuranceRecorded) {
+        this.medicalInsuranceRecorded = medicalInsuranceRecorded;
+    }
+    public Boolean getSecurityBondPurchased() { return securityBondPurchased; }
+    public void setSecurityBondPurchased(Boolean securityBondPurchased) {
+        this.securityBondPurchased = securityBondPurchased;
+    }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
 }

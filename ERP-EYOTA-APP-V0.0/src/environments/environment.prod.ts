@@ -1,6 +1,8 @@
 export const environment = {
   production: true,
   useBackendApi: true,
+  /** Default OFF in production until ops enables ONBOARDING_SG_FLOW_V2 on API + this flag. */
+  onboardingSgFlowV2: false,
   apiBaseUrl: '/api/v1',
   gps: {
     enableHighAccuracy: true,

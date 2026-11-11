@@ -28,6 +28,14 @@ export const routes: Routes = [
       import('./features/auth/activate/activate').then((m) => m.ActivateComponent),
   },
   {
+    // Secure onboarding confirmation links from email / WhatsApp (no login required)
+    path: 'confirm/:action',
+    loadComponent: () =>
+      import('./features/onboarding-confirm/onboarding-confirm').then(
+        (m) => m.OnboardingConfirmPage,
+      ),
+  },
+  {
     path: 'employee',
     canActivate: [authGuard],
     loadChildren: () =>

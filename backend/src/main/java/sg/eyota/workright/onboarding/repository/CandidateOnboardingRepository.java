@@ -12,4 +12,7 @@ public interface CandidateOnboardingRepository extends JpaRepository<CandidateOn
     Optional<CandidateOnboardingEntity> findByEmployeeId(UUID employeeId);
     List<CandidateOnboardingEntity> findByPipelineStatusNotIn(List<PipelineStatus> statuses);
     long countByPipelineStatus(PipelineStatus status);
+
+    /** PPE photos uploaded by employee and not yet verified by HR. */
+    List<CandidateOnboardingEntity> findByPpePhotoDocumentIdIsNotNullAndPpeHrVerifiedAtIsNull();
 }

@@ -14,6 +14,7 @@ public enum OnboardingDocType {
     FLIGHT_ARRIVAL,
     ACCOMMODATION,
     PPE_SAFETY_TRAINING,
+    PPE_RECEIPT_PHOTO,
     OVERRIDE_EVIDENCE,
     OTHER
 }

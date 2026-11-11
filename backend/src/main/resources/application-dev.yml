@@ -5,6 +5,9 @@ spring:
       on-profile: dev
 
 eyota:
+  onboarding:
+    # Enable SG flow locally so HR can exercise the new checklist; override with ONBOARDING_SG_FLOW_V2=false
+    sg-flow-v2: ${ONBOARDING_SG_FLOW_V2:true}
   enrollment:
     # Local only: allow HR UI to show OTP when SMTP is off
     expose-otp-in-api: ${ENROLLMENT_EXPOSE_OTP:true}

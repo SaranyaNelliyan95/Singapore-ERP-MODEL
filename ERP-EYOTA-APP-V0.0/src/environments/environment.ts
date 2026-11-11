@@ -6,6 +6,8 @@ export const environment = {
    * When false: existing localStorage demo auth/attendance remains.
    */
   useBackendApi: true,
+  /** Singapore MOM onboarding checklist / gate v2 (local default ON). */
+  onboardingSgFlowV2: true,
   apiBaseUrl: 'http://localhost:8080/api/v1',
   gps: {
     enableHighAccuracy: true,

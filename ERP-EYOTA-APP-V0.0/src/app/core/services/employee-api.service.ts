@@ -133,4 +133,9 @@ export class EmployeeApiService {
   payrollReadiness(id: string): Observable<PayrollReadinessResponse> {
     return this.http.get<PayrollReadinessResponse>(`/hr/employees/${id}/payroll-readiness`);
   }
+
+  /** Premium Employee Master Dossier PDF (COMPLETE | EMPLOYEE_COPY). */
+  exportDossier(id: string, mode: 'COMPLETE' | 'EMPLOYEE_COPY' = 'COMPLETE'): Observable<Blob> {
+    return this.http.getBlob(`/employees/${id}/export/dossier?mode=${mode}`);
+  }
 }

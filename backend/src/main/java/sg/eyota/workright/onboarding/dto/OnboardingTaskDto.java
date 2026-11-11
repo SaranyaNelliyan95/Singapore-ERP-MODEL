@@ -16,7 +16,9 @@ public record OnboardingTaskDto(
         LocalDate dueDate,
         Instant completedAt,
         String notes,
-        int sortOrder
+        int sortOrder,
+        boolean applies,
+        String warningText
 ) {
     public static OnboardingTaskDto from(OnboardingTaskEntity e) {
         return new OnboardingTaskDto(
@@ -29,7 +31,9 @@ public record OnboardingTaskDto(
                 e.getDueDate(),
                 e.getCompletedAt(),
                 e.getNotes(),
-                e.getSortOrder()
+                e.getSortOrder(),
+                e.isApplies(),
+                e.getWarningText()
         );
     }
 }

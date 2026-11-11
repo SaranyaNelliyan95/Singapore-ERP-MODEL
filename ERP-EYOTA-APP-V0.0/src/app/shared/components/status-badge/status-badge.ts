@@ -12,43 +12,54 @@ import { StatusBadgeConfig } from '../../../core/models/common.model';
       .badge {
         display: inline-flex;
         align-items: center;
-        padding: 0.22rem 0.6rem;
+        gap: 0.28rem;
+        padding: 0.28rem 0.72rem;
         border-radius: 999px;
         font-size: 0.72rem;
-        font-weight: 650;
+        font-weight: 700;
         letter-spacing: 0.01em;
         border: 1px solid transparent;
         white-space: nowrap;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+      }
+
+      .badge::before {
+        content: '';
+        width: 0.42rem;
+        height: 0.42rem;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.85;
       }
 
       .badge[data-tone='neutral'] {
-        background: var(--secondary-bg, #f0f5f8);
-        color: var(--text-secondary, #647783);
-        border-color: var(--border-color, #e1e7eb);
+        background: #eef3f8;
+        color: #5d728a;
+        border-color: #d7e0ea;
       }
 
       .badge[data-tone='success'] {
-        background: var(--success-bg, #e8f7ef);
-        color: var(--success, #147a45);
-        border-color: var(--success-border, #b7e4c7);
+        background: #e7f6ee;
+        color: #1f7a4d;
+        border-color: #b6e3c8;
       }
 
       .badge[data-tone='warning'] {
-        background: var(--warning-bg, #fff6e5);
-        color: var(--warning, #9a6700);
-        border-color: var(--warning-border, #f5d99a);
+        background: #fff5e4;
+        color: #a66b1f;
+        border-color: #f3d39a;
       }
 
       .badge[data-tone='danger'] {
-        background: var(--danger-bg, #fdecec);
-        color: var(--danger, #b42318);
-        border-color: var(--danger-border, #f3c1c1);
+        background: #fdecec;
+        color: #b42318;
+        border-color: #f3c1c1;
       }
 
       .badge[data-tone='info'] {
-        background: var(--surface-mauve, #f4efef);
-        color: var(--accent-mauve, #927d7d);
-        border-color: var(--brand-mauve, #b2a3a3);
+        background: #f5eef6;
+        color: #8b7196;
+        border-color: #dcc9e2;
       }
     `,
   ],

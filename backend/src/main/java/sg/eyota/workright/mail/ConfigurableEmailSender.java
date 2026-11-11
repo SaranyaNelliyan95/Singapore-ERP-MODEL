@@ -47,6 +47,20 @@ public class ConfigurableEmailSender implements EmailSender {
                         "MAIL_ENABLED=true but SMTP bean is missing. Set SMTP_HOST in backend/.env and restart."
                 );
             }
+            // Fail fast with a clear HR-facing message when .env SMTP_* did not load
+            if (!(mailSender instanceof org.springframework.mail.javamail.JavaMailSenderImpl impl)
+                    || isBlank(impl.getHost())
+                    || isBlank(impl.getUsername())
+                    || impl.getPassword() == null
+                    || impl.getPassword().isBlank()) {
+                throw new ApiException(
+                        HttpStatus.BAD_GATEWAY,
+                        "Email Delivery Failed",
+                        "SMTP is incomplete (host/username/password missing). "
+                                + "Confirm backend/.env has SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD, "
+                                + "then fully restart the backend so dotenv loads."
+                );
+            }
             try {
                 if (htmlBody != null && !htmlBody.isBlank()) {
                     MimeMessage mime = mailSender.createMimeMessage();
@@ -105,5 +119,9 @@ public class ConfigurableEmailSender implements EmailSender {
         } else {
             helper.setFrom(from);
         }
+    }
+
+    private static boolean isBlank(String v) {
+        return v == null || v.isBlank();
     }
 }

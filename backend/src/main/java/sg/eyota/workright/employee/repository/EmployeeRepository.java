@@ -22,9 +22,11 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID> 
             WHERE e.onboardingStage IS NULL
                OR e.onboardingStage <> :completed
                OR e.employmentStatus = :pending
+               OR e.pipelineStatus = :readyToWork
             ORDER BY e.dateOfJoining DESC, e.fullName ASC
             """)
     List<EmployeeEntity> findOnboardingPipeline(
             @Param("completed") EmployeeEntity.OnboardingStage completed,
-            @Param("pending") EmployeeEntity.EmploymentStatus pending);
+            @Param("pending") EmployeeEntity.EmploymentStatus pending,
+            @Param("readyToWork") sg.eyota.workright.onboarding.entity.PipelineStatus readyToWork);
 }

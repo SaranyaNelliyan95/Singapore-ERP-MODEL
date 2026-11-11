@@ -60,7 +60,7 @@
           type="button"
           class="ess-btn primary"
           (click)="clockIn()"
-          [disabled]="locating() || (useBackend && !canClockIn())"
+          [disabled]="locating() || (useBackend && (!canClockIn() || !readyForAttendance()))"
         >
           {{ locating() && gpsMandatory() ? 'Getting GPS…' : locating() ? 'Saving…' : 'Clock in' }}
         </button>
@@ -73,6 +73,12 @@
           Clock out
         </button>
       </div>
+      @if (useBackend && !readyForAttendance()) {
+        <p class="session warn">
+          Attendance unlocks after HR marks <strong>Complete Ready to Work</strong> on your
+          onboarding.
+        </p>
+      }
       <p class="session">Session: {{ displaySession() }}</p>
     </section>
 

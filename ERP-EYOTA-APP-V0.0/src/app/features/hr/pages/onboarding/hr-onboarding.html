@@ -59,6 +59,7 @@
               <article
                 class="queue-card"
                 [class.selected]="selectedId() === row.id"
+                [class.completed]="isOnboardingCompleted(row)"
                 (click)="selectCandidate(row)"
               >
                 <div class="queue-main">
@@ -77,13 +78,16 @@
                       · Foreign worker
                     }
                   </p>
+                  @if (isOnboardingCompleted(row)) {
+                    <span class="completed-chip">✓ Onboarding completed · visible 7 days</span>
+                  }
                   @if (useBackend) {
                     <p class="meta-line">
                       {{ $any(row).personalEmail || '—' }} · Account
                       {{ $any(row).accountStatus || '—' }} · Invite
                       {{ $any(row).invitationEmailStatus || 'NOT_SENT' }}
-                      @if ($any(row).pipelineStatus) {
-                        · {{ $any(row).pipelineStatus }}
+                      @if (row.stage) {
+                        · Status {{ row.stage }}
                       }
                     </p>
                   }
@@ -115,15 +119,15 @@
                   </div>
                 </div>
                 <div class="hr-inline-actions" (click)="$event.stopPropagation()">
-                  @if (row.stage !== 'Completed' && row.stage !== 'Ready to Work') {
+                  @if (!isOnboardingCompleted(row) && row.stage !== 'Completed') {
                     <button
                       type="button"
                       class="next-stage-text-btn"
                       [disabled]="saving()"
-                      [title]="'Move to ' + nextStageLabel(row)"
+                      [title]="'Advance status to ' + nextStageLabel(row)"
                       (click)="advance(row)"
                     >
-                       {{ nextStageLabel(row) }}
+                       Advance → {{ nextStageLabel(row) }}
                     </button>
                   }
                   @if (useBackend && $any(row).accountStatus !== 'ACTIVE') {
@@ -155,14 +159,47 @@
         <aside class="ess-panel detail-panel">
           <div class="ess-panel-head">
             <h2>{{ d.employeeCode }} · {{ d.candidateName }}</h2>
-            <app-status-badge [label]="d.pipelineStatus" [tone]="stageTone(d.pipelineStatus)" />
+            <app-status-badge
+              [label]="friendlyPipelineLabel(d.pipelineStatus)"
+              [tone]="stageTone(friendlyPipelineLabel(d.pipelineStatus))"
+            />
           </div>
           <p class="ess-sub">
-            Progress {{ d.checklistProgress }}% · Account {{ d.accountStatus }} ·
+            Status {{ friendlyPipelineLabel(d.pipelineStatus) }} · Checklist
+            {{ d.sgFlow?.gateProgressPercent ?? d.checklistProgress }}% · Account
+            {{ d.accountStatus }} ·
             {{ d.foreignWorker ? 'Foreign worker pipeline' : 'Local / PR simplified pipeline' }}
           </p>
 
-          @if (d.readinessGates.length) {
+          @if (sgFlowV2 && d.sgFlow; as sg) {
+            <div class="gates" [class.ready]="sg.readyToWork">
+              <strong>Ready to Work gate (auto) · {{ gateLabel(d) }}</strong>
+              <p class="hint">Read-only computed. Only ADMIN may override with a mandatory audited reason.</p>
+              @if (sg.medicalUnfitWarning) {
+                <p class="warn">{{ sg.medicalUnfitWarning }}</p>
+              }
+              @if (sg.deadlineWarnings.length) {
+                <ul class="warn-list">
+                  @for (w of sg.deadlineWarnings; track w) {
+                    <li>{{ w }}</li>
+                  }
+                </ul>
+              }
+              @if (!sg.readyToWork) {
+                <ul>
+                  @for (g of sg.readyToWorkBlockers; track g) {
+                    <li>{{ g }}</li>
+                  }
+                </ul>
+              }
+              @if (sg.compliance.finNumberMasked || sg.compliance.passportNumberMasked) {
+                <p class="meta-line">
+                  FIN {{ sg.compliance.finNumberMasked || '—' }} · Passport
+                  {{ sg.compliance.passportNumberMasked || '—' }}
+                </p>
+              }
+            </div>
+          } @else if (d.readinessGates.length) {
             <div class="gates">
               <strong>Ready-to-work blockers</strong>
               <ul>
@@ -176,13 +213,31 @@
           <div class="detail-section">
             <h3>Checklist</h3>
             <ul class="task-list">
-              @for (t of d.tasks; track t.id) {
+              @for (t of visibleTasks(d); track t.id) {
                 <li>
                   <span>{{ t.title }}</span>
                   <app-status-badge [label]="t.status" [tone]="stageTone(t.status)" />
+                  @if (t.warningText) {
+                    <em class="warn">{{ t.warningText }}</em>
+                  }
                 </li>
               }
             </ul>
+            <div class="ack-panel">
+              <h4>Employment contract acknowledgement</h4>
+              <p class="hint">
+                Only the <strong>employee</strong> can acknowledge the contract (signed-in ESS or
+                secure email/WhatsApp link). Use the single action in
+                <strong>7. PPE &amp; Ready to Work</strong> when that stage is active.
+              </p>
+              <p class="meta-line">
+                Status:
+                <app-status-badge
+                  [label]="contractAckLabel(d)"
+                  [tone]="isContractAcked(d) ? 'success' : 'warning'"
+                />
+              </p>
+            </div>
           </div>
 
           <div class="detail-section">
@@ -219,32 +274,64 @@
           </div>
 
           <div class="detail-section">
-            <h3>1. Government application (manual MOM)</h3>
+            <div class="section-head">
+              <h3>1. Government application (manual MOM)</h3>
+              <span class="mode-chip" [class.update]="isUpdateMode('mom')">
+                {{ isUpdateMode('mom') ? 'Update' : 'New' }}
+              </span>
+            </div>
             <form class="ess-form compact" [formGroup]="momForm" (ngSubmit)="saveMom()">
               <label><span>MOM reference</span><input formControlName="momReference" /></label>
               <label><span>Type</span><input formControlName="applicationType" /></label>
               <label><span>Submitted</span><input type="date" formControlName="submittedAt" /></label>
               <label class="full"><span>Notes</span><input formControlName="portalNotes" /></label>
-              <button type="submit" class="ess-btn primary" [disabled]="saving()">Save application</button>
+              <button type="submit" [class]="submitClass('mom')" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : submitLabel('mom', 'Save application', 'Update application') }}
+              </button>
             </form>
           </div>
 
           <div class="detail-section">
-            <h3>2. IPA approval</h3>
+            <div class="section-head">
+              <h3>2. IPA approval</h3>
+              <span class="mode-chip" [class.update]="isUpdateMode('ipa')">
+                {{ isUpdateMode('ipa') ? 'Update' : 'New' }}
+              </span>
+            </div>
             <form class="ess-form compact" [formGroup]="ipaForm" (ngSubmit)="saveIpa()">
               <label><span>IPA number</span><input formControlName="ipaNumber" /></label>
               <label><span>Issue</span><input type="date" formControlName="ipaIssueDate" /></label>
               <label><span>Expiry</span><input type="date" formControlName="ipaExpiryDate" /></label>
-              <label class="check full">
-                <input type="checkbox" formControlName="markApproved" />
-                <span>Mark IPA approved &amp; notify employee</span>
-              </label>
-              <button type="submit" class="ess-btn primary" [disabled]="saving()">Save IPA</button>
+              @if (ipaAlreadyApproved()) {
+                <p class="info-banner">
+                  IPA already approved for this candidate. Employee was notified on the first approval —
+                  further saves only update IPA details (no duplicate email).
+                </p>
+              } @else {
+                <label class="check full">
+                  <input type="checkbox" formControlName="markApproved" />
+                  <span>Mark IPA approved &amp; notify employee (once)</span>
+                </label>
+              }
+              @if (sgFlowV2) {
+                <label class="check full">
+                  <input type="checkbox" formControlName="ipaExtensionRequested" />
+                  <span>IPA extension requested (Y/N)</span>
+                </label>
+              }
+              <button type="submit" [class]="submitClass('ipa')" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : submitLabel('ipa', 'Save IPA', 'Update IPA') }}
+              </button>
             </form>
           </div>
 
           <div class="detail-section">
-            <h3>3. Pre-arrival</h3>
+            <div class="section-head">
+              <h3>3. Pre-arrival</h3>
+              <span class="mode-chip" [class.update]="isUpdateMode('preArrival')">
+                {{ isUpdateMode('preArrival') ? 'Update' : 'New' }}
+              </span>
+            </div>
             <form class="ess-form compact" [formGroup]="preArrivalForm" (ngSubmit)="savePreArrival()">
               <label><span>Planned arrival</span><input type="date" formControlName="plannedArrivalDate" /></label>
               <label><span>Flight</span><input formControlName="flightNumber" /></label>
@@ -254,29 +341,60 @@
               <label class="check"><input type="checkbox" formControlName="bondArranged" /><span>Bond</span></label>
               <label class="check"><input type="checkbox" formControlName="insuranceArranged" /><span>Insurance</span></label>
               <label class="check"><input type="checkbox" formControlName="readyForTravel" /><span>Ready for travel</span></label>
-              <button type="submit" class="ess-btn primary" [disabled]="saving()">Save pre-arrival</button>
+              @if (sgFlowV2) {
+                <label><span>Accommodation type</span><input formControlName="accommodationType" placeholder="DORM / HDB / …" /></label>
+                <label><span>Dorm capacity</span><input type="number" formControlName="dormCapacity" min="0" /></label>
+                <label class="check"><input type="checkbox" formControlName="momAddressRegistered" /><span>Address registered with MOM</span></label>
+                <label class="check"><input type="checkbox" formControlName="securityBondPurchased" /><span>Security bond purchased</span></label>
+                <label class="check"><input type="checkbox" formControlName="medicalInsuranceRecorded" /><span>Medical insurance recorded</span></label>
+                <label class="check"><input type="checkbox" formControlName="pcpRecorded" /><span>Primary Care Plan recorded</span></label>
+              }
+              <button type="submit" [class]="submitClass('preArrival')" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : submitLabel('preArrival', 'Save pre-arrival', 'Update pre-arrival') }}
+              </button>
             </form>
           </div>
 
           <div class="detail-section">
-            <h3>4. Arrival</h3>
+            <div class="section-head">
+              <h3>4. Arrival</h3>
+              <span class="mode-chip" [class.update]="isUpdateMode('arrival')">
+                {{ isUpdateMode('arrival') ? 'Update' : 'New' }}
+              </span>
+            </div>
             <form class="ess-form compact" [formGroup]="arrivalForm" (ngSubmit)="saveArrival()">
               <label><span>Actual arrival</span><input type="date" formControlName="actualArrivalDate" /></label>
               <label><span>Flight</span><input formControlName="flightNumber" /></label>
               <label class="full"><span>Accommodation</span><input formControlName="accommodationAddress" /></label>
               <label class="check"><input type="checkbox" formControlName="housingConfirmed" /><span>Housing OK</span></label>
-              <button type="submit" class="ess-btn primary" [disabled]="saving()">Save arrival</button>
+              @if (sgFlowV2) {
+                <label><span>Accommodation type</span><input formControlName="accommodationType" /></label>
+                <label><span>Dorm capacity</span><input type="number" formControlName="dormCapacity" min="0" /></label>
+                <label class="check"><input type="checkbox" formControlName="momAddressRegistered" /><span>MOM address registered</span></label>
+              }
+              <button type="submit" [class]="submitClass('arrival')" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : submitLabel('arrival', 'Save arrival', 'Update arrival') }}
+              </button>
             </form>
           </div>
 
           <div class="detail-section">
-            <h3>5. Medical / SIP / Onboard (N/A allowed)</h3>
+            <div class="section-head">
+              <h3>5. Medical / SIP / Onboard (N/A allowed)</h3>
+              <span class="mode-chip" [class.update]="isUpdateMode('programmes')">
+                {{ isUpdateMode('programmes') ? 'Update' : 'New' }}
+              </span>
+            </div>
             <form class="ess-form compact" [formGroup]="programmeForm" (ngSubmit)="saveProgrammes()">
               <label>
                 <span>Medical</span>
                 <select formControlName="medicalStatus">
                   <option value="PENDING">Pending</option>
                   <option value="COMPLETED">Completed</option>
+                  @if (sgFlowV2) {
+                    <option value="FIT">Fit</option>
+                    <option value="UNFIT">Unfit</option>
+                  }
                   <option value="NOT_APPLICABLE">N/A</option>
                 </select>
               </label>
@@ -304,33 +422,122 @@
                   <option value="NOT_APPLICABLE">N/A</option>
                 </select>
               </label>
-              <button type="submit" class="ess-btn primary" [disabled]="saving()">Save programmes</button>
+              @if (sgFlowV2) {
+                <label>
+                  <span>Construction safety course</span>
+                  <select formControlName="constructionSafetyStatus">
+                    <option value="PENDING">Pending</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="NOT_APPLICABLE">N/A</option>
+                  </select>
+                </label>
+              }
+              <button type="submit" [class]="submitClass('programmes')" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : submitLabel('programmes', 'Save programmes', 'Update programmes') }}
+              </button>
             </form>
+            @if (sgFlowV2 && d.medicalStatus === 'UNFIT') {
+              <p class="warn">Work permit will be revoked / cannot be issued</p>
+            }
           </div>
 
           <div class="detail-section">
-            <h3>6. Work permit issuance</h3>
+            <div class="section-head">
+              <h3>6. Work permit issuance</h3>
+              <span class="mode-chip" [class.update]="isUpdateMode('wp')">
+                {{ isUpdateMode('wp') ? 'Update' : 'New' }}
+              </span>
+            </div>
+            @if (sgFlowV2 && d.sgFlow?.wpIssuanceBlocked) {
+              <p class="warn">Blocked: {{ d.sgFlow!.wpIssuanceBlockers.join('; ') }}</p>
+            }
             <form class="ess-form compact" [formGroup]="wpForm" (ngSubmit)="saveWp()">
               <label><span>WP number</span><input formControlName="wpNumber" /></label>
               <label><span>Issue</span><input type="date" formControlName="wpIssueDate" /></label>
               <label><span>Expiry</span><input type="date" formControlName="wpExpiryDate" /></label>
-              <label><span>FIN</span><input formControlName="finNumber" /></label>
+              <label>
+                <span>FIN (masked in lists)</span>
+                <input formControlName="finNumber" [attr.placeholder]="maskedFin(d.workPass?.finNumber)" />
+              </label>
               <label class="check"><input type="checkbox" formControlName="cardCollected" /><span>Card collected</span></label>
-              <button type="submit" class="ess-btn primary" [disabled]="saving()">Record WP</button>
+              <button
+                type="submit"
+                [class]="submitClass('wp')"
+                [disabled]="saving() || (sgFlowV2 && !!d.sgFlow?.wpIssuanceBlocked)"
+              >
+                {{ saving() ? 'Saving…' : submitLabel('wp', 'Save work permit', 'Update work permit') }}
+              </button>
             </form>
           </div>
 
+          @if (sgFlowV2 && d.sgFlow?.applicableStepCodes?.includes('SG_TEMPORARY_PERMIT')) {
+            <div class="detail-section">
+              <div class="section-head">
+                <h3>6b. Temporary Permit (TP)</h3>
+                <span class="mode-chip" [class.update]="isUpdateMode('tp')">
+                  {{ isUpdateMode('tp') ? 'Update' : 'New' }}
+                </span>
+              </div>
+              <form class="ess-form compact" [formGroup]="tpForm" (ngSubmit)="saveTp()">
+                <label><span>TP number</span><input formControlName="tpNumber" /></label>
+                <label><span>Issue</span><input type="date" formControlName="tpIssueDate" /></label>
+                <label><span>Expiry</span><input type="date" formControlName="tpExpiryDate" /></label>
+                <label class="check"><input type="checkbox" formControlName="tpValid" /><span>TP valid</span></label>
+                <button type="submit" [class]="submitClass('tp')" [disabled]="saving()">
+                  {{ saving() ? 'Saving…' : submitLabel('tp', 'Save TP', 'Update TP') }}
+                </button>
+              </form>
+            </div>
+          }
+
+          @if (sgFlowV2) {
+            <div class="detail-section">
+              <div class="section-head">
+                <h3>6c. Safety / workplace induction</h3>
+                <span class="mode-chip" [class.update]="isUpdateMode('induction')">
+                  {{ isUpdateMode('induction') ? 'Done' : 'Pending' }}
+                </span>
+              </div>
+              <form class="ess-form compact" [formGroup]="inductionForm" (ngSubmit)="saveInduction()">
+                <label><span>Trainer name</span><input formControlName="trainerName" /></label>
+                <label><span>Date</span><input type="date" formControlName="inductionDate" /></label>
+                <button type="submit" [class]="submitClass('induction')" [disabled]="saving()">
+                  {{ saving() ? 'Saving…' : submitLabel('induction', 'Save induction', 'Update induction') }}
+                </button>
+              </form>
+            </div>
+          }
+
           <div class="detail-section">
             <h3>7. PPE &amp; Ready to Work</h3>
-            <p class="hint">Issue PPE, then employee confirms in ESS. Complete Ready triggers invitation when login is checked.</p>
+            <p class="hint">{{ readyActionHint(d) }}</p>
             <div class="hr-inline-actions">
-              <button type="button" class="ess-btn ghost" [disabled]="saving()" (click)="issueDefaultPpe()">
-                Issue default PPE kit
+              <button
+                type="button"
+                class="ess-btn primary"
+                [disabled]="readyActionDisabled(d)"
+                [title]="
+                  readyActionStage(d) === 'COMPLETE_READY'
+                    ? completeReadyDisabledReason(d) || readyActionLabel(d)
+                    : readyActionLabel(d)
+                "
+                (click)="runReadyAction(d)"
+              >
+                {{ saving() ? 'Working…' : readyActionLabel(d) }}
               </button>
-              <button type="button" class="ess-btn primary" [disabled]="saving()" (click)="completeReady()">
-                Complete Ready to Work
-              </button>
+              @if (readyActionStage(d) === 'COMPLETE_READY' && completeReadyDisabledReason(d); as reason) {
+                <p class="hint">{{ reason }}</p>
+              }
             </div>
+            @if (sgFlowV2) {
+              <form class="ess-form compact" [formGroup]="overrideForm" (ngSubmit)="overrideReadyGate()">
+                <label class="full">
+                  <span>ADMIN override reason (mandatory)</span>
+                  <input formControlName="reason" placeholder="Only ADMIN / HR_ADMIN may override" />
+                </label>
+                <button type="submit" class="ess-btn ghost" [disabled]="saving()">Force Ready (ADMIN)</button>
+              </form>
+            }
             @if (d.ppeItems.length) {
               <ul class="doc-list">
                 @for (p of d.ppeItems; track p.id) {
@@ -340,6 +547,36 @@
                   </li>
                 }
               </ul>
+            }
+            @if (d.ppePhoto) {
+              <div class="ppe-photo-panel">
+                <h4>PPE receipt photo</h4>
+                @if (ppePhotoUrl()) {
+                  <img [src]="ppePhotoUrl()!" alt="PPE receipt photo" class="ppe-photo" />
+                } @else {
+                  <button type="button" class="ess-btn ghost" (click)="loadPpePhoto()">Show photo</button>
+                }
+                <p class="hint">
+                  @if (d.ppePhoto.hrVerified) {
+                    Verified by HR
+                    @if (d.ppePhoto.hrVerifiedAt) {
+                      · {{ d.ppePhoto.hrVerifiedAt }}
+                    }
+                  } @else {
+                    Awaiting HR verification
+                  }
+                </p>
+                @if (!d.ppePhoto.hrVerified) {
+                  <button
+                    type="button"
+                    class="ess-btn primary"
+                    [disabled]="saving()"
+                    (click)="verifyPpePhoto()"
+                  >
+                    Verify PPE photo
+                  </button>
+                }
+              </div>
             }
           </div>
 
@@ -400,7 +637,12 @@
         </label>
         <label>
           <span>Mobile</span>
-          <input formControlName="mobile" autocomplete="tel" />
+          <input
+            formControlName="mobile"
+            autocomplete="tel"
+            placeholder="SG 91234567 / +65… or IN 9876543210 / +91…"
+          />
+          <p class="hint">SG (8 digits, 8/9) or Indian (+91 / 10 digits) for WhatsApp confirm testing.</p>
         </label>
         <label>
           <span>Start date</span>

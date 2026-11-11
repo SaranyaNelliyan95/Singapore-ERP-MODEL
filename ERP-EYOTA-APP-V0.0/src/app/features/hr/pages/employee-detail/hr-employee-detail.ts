@@ -45,6 +45,8 @@ export class HrEmployeeDetailPage implements OnInit {
 
   readonly useBackend = environment.useBackendApi;
   readonly loading = signal(true);
+  readonly pdfBusy = signal(false);
+  readonly pdfMode = signal<'COMPLETE' | 'EMPLOYEE_COPY' | null>(null);
   readonly employeeId = signal('');
   readonly apiEmployee = signal<EmployeeDto | null>(null);
   readonly payrollReadiness = signal<PayrollReadinessResponse | null>(null);
@@ -147,6 +149,36 @@ export class HrEmployeeDetailPage implements OnInit {
       void this.router.navigate(['/hr/master/directory']);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async exportDossier(mode: 'COMPLETE' | 'EMPLOYEE_COPY'): Promise<void> {
+    const emp = this.apiEmployee();
+    if (!emp) {
+      return;
+    }
+    this.pdfBusy.set(true);
+    this.pdfMode.set(mode);
+    try {
+      const blob = await firstValueFrom(this.employeeApi.exportDossier(emp.id, mode));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const tag = mode === 'COMPLETE' ? 'COMPLETE' : 'COPY';
+      a.href = url;
+      a.download = `EYOTA_${emp.employeeCode}_Master_Dossier_${tag}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.toast.success(
+        'Dossier ready',
+        mode === 'COMPLETE'
+          ? `${emp.employeeCode} Complete Employee Dossier downloaded.`
+          : `${emp.employeeCode} Employee Record Copy downloaded.`,
+      );
+    } catch (err) {
+      this.toast.danger('Dossier export', err instanceof Error ? err.message : 'Failed to generate PDF');
+    } finally {
+      this.pdfBusy.set(false);
+      this.pdfMode.set(null);
     }
   }
 

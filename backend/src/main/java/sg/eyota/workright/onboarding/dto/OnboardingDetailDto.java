@@ -39,10 +39,13 @@ public record OnboardingDetailDto(
         List<OnboardingTaskDto> tasks,
         List<OnboardingDocumentDto> documents,
         List<PpeDto> ppeItems,
+        PpePhotoDto ppePhoto,
         List<AckDto> acknowledgements,
         List<AppointmentDto> appointments,
         List<AuditDto> auditLogs,
-        List<String> readinessGates
+        List<String> readinessGates,
+        /** Null when onboardingSgFlowV2 / sg-flow-v2 is OFF. */
+        OnboardingSgFlowDto sgFlow
 ) {
     public record ArrivalDto(
             LocalDate plannedArrivalDate,
@@ -54,7 +57,13 @@ public record OnboardingDetailDto(
             boolean bondArranged,
             boolean insuranceArranged,
             boolean employeeConfirmed,
-            String notes
+            String notes,
+            String accommodationType,
+            Integer dormCapacity,
+            Boolean momAddressRegistered,
+            Boolean pcpRecorded,
+            Boolean medicalInsuranceRecorded,
+            Boolean securityBondPurchased
     ) {}
 
     public record WorkPassDto(
@@ -66,7 +75,12 @@ public record OnboardingDetailDto(
             LocalDate wpExpiryDate,
             String finNumber,
             boolean cardCollected,
-            String notes
+            String notes,
+            Boolean ipaExtensionRequested,
+            String tpNumber,
+            LocalDate tpIssueDate,
+            LocalDate tpExpiryDate,
+            boolean tpValid
     ) {}
 
     public record PpeDto(
@@ -77,6 +91,16 @@ public record OnboardingDetailDto(
             Instant issuedAt,
             boolean employeeConfirmed,
             Instant confirmedAt
+    ) {}
+
+    /** Employee PPE receipt photo — shown to employee and HR; HR verifies via quick action. */
+    public record PpePhotoDto(
+            UUID documentId,
+            String fileName,
+            String contentType,
+            Instant uploadedAt,
+            boolean hrVerified,
+            Instant hrVerifiedAt
     ) {}
 
     public record AckDto(String ackType, boolean acknowledged, Instant acknowledgedAt) {}

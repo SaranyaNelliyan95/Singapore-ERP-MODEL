@@ -1,49 +1,54 @@
 @import 'tailwindcss';
 
-/* Workright — dusty blue · mauve-grey · white */
+/* Workright — soft workspace UI (navy · pastel · white) */
 :root {
-  --brand-blue: #5d93b5;
-  --brand-mauve: #b2a3a3;
+  --brand-blue: #5b8fbf;
+  --brand-mauve: #b29db8;
   --brand-white: #ffffff;
 
-  --page-bg: #f6f8fa;
-  --secondary-bg: #f0f5f8;
+  --page-bg: #f3f6fa;
+  --secondary-bg: #eef3f8;
   --surface: #ffffff;
-  --surface-blue: #eaf2f7;
-  --surface-mauve: #f4efef;
+  --surface-blue: #eaf2fb;
+  --surface-mauve: #f5eef6;
+  --surface-mint: #eaf7f1;
+  --surface-peach: #fff1ea;
+  --surface-sand: #fff7e8;
 
-  --text-primary: #263b49;
-  --text-secondary: #647783;
-  --text-muted: #788791;
+  --text-primary: #1e3552;
+  --text-secondary: #5d728a;
+  --text-muted: #7a8ea3;
 
-  --border-color: #e1e7eb;
-  --primary: #477d9d;
-  --primary-hover: #396b89;
-  --accent-mauve: #927d7d;
+  --border-color: #e2e9f0;
+  --primary: #2f5f9a;
+  --primary-hover: #254d7e;
+  --accent-mauve: #8b7196;
+  --sidebar-bg: #1e375a;
+  --sidebar-bg-end: #243f68;
 
   --input-bg: #ffffff;
-  --focus-ring: rgba(71, 125, 157, 0.24);
+  --focus-ring: rgba(47, 95, 154, 0.22);
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
   --radius-lg: 18px;
   --radius-xl: 24px;
 
-  --shadow-card: 0 4px 20px rgba(38, 59, 73, 0.05);
-  --shadow-hover: 0 12px 32px rgba(38, 59, 73, 0.09);
+  --shadow-card: 0 8px 28px rgba(30, 53, 82, 0.06);
+  --shadow-hover: 0 14px 36px rgba(30, 53, 82, 0.1);
 
-  --success: #147a45;
-  --success-bg: #e8f7ef;
-  --success-border: #b7e4c7;
-  --warning: #9a6700;
-  --warning-bg: #fff6e5;
-  --warning-border: #f5d99a;
+  --success: #1f7a4d;
+  --success-bg: #e7f6ee;
+  --success-border: #b6e3c8;
+  --warning: #a66b1f;
+  --warning-bg: #fff5e4;
+  --warning-border: #f3d39a;
   --danger: #b42318;
   --danger-bg: #fdecec;
   --danger-border: #f3c1c1;
-  --info: #1d4f91;
-  --info-bg: #eaf2ff;
-  --info-border: #c5d8f5;
+  --info: #2f5f9a;
+  --info-bg: #eaf2fb;
+  --info-border: #c5d8f0;
 
   /* Legacy aliases */
   --eyota-navy: var(--primary);
@@ -57,7 +62,7 @@
   /* Compatibility with prior mint theme variable names */
   --brand-mint: var(--brand-blue);
   --brand-blush: var(--brand-mauve);
-  --surface-green: var(--surface-blue);
+  --surface-green: var(--surface-mint);
   --surface-pink: var(--surface-mauve);
   --accent-pink: var(--accent-mauve);
 
@@ -112,8 +117,8 @@ a {
 
 .wr-gradient-bg {
   background:
-    radial-gradient(ellipse at 12% 10%, rgba(93, 147, 181, 0.34) 0%, transparent 44%),
-    radial-gradient(ellipse at 90% 20%, rgba(178, 163, 163, 0.28) 0%, transparent 42%),
-    radial-gradient(ellipse at 72% 100%, rgba(129, 184, 220, 0.2) 0%, transparent 40%),
-    linear-gradient(135deg, #ffffff 0%, #f4f7f9 52%, #f4eeee 100%);
+    radial-gradient(ellipse at 10% 0%, rgba(91, 143, 191, 0.22) 0%, transparent 42%),
+    radial-gradient(ellipse at 92% 8%, rgba(178, 157, 184, 0.18) 0%, transparent 40%),
+    radial-gradient(ellipse at 70% 100%, rgba(47, 95, 154, 0.08) 0%, transparent 45%),
+    linear-gradient(160deg, #f7fafc 0%, #f2f6fb 48%, #f6f3f8 100%);
 }
