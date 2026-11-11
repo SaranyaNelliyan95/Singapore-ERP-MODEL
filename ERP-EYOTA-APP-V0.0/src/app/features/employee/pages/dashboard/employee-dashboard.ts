@@ -29,6 +29,7 @@ export class EmployeeDashboardPage implements OnInit {
 
   readonly loading = signal(true);
   readonly ws = this.employeeService.workspace;
+  readonly workforce = this.employeeService.workforce;
 
   readonly annualLeave = computed(
     () => this.ws().leaveBalances.find((b) => b.type === 'Annual') ?? null,
@@ -45,8 +46,41 @@ export class EmployeeDashboardPage implements OnInit {
   readonly latestPayslip = computed(() => this.ws().payslips[0] ?? null);
   readonly unread = computed(() => this.ws().notifications.filter((n) => !n.read).length);
 
+  readonly myDirectory = computed(() => {
+    const id = this.ws().profile.employeeId;
+    return this.workforce().directory.find((r) => r.employeeId === id) ?? null;
+  });
+
+  readonly myAllocations = computed(() => {
+    const id = this.ws().profile.employeeId;
+    return this.workforce().allocations.filter(
+      (a) => a.employeeId === id && a.status === 'Active',
+    );
+  });
+
+  readonly myCompliance = computed(() => {
+    const id = this.ws().profile.employeeId;
+    return this.workforce().compliance.filter(
+      (c) =>
+        c.employeeId === id &&
+        (c.status === 'Expiring' ||
+          c.status === 'Expired' ||
+          c.status === 'Missing' ||
+          c.status === 'Pending Review'),
+    );
+  });
+
+  readonly leaveStatusSummary = computed(() => {
+    const rows = this.ws().leaveRequests.slice(0, 3);
+    return rows.map((r) => `${r.type}: ${r.status}`).join(' · ') || 'No recent leave requests';
+  });
+
   ngOnInit(): void {
     this.employeeService.getWorkspace().subscribe(() => this.loading.set(false));
+  }
+
+  projectName(projectId: string): string {
+    return this.workforce().projects.find((p) => p.id === projectId)?.name ?? projectId;
   }
 
   quickClock(): void {

@@ -1,0 +1,18 @@
+$kind: http-request
+name: ""
+url: http://localhost:8080/api/v1/auth/login
+method: GET
+body:
+  type: formdata
+  content:
+    - type: text
+      key: email
+      value: employee@eyota.sg
+      description: ""
+      disabled: false
+    - type: text
+      key: password
+      value: Employee@123
+      description: ""
+      disabled: false
+order: 1000

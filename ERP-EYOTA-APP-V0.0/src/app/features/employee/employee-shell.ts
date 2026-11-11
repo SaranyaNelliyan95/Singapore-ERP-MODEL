@@ -12,6 +12,7 @@ const TITLE_BY_SEGMENT: Record<string, string> = {
   leave: 'Leave Management',
   payslips: 'Payslips & Tax',
   documents: 'My Documents',
+  onboarding: 'My Onboarding',
   claims: 'Claims Log',
   more: 'More',
 };
@@ -39,6 +40,7 @@ export class EmployeeShellComponent {
     { label: 'Leave', route: '/employee/master/leave', icon: '▦' },
     { label: 'Payslips', route: '/employee/master/payslips', icon: '▤', section: 'Pay & files' },
     { label: 'Documents', route: '/employee/master/documents', icon: '◉' },
+    { label: 'Onboarding', route: '/employee/master/onboarding', icon: '◫' },
     { label: 'Claims', route: '/employee/master/claims', icon: '◈' },
     { label: 'More', route: '/employee/master/more', icon: '◎', section: 'Extras' },
   ];

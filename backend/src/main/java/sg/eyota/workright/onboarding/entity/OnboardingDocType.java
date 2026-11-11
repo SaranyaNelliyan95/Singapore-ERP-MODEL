@@ -1,0 +1,19 @@
+package sg.eyota.workright.onboarding.entity;
+
+public enum OnboardingDocType {
+    PASSPORT,
+    WP_APPLICATION,
+    WP_APPROVAL,
+    IPA_FULL_SET,
+    EMPLOYMENT_CONTRACT,
+    WP_NOTIFICATION,
+    WP_CARD,
+    MEDICAL_CONFIRMATION,
+    SIP_CONFIRMATION,
+    ONBOARD_CONFIRMATION,
+    FLIGHT_ARRIVAL,
+    ACCOMMODATION,
+    PPE_SAFETY_TRAINING,
+    OVERRIDE_EVIDENCE,
+    OTHER
+}

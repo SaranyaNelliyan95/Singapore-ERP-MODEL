@@ -80,3 +80,41 @@
   background: #eaf2ff;
   border-color: #c5d8f5;
 }
+
+.workflow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.workflow li {
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: #fff;
+}
+
+.workflow li.done {
+  background: color-mix(in srgb, var(--brand-blue) 14%, white);
+  border-color: var(--brand-blue);
+  color: var(--text-primary);
+}
+
+.workflow li.current {
+  background: var(--brand-blue);
+  border-color: var(--brand-blue);
+  color: #fff;
+  font-weight: 600;
+}
+
+.exception-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}

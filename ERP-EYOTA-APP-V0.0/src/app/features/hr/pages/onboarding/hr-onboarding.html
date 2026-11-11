@@ -4,86 +4,374 @@
   <div class="ess-page hr-dense">
     <header class="ess-head">
       <div>
-        <p class="hr-eyebrow">New hire onboarding</p>
-        <h1>Candidate pipeline</h1>
+        <p class="hr-eyebrow">Foreign employee &amp; work pass</p>
+        <h1>Onboarding pipeline</h1>
         <p class="ess-sub">
-          MOM-aligned stages from offer through orientation. Activate completed candidates into the
-          live directory and optional ESS login.
+          Stage-based MOM-aligned flow: documents → application / IPA → pre-arrival → arrival →
+          medical/SIP → WP → account activation → PPE → Ready to Work. Existing activate &amp;
+          invitation flows are preserved.
         </p>
       </div>
+      <a routerLink="/hr/master/directory" class="ess-btn ghost">Open directory</a>
     </header>
 
-    <app-demo-notice
-      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Onboarding and logins are simulated only."
-    />
+    @if (!useBackend) {
+      <app-demo-notice
+        message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. Onboarding and logins are simulated only."
+      />
+    }
 
-    <section class="ess-panel">
-      <div class="ess-panel-head">
-        <h2>Active candidates ({{ candidates().length }})</h2>
-      </div>
-      @if (candidates().length === 0) {
-        <p class="empty">No onboarding candidates — add a new hire draft below.</p>
-      } @else {
-        <div class="queue">
-          @for (row of candidates(); track row.id) {
-            <article class="queue-card">
-              <div class="queue-main">
-                <strong>{{ row.id }} · {{ row.candidateName }}</strong>
-                <p>
-                  {{ row.role }} · {{ row.department }} · {{ row.employmentType }} · Start
-                  {{ formatDate(row.startDate) }}
-                </p>
-                <p class="meta-row">
-                  <app-status-badge [label]="row.stage" [tone]="stageTone(row.stage)" />
-                  <span>Checklist {{ row.checklistProgress }}%</span>
-                </p>
-                <div class="activate-row">
-                  <label class="check">
-                    <input
-                      type="checkbox"
-                      [checked]="optsFor(row.id).createLogin"
-                      (change)="patchOpts(row.id, { createLogin: $any($event.target).checked })"
-                    />
-                    <span>Create ESS login on activate</span>
-                  </label>
-                  <label>
-                    <span>Login email (optional)</span>
-                    <input
-                      type="email"
-                      placeholder="defaults to generated @eyota.sg"
-                      [value]="optsFor(row.id).email"
-                      (input)="patchOpts(row.id, { email: $any($event.target).value })"
-                    />
-                  </label>
-                </div>
-              </div>
-              <div class="hr-inline-actions">
-                @if (row.stage !== 'Completed') {
-                  <button type="button" class="ess-btn ghost" (click)="advance(row)">
-                    Advance stage
-                  </button>
-                }
-                <button type="button" class="ess-btn primary" (click)="activate(row)">
-                  Activate as employee
-                </button>
-              </div>
-            </article>
-          }
+    @if (useBackend && summary(); as s) {
+      <section class="stat-row">
+        <article class="stat-card">
+          <span>In pipeline</span>
+          <strong>{{ s.totalActive }}</strong>
+        </article>
+        <article class="stat-card">
+          <span>Docs / draft</span>
+          <strong>{{ s.offerCount }}</strong>
+        </article>
+        <article class="stat-card">
+          <span>Application / IPA</span>
+          <strong>{{ s.momFormsCount }}</strong>
+        </article>
+        <article class="stat-card">
+          <span>Travel / post-arrival</span>
+          <strong>{{ s.medicalCount }}</strong>
+        </article>
+        <article class="stat-card">
+          <span>WP / onboarding</span>
+          <strong>{{ s.orientationCount }}</strong>
+        </article>
+      </section>
+    }
+
+    <div class="pipeline-layout">
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Active candidates ({{ candidates().length }})</h2>
         </div>
+        @if (candidates().length === 0) {
+          <p class="empty">No onboarding candidates — add a new hire draft below.</p>
+        } @else {
+          <div class="queue">
+            @for (row of candidates(); track row.id) {
+              <article
+                class="queue-card"
+                [class.selected]="selectedId() === row.id"
+                (click)="selectCandidate(row)"
+              >
+                <div class="queue-main">
+                  <strong>
+                    @if (useBackend) {
+                      {{ $any(row).employeeCode }} · {{ row.candidateName }}
+                    } @else {
+                      {{ row.id }} · {{ row.candidateName }}
+                    }
+                  </strong>
+                  <p>
+                    {{ row.role }} · {{ row.department }} ·
+                    {{ $any(row).workPassType || row.employmentType }} · Start
+                    {{ formatDate(row.startDate) }}
+                    @if ($any(row).foreignWorker) {
+                      · Foreign worker
+                    }
+                  </p>
+                  @if (useBackend) {
+                    <p class="meta-line">
+                      {{ $any(row).personalEmail || '—' }} · Account
+                      {{ $any(row).accountStatus || '—' }} · Invite
+                      {{ $any(row).invitationEmailStatus || 'NOT_SENT' }}
+                      @if ($any(row).pipelineStatus) {
+                        · {{ $any(row).pipelineStatus }}
+                      }
+                    </p>
+                  }
+                  <p class="meta-row">
+                    <app-status-badge [label]="row.stage" [tone]="stageTone(row.stage)" />
+                    <span>Checklist {{ row.checklistProgress }}%</span>
+                    <span class="progress-track" aria-hidden="true">
+                      <span class="progress-fill" [style.width.%]="row.checklistProgress"></span>
+                    </span>
+                  </p>
+                  <div class="activate-row" (click)="$event.stopPropagation()">
+                    <label class="check">
+                      <input
+                        type="checkbox"
+                        [checked]="optsFor(row.id).createLogin"
+                        (change)="patchOpts(row.id, { createLogin: $any($event.target).checked })"
+                      />
+                      <span>Send / create ESS login on activate</span>
+                    </label>
+                    <label>
+                      <span>Login email</span>
+                      <input
+                        type="email"
+                        placeholder="work email for invitation"
+                        [value]="optsFor(row.id).email"
+                        (input)="patchOpts(row.id, { email: $any($event.target).value })"
+                      />
+                    </label>
+                  </div>
+                </div>
+                <div class="hr-inline-actions" (click)="$event.stopPropagation()">
+                  @if (row.stage !== 'Completed' && row.stage !== 'Ready to Work') {
+                    <button
+                      type="button"
+                      class="next-stage-text-btn"
+                      [disabled]="saving()"
+                      [title]="'Move to ' + nextStageLabel(row)"
+                      (click)="advance(row)"
+                    >
+                       {{ nextStageLabel(row) }}
+                    </button>
+                  }
+                  @if (useBackend && $any(row).accountStatus !== 'ACTIVE') {
+                    <button
+                      type="button"
+                      class="ess-btn ghost"
+                      [disabled]="saving()"
+                      (click)="sendInvite($any(row))"
+                    >
+                      Send invitation
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="ess-btn primary"
+                    [disabled]="saving()"
+                    (click)="activate(row)"
+                  >
+                    Activate employee
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+
+      @if (useBackend && detail(); as d) {
+        <aside class="ess-panel detail-panel">
+          <div class="ess-panel-head">
+            <h2>{{ d.employeeCode }} · {{ d.candidateName }}</h2>
+            <app-status-badge [label]="d.pipelineStatus" [tone]="stageTone(d.pipelineStatus)" />
+          </div>
+          <p class="ess-sub">
+            Progress {{ d.checklistProgress }}% · Account {{ d.accountStatus }} ·
+            {{ d.foreignWorker ? 'Foreign worker pipeline' : 'Local / PR simplified pipeline' }}
+          </p>
+
+          @if (d.readinessGates.length) {
+            <div class="gates">
+              <strong>Ready-to-work blockers</strong>
+              <ul>
+                @for (g of d.readinessGates; track g) {
+                  <li>{{ g }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          <div class="detail-section">
+            <h3>Checklist</h3>
+            <ul class="task-list">
+              @for (t of d.tasks; track t.id) {
+                <li>
+                  <span>{{ t.title }}</span>
+                  <app-status-badge [label]="t.status" [tone]="stageTone(t.status)" />
+                </li>
+              }
+            </ul>
+          </div>
+
+          <div class="detail-section">
+            <h3>Document vault</h3>
+            <div class="upload-row">
+              <select [value]="docType()" (change)="docType.set($any($event.target).value)">
+                @for (t of docTypes; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+              <input type="file" (change)="onFilePicked($event)" />
+              <button type="button" class="ess-btn primary" [disabled]="saving()" (click)="uploadDoc()">
+                Upload
+              </button>
+            </div>
+            @if (d.documents.length === 0) {
+              <p class="empty">No documents yet.</p>
+            } @else {
+              <ul class="doc-list">
+                @for (doc of d.documents; track doc.id) {
+                  <li>
+                    <span>{{ doc.docType }} · {{ doc.fileName }} · v{{ doc.versionNo }}</span>
+                    <button
+                      type="button"
+                      class="ess-btn ghost"
+                      (click)="downloadDoc(doc.id, doc.fileName)"
+                    >
+                      Download
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          <div class="detail-section">
+            <h3>1. Government application (manual MOM)</h3>
+            <form class="ess-form compact" [formGroup]="momForm" (ngSubmit)="saveMom()">
+              <label><span>MOM reference</span><input formControlName="momReference" /></label>
+              <label><span>Type</span><input formControlName="applicationType" /></label>
+              <label><span>Submitted</span><input type="date" formControlName="submittedAt" /></label>
+              <label class="full"><span>Notes</span><input formControlName="portalNotes" /></label>
+              <button type="submit" class="ess-btn primary" [disabled]="saving()">Save application</button>
+            </form>
+          </div>
+
+          <div class="detail-section">
+            <h3>2. IPA approval</h3>
+            <form class="ess-form compact" [formGroup]="ipaForm" (ngSubmit)="saveIpa()">
+              <label><span>IPA number</span><input formControlName="ipaNumber" /></label>
+              <label><span>Issue</span><input type="date" formControlName="ipaIssueDate" /></label>
+              <label><span>Expiry</span><input type="date" formControlName="ipaExpiryDate" /></label>
+              <label class="check full">
+                <input type="checkbox" formControlName="markApproved" />
+                <span>Mark IPA approved &amp; notify employee</span>
+              </label>
+              <button type="submit" class="ess-btn primary" [disabled]="saving()">Save IPA</button>
+            </form>
+          </div>
+
+          <div class="detail-section">
+            <h3>3. Pre-arrival</h3>
+            <form class="ess-form compact" [formGroup]="preArrivalForm" (ngSubmit)="savePreArrival()">
+              <label><span>Planned arrival</span><input type="date" formControlName="plannedArrivalDate" /></label>
+              <label><span>Flight</span><input formControlName="flightNumber" /></label>
+              <label><span>Airport</span><input formControlName="arrivalAirport" /></label>
+              <label class="full"><span>Housing</span><input formControlName="accommodationAddress" /></label>
+              <label class="check"><input type="checkbox" formControlName="housingConfirmed" /><span>Housing</span></label>
+              <label class="check"><input type="checkbox" formControlName="bondArranged" /><span>Bond</span></label>
+              <label class="check"><input type="checkbox" formControlName="insuranceArranged" /><span>Insurance</span></label>
+              <label class="check"><input type="checkbox" formControlName="readyForTravel" /><span>Ready for travel</span></label>
+              <button type="submit" class="ess-btn primary" [disabled]="saving()">Save pre-arrival</button>
+            </form>
+          </div>
+
+          <div class="detail-section">
+            <h3>4. Arrival</h3>
+            <form class="ess-form compact" [formGroup]="arrivalForm" (ngSubmit)="saveArrival()">
+              <label><span>Actual arrival</span><input type="date" formControlName="actualArrivalDate" /></label>
+              <label><span>Flight</span><input formControlName="flightNumber" /></label>
+              <label class="full"><span>Accommodation</span><input formControlName="accommodationAddress" /></label>
+              <label class="check"><input type="checkbox" formControlName="housingConfirmed" /><span>Housing OK</span></label>
+              <button type="submit" class="ess-btn primary" [disabled]="saving()">Save arrival</button>
+            </form>
+          </div>
+
+          <div class="detail-section">
+            <h3>5. Medical / SIP / Onboard (N/A allowed)</h3>
+            <form class="ess-form compact" [formGroup]="programmeForm" (ngSubmit)="saveProgrammes()">
+              <label>
+                <span>Medical</span>
+                <select formControlName="medicalStatus">
+                  <option value="PENDING">Pending</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="NOT_APPLICABLE">N/A</option>
+                </select>
+              </label>
+              <label>
+                <span>SIP</span>
+                <select formControlName="sipStatus">
+                  <option value="PENDING">Pending</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="NOT_APPLICABLE">N/A</option>
+                </select>
+              </label>
+              <label>
+                <span>Onboard</span>
+                <select formControlName="onboardProgrammeStatus">
+                  <option value="PENDING">Pending</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="NOT_APPLICABLE">N/A</option>
+                </select>
+              </label>
+              <label>
+                <span>Quarantine (default N/A)</span>
+                <select formControlName="quarantineStatus">
+                  <option value="PENDING">Pending</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="NOT_APPLICABLE">N/A</option>
+                </select>
+              </label>
+              <button type="submit" class="ess-btn primary" [disabled]="saving()">Save programmes</button>
+            </form>
+          </div>
+
+          <div class="detail-section">
+            <h3>6. Work permit issuance</h3>
+            <form class="ess-form compact" [formGroup]="wpForm" (ngSubmit)="saveWp()">
+              <label><span>WP number</span><input formControlName="wpNumber" /></label>
+              <label><span>Issue</span><input type="date" formControlName="wpIssueDate" /></label>
+              <label><span>Expiry</span><input type="date" formControlName="wpExpiryDate" /></label>
+              <label><span>FIN</span><input formControlName="finNumber" /></label>
+              <label class="check"><input type="checkbox" formControlName="cardCollected" /><span>Card collected</span></label>
+              <button type="submit" class="ess-btn primary" [disabled]="saving()">Record WP</button>
+            </form>
+          </div>
+
+          <div class="detail-section">
+            <h3>7. PPE &amp; Ready to Work</h3>
+            <p class="hint">Issue PPE, then employee confirms in ESS. Complete Ready triggers invitation when login is checked.</p>
+            <div class="hr-inline-actions">
+              <button type="button" class="ess-btn ghost" [disabled]="saving()" (click)="issueDefaultPpe()">
+                Issue default PPE kit
+              </button>
+              <button type="button" class="ess-btn primary" [disabled]="saving()" (click)="completeReady()">
+                Complete Ready to Work
+              </button>
+            </div>
+            @if (d.ppeItems.length) {
+              <ul class="doc-list">
+                @for (p of d.ppeItems; track p.id) {
+                  <li>
+                    {{ p.itemName }} ×{{ p.quantity }} —
+                    {{ p.employeeConfirmed ? 'Confirmed by employee' : 'Awaiting confirmation' }}
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          @if (d.auditLogs.length) {
+            <div class="detail-section">
+              <h3>Audit</h3>
+              <ul class="audit-list">
+                @for (a of d.auditLogs.slice(0, 12); track a.createdAt + a.action) {
+                  <li>
+                    <code>{{ a.action }}</code>
+                    {{ a.fromStatus || '—' }} → {{ a.toStatus || '—' }}
+                    <span class="muted">{{ a.details }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </aside>
       }
-    </section>
+    </div>
 
     <section class="ess-panel">
       <div class="ess-panel-head">
-        <h2>Add new hire draft</h2>
+        <h2>Add new hire / candidate draft</h2>
       </div>
       <form class="ess-form hire-form" [formGroup]="hireForm" (ngSubmit)="submitHire()">
         <label>
           <span>Full name</span>
-          <input formControlName="fullName" />
+          <input formControlName="fullName" autocomplete="name" />
         </label>
         <label>
-          <span>Role</span>
+          <span>Role / designation</span>
           <input formControlName="role" />
         </label>
         <label>
@@ -98,12 +386,34 @@
             }
           </select>
         </label>
-        <label class="full">
+        <label>
+          <span>Worker category</span>
+          <input formControlName="workerCategory" placeholder="e.g. Construction" />
+        </label>
+        <label>
+          <span>Sector</span>
+          <input formControlName="sector" />
+        </label>
+        <label>
+          <span>Work email</span>
+          <input type="email" formControlName="email" autocomplete="email" />
+        </label>
+        <label>
+          <span>Mobile</span>
+          <input formControlName="mobile" autocomplete="tel" />
+        </label>
+        <label>
           <span>Start date</span>
           <input type="date" formControlName="startDate" />
         </label>
+        <label class="check full">
+          <input type="checkbox" formControlName="sendInvitation" />
+          <span>Send ESS invitation email now (usually wait until Ready / WP issued)</span>
+        </label>
         <div class="ess-actions full">
-          <button type="submit" class="ess-btn primary">Create onboarding draft</button>
+          <button type="submit" class="ess-btn primary" [disabled]="saving()">
+            {{ saving() ? 'Saving…' : 'Create onboarding draft' }}
+          </button>
         </div>
       </form>
     </section>

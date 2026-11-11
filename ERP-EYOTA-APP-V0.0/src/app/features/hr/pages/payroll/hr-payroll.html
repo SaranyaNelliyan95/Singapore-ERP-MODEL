@@ -1,32 +1,65 @@
 @if (loading()) {
-  <app-loading-spinner label="Loading payroll engine…" />
+  <app-loading-spinner label="Loading payroll control…" />
 } @else {
   <div class="ess-page hr-dense">
     <header class="ess-head">
       <div>
-        <p class="hr-eyebrow">Payroll Engine &amp; CPF / SDL Review</p>
-        <h1>Month-end batch simulator</h1>
+        <p class="hr-eyebrow">Singapore Payroll Operations</p>
+        <h1>Period overview &amp; statutory workflow</h1>
         <p class="ess-sub">
-          Lifecycle: Draft → Under Review → Approved → Finalized. Finalizing publishes simulated
-          payslips to the correct employee accounts.
+          Draft &amp; timesheets → statutory validation → executive review → director approval → bank
+          GIRO release. CPF / FWL / SDL amounts are configurable demo figures — not legal rates.
         </p>
       </div>
       <div class="ess-actions">
+        <button type="button" class="ess-btn ghost" (click)="validateRun()">Validate</button>
         <button type="button" class="ess-btn ghost" (click)="requestAction('submitReview')">
-          Submit for review
+          Executive review
         </button>
         <button type="button" class="ess-btn ghost" (click)="requestAction('approve')">
-          Approve
+          Director approval
         </button>
         <button type="button" class="ess-btn primary" (click)="requestAction('finalize')">
-          Finalize &amp; publish payslips
+          Bank GIRO release
         </button>
       </div>
     </header>
 
     <app-demo-notice
-      message="DEMO COMPLIANCE ENVIRONMENT - NO STATUTORY EFFECTS. CPF schedules and SDL figures are fictional samples."
+      message="DEMO — NO STATUTORY EFFECTS. CPF, Foreign Worker Levy, and SDL tiles use fictional samples until Admin configures verified rates."
     />
+
+    <section class="ess-grid-4">
+      <article class="ess-stat">
+        <p>Current period</p>
+        <strong>{{ payrollKpis().currentPeriod }}</strong>
+        <span>{{ payrollKpis().periodOpen ? 'Open' : 'Closed' }} (Admin lock)</span>
+      </article>
+      <article class="ess-stat">
+        <p>Draft / in review</p>
+        <strong>{{ payrollKpis().draftRuns }} / {{ payrollKpis().underReview }}</strong>
+      </article>
+      <article class="ess-stat">
+        <p>Employees in focus run</p>
+        <strong>{{ payrollKpis().employeesInRun }}</strong>
+      </article>
+      <article class="ess-stat">
+        <p>Exceptions · blockers</p>
+        <strong>{{ payrollKpis().exceptions }} · {{ payrollKpis().blockers }}</strong>
+        <span>{{ payrollKpis().publishedPayslips }} published payslips</span>
+      </article>
+    </section>
+
+    <section class="ess-panel">
+      <div class="ess-panel-head"><h2>Workflow</h2></div>
+      <ol class="workflow">
+        @for (step of workflow; track step; let i = $index) {
+          <li [class.done]="i < workflowStep()" [class.current]="i === workflowStep()">
+            {{ step }}
+          </li>
+        }
+      </ol>
+    </section>
 
     <section class="ess-panel">
       <div class="ess-panel-head">
@@ -56,10 +89,32 @@
       />
     </section>
 
+    <section class="ess-panel">
+      <div class="ess-panel-head">
+        <h2>Exceptions &amp; missing inputs</h2>
+        <button type="button" class="ess-btn ghost" (click)="validateRun()">Re-validate</button>
+      </div>
+      <app-data-table
+        [columns]="exceptionColumns"
+        [rows]="exceptions()"
+        trackByKey="id"
+        [pageSize]="6"
+        searchPlaceholder="Search exceptions…"
+        [emptyState]="{ title: 'No open exceptions', description: 'Run Validate to refresh missing bank, OT, and claim checks.' }"
+      />
+      <div class="exception-actions">
+        @for (ex of exceptions(); track ex.id) {
+          <button type="button" class="ess-btn ghost" (click)="resolveException(ex.id)">
+            Resolve {{ ex.type }} · {{ ex.employeeId }}
+          </button>
+        }
+      </div>
+    </section>
+
     <div class="ess-grid-2">
       <section class="ess-panel">
         <div class="ess-panel-head">
-          <h2>Employees in period</h2>
+          <h2>Employees / payslip publication</h2>
         </div>
         <div class="emp-list">
           @for (slip of periodPayslips(); track slip.id) {
@@ -74,8 +129,8 @@
             </button>
           } @empty {
             <p class="empty">
-              No itemized slips yet — Finalize a run to generate simulated payslips from attendance
-              and statutory demo rates.
+              No published slips yet — Finalize a run to generate simulated payslips. Pending review
+              runs show history after publish.
             </p>
           }
         </div>

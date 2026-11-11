@@ -28,3 +28,27 @@
   flex-wrap: wrap;
   gap: 0.45rem;
 }
+
+.role-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.role-card {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--secondary-bg);
+  padding: 0.85rem 1rem;
+}
+
+.role-card strong {
+  display: block;
+  color: var(--text-primary);
+}
+
+.role-card p {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}

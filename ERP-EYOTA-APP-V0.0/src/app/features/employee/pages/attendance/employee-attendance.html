@@ -7,16 +7,32 @@
         <p class="ess-eyebrow">Attendance &amp; Clocking</p>
         <h1>Your time log</h1>
         <p class="ess-sub">
-          Simulated check-in/out with Office, Site, or WFH modes and optional GPS tracking flags.
+          @if (useBackend) {
+            One clock-in and one clock-out per day.
+            @if (gpsMandatory()) {
+              GPS is <strong>On</strong> (Admin) — location is required when you punch.
+            } @else {
+              GPS is <strong>Off</strong> (Admin) — location is not captured.
+            }
+          } @else {
+            Demo mock clocking. Set <code>environment.useBackendApi = true</code> and start the
+            Spring Boot API for real GPS + PostgreSQL persistence.
+          }
         </p>
       </div>
       <app-status-badge
-        [label]="ws().clock.status"
-        [tone]="ws().clock.status === 'Checked in' ? 'success' : 'neutral'"
+        [label]="displayStatus()"
+        [tone]="displayStatus() === 'Checked in' ? 'success' : 'neutral'"
       />
     </header>
 
-    <app-demo-notice message="Attendance punches and overtime hours are simulated sample data for this demo employee only." />
+    <app-demo-notice
+      [message]="
+        useBackend
+          ? 'Attendance writes to PostgreSQL via /api/v1/attendance. Browser GPS is not tamper-proof.'
+          : 'Attendance punches are simulated local mock data until backend API mode is enabled.'
+      "
+    />
 
     <section class="ess-panel">
       <div class="ess-panel-head">
@@ -25,30 +41,39 @@
       <div class="clock-bar">
         <label>
           <span>Location mode</span>
-          <select [(ngModel)]="selectedLocation">
+          <select [(ngModel)]="selectedLocation" [disabled]="locating()">
             <option value="Office">Office</option>
             <option value="Site">Site</option>
             <option value="WFH">WFH</option>
           </select>
         </label>
-        <button type="button" class="ess-btn ghost" (click)="toggleGps()">
-          GPS {{ ws().clock.gpsEnabled ? 'On' : 'Off' }}
-        </button>
-        <button type="button" class="ess-btn primary" (click)="clockIn()">Clock in</button>
-        <button type="button" class="ess-btn ghost" (click)="clockOut()">Clock out</button>
-      </div>
-      <p class="session">
-        Session:
-        @if (ws().clock.checkIn) {
-          In {{ ws().clock.checkIn }}
-          @if (ws().clock.checkOut) {
-            · Out {{ ws().clock.checkOut }}
-          }
-          · {{ ws().clock.location }}
+        @if (!useBackend) {
+          <button type="button" class="ess-btn ghost" (click)="toggleGps()" [disabled]="locating()">
+            GPS {{ ws().clock.gpsEnabled ? 'On' : 'Off' }} (simulated)
+          </button>
         } @else {
-          No active session
+          <span class="gps-pill" [class.on]="gpsMandatory()" [class.off]="!gpsMandatory()">
+            GPS {{ gpsMandatory() ? 'On' : 'Off' }}
+          </span>
         }
-      </p>
+        <button
+          type="button"
+          class="ess-btn primary"
+          (click)="clockIn()"
+          [disabled]="locating() || (useBackend && !canClockIn())"
+        >
+          {{ locating() && gpsMandatory() ? 'Getting GPS…' : locating() ? 'Saving…' : 'Clock in' }}
+        </button>
+        <button
+          type="button"
+          class="ess-btn ghost"
+          (click)="clockOut()"
+          [disabled]="locating() || (useBackend && !canClockOut())"
+        >
+          Clock out
+        </button>
+      </div>
+      <p class="session">Session: {{ displaySession() }}</p>
     </section>
 
     <section class="ess-panel">
@@ -57,10 +82,10 @@
       </div>
       <app-data-table
         [columns]="columns"
-        [rows]="ws().attendance"
+        [rows]="historyRows()"
         trackByKey="id"
         searchPlaceholder="Search dates, locations, status…"
-        [emptyState]="{ title: 'No attendance rows', description: 'Clock in to create your first simulated log.' }"
+        [emptyState]="{ title: 'No attendance rows', description: 'Clock in to create your first log.' }"
       />
     </section>
   </div>

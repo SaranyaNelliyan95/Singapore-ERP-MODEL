@@ -9,6 +9,7 @@ const TITLE_BY_SEGMENT: Record<string, string> = {
   dashboard: 'System Admin Dashboard',
   company: 'Company Setup',
   users: 'User & Role Management',
+  attendance: 'Attendance & GPS',
   'master-data': 'Master Data Settings',
   workflows: 'Workflow Automation',
   integrations: 'Integrations Gateway',
@@ -17,6 +18,7 @@ const TITLE_BY_SEGMENT: Record<string, string> = {
   archive: 'Document Archive Policy',
   backup: 'Backup & Disaster Recovery',
   'hr-access': 'HR Module Access',
+  onboarding: 'Onboarding Oversight',
   health: 'System Health Diagnostics',
 };
 
@@ -40,6 +42,7 @@ export class AdminShellComponent {
     { label: 'Dashboard', route: '/admin/master/dashboard', icon: '⌂', section: 'Control' },
     { label: 'Company setup', route: '/admin/master/company', icon: '▣' },
     { label: 'Users & roles', route: '/admin/master/users', icon: '◍' },
+    { label: 'Attendance & GPS', route: '/admin/master/attendance', icon: '◷' },
     { label: 'Master data', route: '/admin/master/master-data', icon: '▤' },
     { label: 'Workflows', route: '/admin/master/workflows', icon: '◎', section: 'Automation' },
     { label: 'Integrations', route: '/admin/master/integrations', icon: '◈' },
@@ -48,6 +51,11 @@ export class AdminShellComponent {
     { label: 'Archive policy', route: '/admin/master/archive', icon: '▤' },
     { label: 'Backup & DR', route: '/admin/master/backup', icon: '◷' },
     { label: 'HR access', route: '/admin/master/hr-access', icon: '◎', section: 'Oversight' },
+    { label: 'Onboarding', route: '/admin/master/onboarding', icon: '◫' },
+    { label: 'Employee Mgmt', route: '/hr/master/directory', icon: '▤' },
+    { label: 'Project manpower', route: '/hr/master/projects', icon: '▣' },
+    { label: 'MOM / ICA', route: '/hr/master/compliance', icon: '◉' },
+    { label: 'Payroll Control', route: '/hr/master/payroll', icon: '◈' },
     { label: 'System health', route: '/admin/master/health', icon: '◍' },
   ];
 

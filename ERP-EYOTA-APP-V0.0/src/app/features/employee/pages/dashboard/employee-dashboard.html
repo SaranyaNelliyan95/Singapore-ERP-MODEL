@@ -7,7 +7,8 @@
         <p class="ess-eyebrow">Dashboard Overview</p>
         <h1>Hello, {{ ws().profile.fullName.split(' ')[0] }}</h1>
         <p class="ess-sub">
-          Leave balances, assets, payslip shortcut, and pending approvals — personal records only.
+          Leave, claims, payslips, documents, and project assignments — statuses update when HR
+          completes the matching approval workflow.
         </p>
       </div>
       <div class="clock-pill">
@@ -59,7 +60,13 @@
             {{ ws().clock.status === 'Checked in' ? 'Clock out' : 'Clock in' }}
           </button>
           <a routerLink="/employee/master/claims" class="ess-btn ghost">File claim</a>
+          <a routerLink="/employee/master/profile" class="ess-btn ghost">Update profile</a>
+          <a routerLink="/employee/master/documents" class="ess-btn ghost">Upload documents</a>
+          <a routerLink="/employee/master/attendance" class="ess-btn ghost">Attendance</a>
+          <a routerLink="/employee/master/payslips" class="ess-btn ghost">My payslips</a>
+          <a routerLink="/employee/master/more" class="ess-btn ghost">Notifications</a>
         </div>
+        <p class="meta">Leave workflow status: {{ leaveStatusSummary() }}</p>
       </section>
 
       <section class="ess-panel">
@@ -73,7 +80,54 @@
           <p class="meta">Credited {{ slip.bankCreditedDate | sgDate }} · CPF/SDL simulated</p>
           <a routerLink="/employee/master/payslips" class="ess-btn primary">Open payslip detail</a>
         } @else {
-          <p class="meta">No payslips available.</p>
+          <p class="meta">No published payslips yet — available after HR finalizes payroll.</p>
+        }
+      </section>
+    </div>
+
+    <div class="ess-grid-2">
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>My project assignments</h2>
+        </div>
+        @for (a of myAllocations(); track a.id) {
+          <div class="alert">
+            <div>
+              <strong>{{ projectName(a.projectId) }}</strong>
+              <p>{{ a.role }} · {{ a.allocationPct }}% · from {{ a.startDate }}</p>
+            </div>
+            <app-status-badge [label]="a.status" tone="info" />
+          </div>
+        } @empty {
+          <p class="meta">
+            @if (myDirectory()?.projectId; as pid) {
+              Linked project: {{ projectName(pid) }} (directory). Detailed allocations appear when HR
+              assigns you in Project Manpower.
+            } @else {
+              No active project allocation.
+            }
+          </p>
+        }
+      </section>
+
+      <section class="ess-panel">
+        <div class="ess-panel-head">
+          <h2>Compliance tasks</h2>
+          <a routerLink="/employee/master/documents" class="ess-btn ghost">Documents</a>
+        </div>
+        @for (c of myCompliance(); track c.id) {
+          <div class="alert">
+            <div>
+              <strong>{{ c.agency }} · {{ c.category }}</strong>
+              <p>{{ c.reference }} · {{ c.status }}</p>
+            </div>
+            <app-status-badge
+              [label]="c.status"
+              [tone]="c.status === 'Expired' ? 'danger' : 'warning'"
+            />
+          </div>
+        } @empty {
+          <p class="meta">No open MOM / ICA compliance tasks for your profile.</p>
         }
       </section>
     </div>

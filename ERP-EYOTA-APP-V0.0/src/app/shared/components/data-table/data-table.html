@@ -48,11 +48,31 @@
             <tr>
               @for (column of columns; track column.key) {
                 <td [style.text-align]="column.align || 'left'">
-                  @if (column.badge?.(row); as badge) {
-                    <app-status-badge [label]="badge.label" [tone]="badge.tone" />
-                  } @else {
-                    {{ cellValue(row, column) }}
-                  }
+                  <div class="cell-stack">
+                    @if (column.badge?.(row); as badge) {
+                      <app-status-badge [label]="badge.label" [tone]="badge.tone" />
+                    } @else {
+                      <span>{{ cellValue(row, column) }}</span>
+                    }
+                    @if (column.actions?.(row); as actions) {
+                      @if (actions.length) {
+                        <div class="cell-actions">
+                          @for (action of actions; track action.id) {
+                            <button
+                              type="button"
+                              class="cell-action"
+                              [class.primary]="action.tone === 'primary'"
+                              [class.danger]="action.tone === 'danger'"
+                              [disabled]="!!action.disabled"
+                              (click)="cellAction.emit({ actionId: action.id, row })"
+                            >
+                              {{ action.label }}
+                            </button>
+                          }
+                        </div>
+                      }
+                    }
+                  </div>
                 </td>
               }
             </tr>

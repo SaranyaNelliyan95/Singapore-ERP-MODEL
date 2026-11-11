@@ -1,0 +1,96 @@
+@if (loading()) {
+  <app-loading-spinner label="Loading your onboarding progress…" />
+} @else {
+  <div class="ess-page">
+    <header class="ess-head">
+      <div>
+        <p class="hr-eyebrow">My onboarding</p>
+        <h1>Work readiness tracker</h1>
+        <p class="ess-sub">
+          Track your progress, view shared documents, confirm arrival, acknowledge your contract, and
+          confirm PPE before Ready to Work.
+        </p>
+      </div>
+    </header>
+
+    @if (!useBackend) {
+      <p class="empty">Backend API is required for live onboarding tracking.</p>
+    } @else if (missing()) {
+      <p class="empty">No active onboarding pipeline is linked to your account yet. Contact HR.</p>
+    } @else if (detail(); as d) {
+      <section class="ess-panel hero-status">
+        <div>
+          <app-status-badge [label]="d.pipelineStatus" [tone]="'info'" />
+          <h2>{{ d.candidateName }}</h2>
+          <p>{{ d.employeeCode }} · {{ d.workPassType || 'Pass TBC' }} · {{ d.checklistProgress }}%</p>
+        </div>
+        <div class="progress-track large" aria-hidden="true">
+          <span class="progress-fill" [style.width.%]="d.checklistProgress"></span>
+        </div>
+      </section>
+
+      <section class="ess-panel">
+        <div class="ess-panel-head"><h2>Progress checklist</h2></div>
+        <ul class="tasks">
+          @for (t of d.tasks; track t.id) {
+            <li>
+              <span>{{ t.title }}</span>
+              <app-status-badge [label]="t.status" [tone]="t.status === 'COMPLETED' ? 'success' : 'warning'" />
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="ess-panel">
+        <div class="ess-panel-head"><h2>Your actions</h2></div>
+        <div class="actions">
+          <button type="button" class="ess-btn primary" [disabled]="saving()" (click)="confirmArrival()">
+            Confirm arrival in Singapore
+          </button>
+          <button type="button" class="ess-btn primary" [disabled]="saving()" (click)="ackContract()">
+            Acknowledge employment contract
+          </button>
+          <button type="button" class="ess-btn primary" [disabled]="saving()" (click)="confirmPpe()">
+            Confirm PPE received
+          </button>
+        </div>
+        @if (d.ppeItems.length) {
+          <ul class="ppe">
+            @for (p of d.ppeItems; track p.id) {
+              <li>{{ p.itemName }} ×{{ p.quantity }} — {{ p.employeeConfirmed ? 'Confirmed' : 'Pending your confirmation' }}</li>
+            }
+          </ul>
+        }
+      </section>
+
+      <section class="ess-panel">
+        <div class="ess-panel-head"><h2>Shared documents</h2></div>
+        @if (d.documents.length === 0) {
+          <p class="empty">No employee-visible documents yet. Sensitive files stay with HR/Admin.</p>
+        } @else {
+          <ul class="docs">
+            @for (doc of d.documents; track doc.id) {
+              <li>
+                <span>{{ doc.docType }} · {{ doc.fileName }}</span>
+                <button type="button" class="ess-btn ghost" (click)="download(doc.id, doc.fileName)">
+                  Download
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      @if (d.readinessGates.length) {
+        <section class="ess-panel">
+          <div class="ess-panel-head"><h2>Still required for Ready to Work</h2></div>
+          <ul>
+            @for (g of d.readinessGates; track g) {
+              <li>{{ g }}</li>
+            }
+          </ul>
+        </section>
+      }
+    }
+  </div>
+}

@@ -20,8 +20,13 @@ import {
 } from '../models/employee.model';
 import {
   ComplianceWatchItem,
+  EmployeeManagementStats,
+  ManpowerRequest,
   OnboardingCandidate,
+  PayrollException,
   PayrollRun,
+  ProjectAllocation,
+  ProjectRecord,
   StaffDirectoryRow,
   WorkforceState,
 } from '../models/hr.model';
@@ -836,13 +841,22 @@ export class EmployeeMockService {
       designation: profile.designation,
       employmentType: profile.employmentType,
       workLocation: profile.workLocation,
-      status: 'Active',
+      status: 'Probation',
       passExpiry: candidate.employmentType === 'Local' || candidate.employmentType === 'PR' ? null : '2027-12-31',
       contractExpiry: '2027-12-31',
       nricOrFin: profile.nricOrFin,
       mobile: profile.mobile,
       passportExpiry: '2029-01-01',
       medicalClearance: 'Valid',
+      branch: 'HQ — Paya Lebar',
+      projectId: null,
+      dateOfJoining: candidate.startDate,
+      probationEndDate: (() => {
+        const d = new Date(candidate.startDate);
+        d.setMonth(d.getMonth() + 6);
+        return d.toISOString().slice(0, 10);
+      })(),
+      noticeEndDate: null,
     };
 
     this.mutate((state) => ({
@@ -913,6 +927,11 @@ export class EmployeeMockService {
       bankAccountNumber: '0000000000',
     };
 
+    const probationEnd = (() => {
+      const d = new Date(input.dateOfJoining);
+      d.setMonth(d.getMonth() + 6);
+      return d.toISOString().slice(0, 10);
+    })();
     const row: StaffDirectoryRow = {
       employeeId,
       fullName: input.fullName,
@@ -920,7 +939,7 @@ export class EmployeeMockService {
       designation: input.designation,
       employmentType: input.employmentType,
       workLocation: input.workLocation,
-      status: 'Active',
+      status: 'Probation',
       passExpiry:
         input.employmentType === 'Local' || input.employmentType === 'PR' ? null : '2027-12-31',
       contractExpiry: '2027-12-31',
@@ -928,6 +947,11 @@ export class EmployeeMockService {
       mobile: input.mobile,
       passportExpiry: '2029-01-01',
       medicalClearance: 'Valid',
+      branch: 'HQ — Paya Lebar',
+      projectId: null,
+      dateOfJoining: input.dateOfJoining,
+      probationEndDate: probationEnd,
+      noticeEndDate: null,
     };
 
     this.mutate((state) => ({
@@ -956,6 +980,11 @@ export class EmployeeMockService {
         | 'contractExpiry'
         | 'mobile'
         | 'medicalClearance'
+        | 'branch'
+        | 'projectId'
+        | 'dateOfJoining'
+        | 'probationEndDate'
+        | 'noticeEndDate'
       >
     >,
   ): boolean {
@@ -974,6 +1003,13 @@ export class EmployeeMockService {
         employmentType: patch.employmentType ?? profile.employmentType,
         workLocation: patch.workLocation ?? profile.workLocation,
         mobile: patch.mobile ?? profile.mobile,
+        dateOfJoining: patch.dateOfJoining ?? profile.dateOfJoining,
+        probationStatus:
+          patch.status === 'Probation'
+            ? 'Probation'
+            : patch.status === 'Active'
+              ? 'Confirmed'
+              : profile.probationStatus,
       };
       return {
         ...state,
@@ -1101,6 +1137,329 @@ export class EmployeeMockService {
       `Training assigned: ${input.courseName} (demo).`,
     );
     return record;
+  }
+
+  /** HR Employee Management dashboard metrics (derived from shared store) */
+  getEmployeeManagementStats(): EmployeeManagementStats {
+    const state = this.store();
+    const directory = state.directory;
+    const active = directory.filter((row) => row.status !== 'Resigned');
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const cut = ninetyDaysAgo.toISOString().slice(0, 10);
+    const foreignTypes = new Set(['WP', 'S Pass', 'EP']);
+    const bcaEmployeeIds = new Set(
+      state.documents
+        .filter(
+          (doc) =>
+            doc.category === 'Certification' &&
+            /bca|coretrade|csoc|sec\s*\(/i.test(`${doc.name} ${doc.fileName}`),
+        )
+        .map((doc) => doc.employeeId),
+    );
+    const bcaTagged = active.filter((row) => bcaEmployeeIds.has(row.employeeId)).length;
+
+    return {
+      totalEmployees: active.length,
+      activeEmployees: directory.filter((row) => row.status === 'Active' || row.status === 'Probation')
+        .length,
+      localCount: active.filter((row) => row.employmentType === 'Local' || row.employmentType === 'PR')
+        .length,
+      foreignCount: active.filter((row) => foreignTypes.has(row.employmentType)).length,
+      onLeave: directory.filter((row) => row.status === 'On Leave').length,
+      newJoiners: directory.filter((row) => (row.dateOfJoining ?? '') >= cut).length,
+      onProbation: directory.filter((row) => row.status === 'Probation').length,
+      servingNotice: directory.filter((row) => row.status === 'Notice').length,
+      missingDocuments: state.documents.filter((doc) => doc.status === 'Pending').length,
+      upcomingExpiries: state.compliance.filter(
+        (row) =>
+          row.daysRemaining !== null &&
+          row.daysRemaining <= 90 &&
+          (row.status === 'Expiring' || row.status === 'Expired'),
+      ).length,
+      passRenewalsUrgent: state.compliance.filter(
+        (row) =>
+          row.category === 'Work Pass' &&
+          row.daysRemaining !== null &&
+          row.daysRemaining <= 30,
+      ).length,
+      bcaCoreTradePct:
+        active.length === 0 ? null : Math.round((bcaTagged / active.length) * 1000) / 10,
+      overtimeRiskCount: state.attendance.filter(
+        (row) => (row.otHours ?? 0) > 0 && row.status !== 'Absent',
+      ).length,
+    };
+  }
+
+  setEmployeeLifecycleStatus(
+    employeeId: string,
+    status: StaffDirectoryRow['status'],
+  ): boolean {
+    if (!this.store().profiles[employeeId]) {
+      return false;
+    }
+    this.mutate((state) => ({
+      ...state,
+      directory: state.directory.map((row) =>
+        row.employeeId === employeeId ? { ...row, status } : row,
+      ),
+      profiles: {
+        ...state.profiles,
+        [employeeId]: {
+          ...state.profiles[employeeId],
+          probationStatus:
+            status === 'Probation'
+              ? 'Probation'
+              : status === 'Active'
+                ? 'Confirmed'
+                : state.profiles[employeeId].probationStatus,
+        },
+      },
+    }));
+    return true;
+  }
+
+  resolvePayrollException(exceptionId: string): boolean {
+    const target = this.store().payrollExceptions?.find((row) => row.id === exceptionId);
+    if (!target || target.resolved) {
+      return false;
+    }
+    this.mutate((state) => ({
+      ...state,
+      payrollExceptions: (state.payrollExceptions ?? []).map((row) =>
+        row.id === exceptionId ? { ...row, resolved: true } : row,
+      ),
+    }));
+    return true;
+  }
+
+  refreshPayrollExceptions(runId: string): PayrollException[] {
+    const state = this.store();
+    const run = state.payrollRuns.find((row) => row.id === runId);
+    if (!run) {
+      return [];
+    }
+    const generated: PayrollException[] = [];
+    for (const row of state.directory.filter((d) => d.status !== 'Resigned')) {
+      const profile = state.profiles[row.employeeId];
+      if (profile && (profile.bankAccountNumber === '0000000000' || !profile.bankName)) {
+        generated.push({
+          id: `PX-BANK-${row.employeeId}-${runId}`,
+          runId,
+          employeeId: row.employeeId,
+          type: 'Missing bank',
+          severity: 'Blocker',
+          message: 'Bank details incomplete — payslip publish blocked until bank update approved.',
+          resolved: false,
+        });
+      }
+      const pendingClaims = state.claims.filter(
+        (c) => c.employeeId === row.employeeId && c.status === 'Pending',
+      );
+      if (pendingClaims.length) {
+        generated.push({
+          id: `PX-CL-${row.employeeId}-${runId}`,
+          runId,
+          employeeId: row.employeeId,
+          type: 'Claim pending',
+          severity: 'Warning',
+          message: `${pendingClaims.length} pending claim(s) may affect settlement.`,
+          resolved: false,
+        });
+      }
+    }
+    const otPending = state.attendance.filter(
+      (a) => a.otHours > 0 && !state.otApprovals[a.id],
+    );
+    for (const a of otPending.slice(0, 5)) {
+      generated.push({
+        id: `PX-OT-${a.id}-${runId}`,
+        runId,
+        employeeId: a.employeeId,
+        type: 'OT pending',
+        severity: 'Warning',
+        message: `Overtime ${a.otHours}h on ${a.date} awaiting HR approval.`,
+        resolved: false,
+      });
+    }
+
+    this.mutate((s) => ({
+      ...s,
+      payrollExceptions: [
+        ...generated,
+        ...(s.payrollExceptions ?? []).filter((row) => row.runId !== runId || row.resolved),
+      ],
+    }));
+    return generated;
+  }
+
+  upsertProject(input: Omit<ProjectRecord, 'id'> & { id?: string }): ProjectRecord {
+    const project: ProjectRecord = {
+      id: input.id ?? `PRJ-${++this.seq}`,
+      name: input.name,
+      code: input.code,
+      site: input.site,
+      status: input.status,
+      plannedHeadcount: input.plannedHeadcount,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      requiredCerts: input.requiredCerts,
+    };
+    this.mutate((state) => {
+      const list = state.projects ?? [];
+      const exists = list.some((row) => row.id === project.id);
+      return {
+        ...state,
+        projects: exists
+          ? list.map((row) => (row.id === project.id ? project : row))
+          : [project, ...list],
+      };
+    });
+    return project;
+  }
+
+  createManpowerRequest(input: {
+    projectId: string;
+    role: string;
+    skill: string;
+    headcount: number;
+    notes: string;
+  }): ManpowerRequest | { error: string } {
+    const project = this.store().projects?.find((row) => row.id === input.projectId);
+    if (!project) {
+      return { error: 'Project not found in shared store.' };
+    }
+    if (project.status !== 'Active') {
+      return { error: 'Manpower requests are only allowed for Active projects.' };
+    }
+    const request: ManpowerRequest = {
+      id: `MR-${++this.seq}`,
+      projectId: input.projectId,
+      role: input.role,
+      skill: input.skill,
+      headcount: input.headcount,
+      status: 'Open',
+      requestedOn: new Date().toISOString().slice(0, 10),
+      notes: input.notes,
+    };
+    this.mutate((state) => ({
+      ...state,
+      manpowerRequests: [request, ...(state.manpowerRequests ?? [])],
+    }));
+    return request;
+  }
+
+  decideManpowerRequest(requestId: string, approve: boolean): boolean {
+    const req = this.store().manpowerRequests?.find((row) => row.id === requestId);
+    if (!req || req.status !== 'Open') {
+      return false;
+    }
+    this.mutate((state) => ({
+      ...state,
+      manpowerRequests: (state.manpowerRequests ?? []).map((row) =>
+        row.id === requestId
+          ? { ...row, status: approve ? ('Approved' as const) : ('Rejected' as const) }
+          : row,
+      ),
+    }));
+    return true;
+  }
+
+  allocateEmployee(input: {
+    projectId: string;
+    employeeId: string;
+    role: string;
+    startDate: string;
+    endDate: string | null;
+    allocationPct: number;
+  }): ProjectAllocation | { error: string } {
+    const state = this.store();
+    const project = state.projects?.find((row) => row.id === input.projectId);
+    if (!project) {
+      return { error: 'Project not found.' };
+    }
+    if (!state.profiles[input.employeeId]) {
+      return { error: 'Employee not found.' };
+    }
+    const overlapping = (state.allocations ?? []).filter(
+      (row) =>
+        row.employeeId === input.employeeId &&
+        row.status === 'Active' &&
+        row.allocationPct + input.allocationPct > 100,
+    );
+    if (overlapping.length) {
+      return {
+        error: `Allocation conflict: employee already at ${overlapping[0].allocationPct}% on another project.`,
+      };
+    }
+    const allocation: ProjectAllocation = {
+      id: `AL-${++this.seq}`,
+      projectId: input.projectId,
+      employeeId: input.employeeId,
+      role: input.role,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      allocationPct: input.allocationPct,
+      status: 'Active',
+    };
+    this.mutate((s) => ({
+      ...s,
+      allocations: [allocation, ...(s.allocations ?? [])],
+      directory: s.directory.map((row) =>
+        row.employeeId === input.employeeId ? { ...row, projectId: input.projectId } : row,
+      ),
+    }));
+    this.pushNotification(
+      input.employeeId,
+      'System',
+      `Assigned to project ${project.name} as ${input.role} (demo).`,
+    );
+    return allocation;
+  }
+
+  endAllocation(allocationId: string): boolean {
+    const allocation = this.store().allocations?.find((row) => row.id === allocationId);
+    if (!allocation || allocation.status !== 'Active') {
+      return false;
+    }
+    this.mutate((state) => ({
+      ...state,
+      allocations: (state.allocations ?? []).map((row) =>
+        row.id === allocationId
+          ? {
+              ...row,
+              status: 'Ended',
+              endDate: new Date().toISOString().slice(0, 10),
+            }
+          : row,
+      ),
+    }));
+    return true;
+  }
+
+  verifyComplianceItem(itemId: string, approve: boolean, comments = ''): boolean {
+    const item = this.store().compliance.find((row) => row.id === itemId);
+    if (!item) {
+      return false;
+    }
+    this.mutate((state) => ({
+      ...state,
+      compliance: state.compliance.map((row) =>
+        row.id === itemId
+          ? {
+              ...row,
+              status: approve ? 'Ok' : 'Pending Review',
+              comments,
+            }
+          : row,
+      ),
+    }));
+    this.pushNotification(
+      item.employeeId,
+      'Document',
+      `${item.category} (${item.reference}) marked ${approve ? 'verified' : 'needs review'} by HR.`,
+    );
+    return true;
   }
 
   private nextEmployeeId(): string {
@@ -1236,13 +1595,23 @@ export class EmployeeMockService {
 
   private normalizeWorkforce(state: WorkforceState): WorkforceState {
     const extras = this.seedPersonalExtras();
+    const seededExtras = this.seedProjectsAndPayrollExtras();
     return {
       ...state,
       profileRequests: state.profileRequests ?? [],
       assets: state.assets ?? extras.assets,
       training: state.training ?? extras.training,
       notifications: state.notifications ?? extras.notifications,
-      policies: state.policies ?? createDefaultSystemPolicies(),
+      policies: (() => {
+        const defaults = createDefaultSystemPolicies();
+        const policies = state.policies ?? defaults;
+        return {
+          ...defaults,
+          ...policies,
+          catalogs: { ...defaults.catalogs!, ...(policies.catalogs ?? {}) },
+          hrModules: policies.hrModules?.length ? policies.hrModules : defaults.hrModules,
+        };
+      })(),
       costCentres: state.costCentres?.length
         ? state.costCentres
         : [...(state.policies?.costCentres ?? createDefaultSystemPolicies().costCentres)],
@@ -1257,6 +1626,118 @@ export class EmployeeMockService {
             ? ('Finalized' as const)
             : run.status,
       })),
+      payrollExceptions: state.payrollExceptions ?? seededExtras.payrollExceptions,
+      projects: state.projects?.length ? state.projects : seededExtras.projects,
+      manpowerRequests: state.manpowerRequests ?? seededExtras.manpowerRequests,
+      allocations: state.allocations ?? seededExtras.allocations,
+      compliance: (state.compliance ?? []).map((row) => ({
+        ...row,
+        agency:
+          row.agency ??
+          (row.category === 'ICA Record' || row.category === 'Passport' ? 'ICA' : 'MOM'),
+      })),
+      directory: (state.directory ?? []).map((row) => {
+        const profile = state.profiles?.[row.employeeId];
+        return {
+          ...row,
+          branch: row.branch ?? 'HQ — Paya Lebar',
+          projectId: row.projectId ?? null,
+          dateOfJoining: row.dateOfJoining ?? profile?.dateOfJoining ?? '',
+          probationEndDate: row.probationEndDate ?? null,
+          noticeEndDate: row.noticeEndDate ?? null,
+        };
+      }),
+    };
+  }
+
+  private seedProjectsAndPayrollExtras(): {
+    projects: ProjectRecord[];
+    manpowerRequests: ManpowerRequest[];
+    allocations: ProjectAllocation[];
+    payrollExceptions: PayrollException[];
+  } {
+    const projects: ProjectRecord[] = [
+      {
+        id: 'PRJ-1',
+        name: 'Marina Coastal Expansion',
+        code: 'PRJ-Marina',
+        site: 'Marina Bay',
+        status: 'Active',
+        plannedHeadcount: 24,
+        startDate: '2025-06-01',
+        endDate: '2027-12-31',
+        requiredCerts: ['Work-at-Height', 'CSCP'],
+      },
+      {
+        id: 'PRJ-2',
+        name: 'Jurong Site Ops',
+        code: 'PRJ-Jurong',
+        site: 'Jurong Island',
+        status: 'Active',
+        plannedHeadcount: 40,
+        startDate: '2024-01-15',
+        endDate: null,
+        requiredCerts: ['Safety Supervisor', 'Medical Clearance'],
+      },
+      {
+        id: 'PRJ-3',
+        name: 'Changi Staging Yard',
+        code: 'PRJ-Changi',
+        site: 'Changi East',
+        status: 'On Hold',
+        plannedHeadcount: 12,
+        startDate: '2026-02-01',
+        endDate: '2026-12-31',
+        requiredCerts: ['Site Induction'],
+      },
+    ];
+    return {
+      projects,
+      manpowerRequests: [
+        {
+          id: 'MR-1',
+          projectId: 'PRJ-1',
+          role: 'Site Supervisor',
+          skill: 'Civil supervision',
+          headcount: 2,
+          status: 'Open',
+          requestedOn: '2026-03-10',
+          notes: 'Peak pour schedule — demo request',
+        },
+        {
+          id: 'MR-2',
+          projectId: 'PRJ-2',
+          role: 'General Worker',
+          skill: 'Formwork',
+          headcount: 6,
+          status: 'Approved',
+          requestedOn: '2026-03-01',
+          notes: 'Approved pending allocation',
+        },
+      ],
+      allocations: [
+        {
+          id: 'AL-1',
+          projectId: 'PRJ-1',
+          employeeId: 'EY-1042',
+          role: 'Senior Civil Engineer',
+          startDate: '2025-06-01',
+          endDate: null,
+          allocationPct: 80,
+          status: 'Active',
+        },
+        {
+          id: 'AL-2',
+          projectId: 'PRJ-2',
+          employeeId: 'EY-1108',
+          role: 'Site Supervisor',
+          startDate: '2024-08-01',
+          endDate: null,
+          allocationPct: 100,
+          status: 'Active',
+        },
+      ],
+      payrollExceptions: [],
     };
   }
 
@@ -1517,6 +1998,11 @@ export class EmployeeMockService {
         mobile: '91234567',
         passportExpiry: '2028-11-02',
         medicalClearance: 'Valid',
+        branch: 'HQ — Paya Lebar',
+        projectId: 'PRJ-1',
+        dateOfJoining: '2021-03-15',
+        probationEndDate: null,
+        noticeEndDate: null,
       },
       {
         employeeId: 'EY-1108',
@@ -1532,6 +2018,11 @@ export class EmployeeMockService {
         mobile: '92345678',
         passportExpiry: '2027-01-20',
         medicalClearance: 'Valid',
+        branch: 'Jurong Yard',
+        projectId: 'PRJ-2',
+        dateOfJoining: '2022-08-01',
+        probationEndDate: null,
+        noticeEndDate: null,
       },
       {
         employeeId: 'EY-1175',
@@ -1547,6 +2038,11 @@ export class EmployeeMockService {
         mobile: '93456789',
         passportExpiry: '2029-04-01',
         medicalClearance: 'Valid',
+        branch: 'HQ — Paya Lebar',
+        projectId: null,
+        dateOfJoining: '2020-01-10',
+        probationEndDate: null,
+        noticeEndDate: null,
       },
       {
         employeeId: 'EY-1201',
@@ -1555,13 +2051,18 @@ export class EmployeeMockService {
         designation: 'General Worker',
         employmentType: 'WP',
         workLocation: 'Site',
-        status: 'Active',
+        status: 'Probation',
         passExpiry: '2026-04-28',
         contractExpiry: '2026-04-28',
         nricOrFin: 'G7654321K',
         mobile: '84561234',
         passportExpiry: '2026-06-30',
         medicalClearance: 'Missing',
+        branch: 'Marina Site Office',
+        projectId: 'PRJ-1',
+        dateOfJoining: '2026-01-15',
+        probationEndDate: '2026-07-15',
+        noticeEndDate: null,
       },
       {
         employeeId: 'EY-1022',
@@ -1570,13 +2071,18 @@ export class EmployeeMockService {
         designation: 'BIM Coordinator',
         employmentType: 'EP',
         workLocation: 'WFH',
-        status: 'Active',
+        status: 'Notice',
         passExpiry: '2027-08-19',
         contractExpiry: '2027-08-19',
         nricOrFin: 'F7654987P',
         mobile: '95671234',
         passportExpiry: '2026-06-30',
         medicalClearance: 'Valid',
+        branch: 'HQ — Paya Lebar',
+        projectId: null,
+        dateOfJoining: '2023-08-19',
+        probationEndDate: null,
+        noticeEndDate: '2026-05-31',
       },
       {
         employeeId: 'EY-0088',
@@ -1592,6 +2098,11 @@ export class EmployeeMockService {
         mobile: '90001122',
         passportExpiry: '2030-01-01',
         medicalClearance: 'Valid',
+        branch: 'HQ — Paya Lebar',
+        projectId: null,
+        dateOfJoining: '2018-05-01',
+        probationEndDate: null,
+        noticeEndDate: null,
       },
     ];
 
@@ -1619,6 +2130,7 @@ export class EmployeeMockService {
 
     const compliance: ComplianceWatchItem[] = directory.flatMap((row) => {
       const items: ComplianceWatchItem[] = [];
+      const isForeign = ['WP', 'S Pass', 'EP'].includes(row.employmentType);
       if (row.passExpiry) {
         const days = daysUntil(row.passExpiry);
         items.push({
@@ -1626,23 +2138,44 @@ export class EmployeeMockService {
           employeeId: row.employeeId,
           employeeName: row.fullName,
           category: 'Work Pass',
+          agency: 'MOM',
           reference: `${row.employmentType} · ${row.nricOrFin}`,
           expiryDate: row.passExpiry,
           daysRemaining: days,
           status: days < 0 ? 'Expired' : days <= 90 ? 'Expiring' : 'Ok',
+          checklistItem: 'MOM work-pass validity',
+          comments: '',
         });
       }
-      if (row.passportExpiry) {
+      if (row.passportExpiry && isForeign) {
         const days = daysUntil(row.passportExpiry);
         items.push({
           id: `CMP-PPT-${row.employeeId}`,
           employeeId: row.employeeId,
           employeeName: row.fullName,
           category: 'Passport',
-          reference: 'Passport validity',
+          agency: 'ICA',
+          reference: 'Passport validity (ICA travel document)',
           expiryDate: row.passportExpiry,
           daysRemaining: days,
           status: days < 0 ? 'Expired' : days <= 90 ? 'Expiring' : 'Ok',
+          checklistItem: 'ICA passport / travel document',
+          comments: '',
+        });
+      }
+      if (isForeign) {
+        items.push({
+          id: `CMP-ICA-${row.employeeId}`,
+          employeeId: row.employeeId,
+          employeeName: row.fullName,
+          category: 'ICA Record',
+          agency: 'ICA',
+          reference: 'Disembarkation / FIN record check',
+          expiryDate: null,
+          daysRemaining: null,
+          status: row.employeeId === 'EY-1201' ? 'Pending Review' : 'Ok',
+          checklistItem: 'ICA employment residency record',
+          comments: row.employeeId === 'EY-1201' ? 'Awaiting FIN card scan upload' : '',
         });
       }
       items.push({
@@ -1650,6 +2183,7 @@ export class EmployeeMockService {
         employeeId: row.employeeId,
         employeeName: row.fullName,
         category: 'Medical',
+        agency: isForeign ? 'MOM' : 'Internal',
         reference: 'Medical clearance',
         expiryDate: null,
         daysRemaining: null,
@@ -1659,6 +2193,8 @@ export class EmployeeMockService {
             : row.medicalClearance === 'Expired'
               ? 'Expired'
               : 'Missing',
+        checklistItem: isForeign ? 'MOM medical examination' : 'Company medical',
+        comments: '',
       });
       return items;
     });
@@ -2055,6 +2591,7 @@ export class EmployeeMockService {
         },
       ],
       payrollRuns,
+      ...this.seedProjectsAndPayrollExtras(),
       costCentres: ['PRJ-Marina', 'PRJ-Jurong', 'PRJ-Changi', 'OH-Structural', 'OH-Admin'],
       otApprovals: {},
       assets: this.seedPersonalExtras().assets,

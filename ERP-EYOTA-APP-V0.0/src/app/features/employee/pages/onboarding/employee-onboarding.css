@@ -1,0 +1,57 @@
+.hero-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.progress-track {
+  display: inline-block;
+  width: 120px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border-color);
+  overflow: hidden;
+}
+
+.progress-track.large {
+  width: min(240px, 40vw);
+  height: 10px;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+}
+
+.tasks,
+.docs,
+.ppe {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.tasks li,
+.docs li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.empty {
+  color: var(--text-muted);
+}

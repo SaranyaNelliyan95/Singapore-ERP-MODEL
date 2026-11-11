@@ -25,6 +25,13 @@ export class LoginComponent {
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
+  constructor() {
+    // Always start with a cleared form (no leftover credentials).
+    this.form.reset({ email: '', password: '' });
+    this.form.markAsUntouched();
+    this.form.markAsPristine();
+  }
+
   fillDemo(account: DemoAccount): void {
     this.form.setValue({ email: account.email, password: account.password });
     this.formError.set(null);
@@ -40,14 +47,12 @@ export class LoginComponent {
     this.submitting.set(true);
     this.formError.set(null);
 
-    const result = this.auth.login(this.form.getRawValue());
-    if (!result.ok) {
-      this.formError.set(result.error ?? 'Login failed.');
+    void this.auth.loginAsync(this.form.getRawValue()).then((result) => {
+      if (!result.ok) {
+        this.formError.set(result.error ?? 'Login failed.');
+      }
       this.submitting.set(false);
-      return;
-    }
-
-    this.submitting.set(false);
+    });
   }
 
   controlInvalid(name: 'email' | 'password'): boolean {

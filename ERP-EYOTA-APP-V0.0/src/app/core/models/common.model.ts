@@ -55,6 +55,13 @@ export interface StatusBadgeConfig {
   tone: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 }
 
+export interface DataTableCellAction<T> {
+  id: string;
+  label: string;
+  disabled?: boolean;
+  tone?: 'primary' | 'ghost' | 'danger';
+}
+
 export interface DataTableColumn<T> {
   key: keyof T & string;
   label: string;
@@ -63,6 +70,8 @@ export interface DataTableColumn<T> {
   align?: 'left' | 'center' | 'right';
   format?: (row: T) => string;
   badge?: (row: T) => StatusBadgeConfig | null;
+  /** Optional per-row actions rendered under the cell value (e.g. Resend invitation). */
+  actions?: (row: T) => DataTableCellAction<T>[] | null;
 }
 
 export interface EmptyStateConfig {
